@@ -41,34 +41,31 @@ class Simulation:
         self.network.vehicles.clear()
         self.brain.vehicles.clear()
         
-        print("🎮 INICIANDO SIMULACIÓN CON NUEVA CONFIGURACIÓN")
-        
-        # CREAR ESTACIONES - Ahora todas en Z=0 (nivel del suelo)
-        station1 = Station(1, "Central Station", Vector3(0, 0, 0))     
-        station2 = Station(2, "North Station", Vector3(300, 0, 0))    
-        station3 = Station(3, "South Station", Vector3(600, 0, 0))    
+        # CREAR ESTACIONES - posición corregida para mejor visualización
+        station1 = Station(1, "Central Station", Vector3(100, 0, 0))     
+        station2 = Station(2, "North Station", Vector3(400, 0, 0))    
+        station3 = Station(3, "South Station", Vector3(700, 0, 0))    
         
         self.stations.extend([station1, station2, station3])
         
-        # CREAR ÁRBOLES CORREGIDOS:
-        
-        # Árboles de ACELERACIÓN (bajan de estación a vía subterránea)
+        # CREAR ÁRBOLES CON ORIENTACIÓN CORRECTA
+        # Árboles de ACELERACIÓN (bajan)
         accel_tree1 = AccelerationTree(1, "acceleration", 
-                                    Vector3(0, 0, 0),       # En estación (nivel superficie)
-                                    Vector3(50, 0, -10))    # En vía subterránea
+                                    Vector3(100, 0, 0),     # Estación 1 (superficie)
+                                    Vector3(150, 0, -10))   # Vía subterránea
         
         accel_tree2 = AccelerationTree(2, "acceleration",
-                                    Vector3(300, 0, 0),     # En estación  
-                                    Vector3(350, 0, -10))   # En vía subterránea
+                                    Vector3(400, 0, 0),     # Estación 2 (superficie)
+                                    Vector3(450, 0, -10))   # Vía subterránea
         
-        # Árboles de DESACELERACIÓN (suben de vía subterránea a estación)
+        # Árboles de DESACELERACIÓN (suben)
         decel_tree2 = AccelerationTree(3, "deceleration",
-                                    Vector3(250, 0, -10),   # En vía subterránea
-                                    Vector3(300, 0, 0))     # En estación
+                                    Vector3(350, 0, -10),   # Vía subterránea
+                                    Vector3(400, 0, 0))     # Estación 2 (superficie)
                                     
         decel_tree3 = AccelerationTree(4, "deceleration",
-                                    Vector3(550, 0, -10),   # En vía subterránea  
-                                    Vector3(600, 0, 0))     # En estación
+                                    Vector3(650, 0, -10),   # Vía subterránea
+                                    Vector3(700, 0, 0))     # Estación 3 (superficie)
         
         # Asignar árboles a estaciones
         station1.add_acceleration_tree(accel_tree1)
@@ -76,32 +73,33 @@ class Simulation:
         station2.add_deceleration_tree(decel_tree2) 
         station3.add_deceleration_tree(decel_tree3)
         
-        # CREAR CONECTORES SUBTERRÁNEOS (en Z=-10)
-        connector1 = StationConnector(1, station1, station2, 300.0)
-        connector2 = StationConnector(2, station2, station3, 300.0)
+        # CREAR CONECTORES SUBTERRÁNEOS (con longitudes ajustadas)
+        connector1 = StationConnector(1, station1, station2, 250.0)  # 400-150 = 250m
+        connector2 = StationConnector(2, station2, station3, 250.0)  # 700-450 = 250m
         
         self.connectors.append(connector1)
         self.connectors.append(connector2)
         self.network.add_connector(connector1)
         self.network.add_connector(connector2)
         
-        # CREAR VEHÍCULOS
+        # CREAR VEHÍCULOS CON POSICIONES INICIALES MEJORADAS
         for i in range(3):
-            # Posición inicial en la estación (superficie)
-            start_pos = Vector3(i * 5, 0, 0)
-            vehicle = ModularVehicle(i, 20, start_pos)
-            
-            # Asignar rutas
+            # Posición inicial en la estación correspondiente
             if i % 2 == 0:
-                # VM0 y VM2: Estación 1 → Estación 2
+                # VM0 y VM2 comienzan en estación 1
+                start_pos = Vector3(100 + i * 5, 0, 0)
+                vehicle = ModularVehicle(i, 20, start_pos)
                 success = self.brain.assign_vehicle_to_route(vehicle, station1, station2)
             else:
-                # VM1: Estación 2 → Estación 3  
+                # VM1 comienza en estación 2  
+                start_pos = Vector3(400 + i * 5, 0, 0)
+                vehicle = ModularVehicle(i, 20, start_pos)
                 success = self.brain.assign_vehicle_to_route(vehicle, station2, station3)
             
             if success:
                 self.brain.add_vehicle(vehicle)
                 self.vehicles.append(vehicle)
+                print(f"DEBUG: VM {vehicle.id} asignado a ruta completa")
 
     def update(self, dt):                                                                       # Acutaliza la simulacion basada en el tiempo real
         # Escalar delta time por la escala de tiempo

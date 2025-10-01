@@ -54,19 +54,15 @@ class Brain:
             print(f"🔄 VM {vehicle.id} terminó aceleración → pasa a conector")
             vehicle.current_state = "on_connector"
             vehicle.distance_traveled_on_tree = 0.0
-            # Posicionar al inicio del conector
-            vehicle.position = Vector3(vehicle.current_connector.origin_station.position.x,
-                                     vehicle.current_connector.origin_station.position.y,
-                                     vehicle.current_connector.origin_station.position.z)
+            # NO reposicionar - mantener posición actual (final del árbol)
+            # vehicle.position se mantiene igual
             
         elif current_state == "on_connector":
             print(f"🔄 VM {vehicle.id} terminó conector → pasa a desaceleración")
             vehicle.current_state = "on_deceleration_tree"
             vehicle.distance_traveled_on_tree = 0.0
-            # Posicionar al inicio del árbol de desaceleración
-            vehicle.position = Vector3(vehicle.deceleration_tree.start_position.x,
-                                     vehicle.deceleration_tree.start_position.y,
-                                     vehicle.deceleration_tree.start_position.z)
+            # NO reposicionar - mantener posición actual (final del conector)
+            # vehicle.position se mantiene igual
             
         elif current_state == "on_deceleration_tree":
             print(f"🔄 VM {vehicle.id} terminó desaceleración → llega a estación")

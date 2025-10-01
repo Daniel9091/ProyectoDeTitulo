@@ -22,7 +22,7 @@ class StationConnector:
             return self._move_with_trees(vehicle, dt)
         else:
             return self._move_constant_velocity(vehicle, dt)
-    
+
     def _move_constant_velocity(self, vehicle, dt):
         # DEBUG antes
         debug_before = f"VM {vehicle.id} en conector {self.id}: "
@@ -33,14 +33,26 @@ class StationConnector:
         distance = self.network_velocity * dt
         vehicle.distance_traveled_on_tree += distance
         
+        # Calcular progreso basado en la distancia recorrida
         progress = min(vehicle.distance_traveled_on_tree / self.length, 1.0)
         
-        start = self.origin_station.position
-        end = self.destination_station.position
+        # Calcular posición usando interpolación lineal desde la posición ACTUAL
+        # en lugar de desde el inicio fijo del conector
+        direction_x = self.destination_station.position.x - self.origin_station.position.x
+        direction_z = self.destination_station.position.z - self.origin_station.position.z
         
-        vehicle.position.x = start.x + (end.x - start.x) * progress
-        vehicle.position.y = start.y + (end.y - start.y) * progress  
-        vehicle.position.z = start.z + (end.z - start.z) * progress
+        # Normalizar dirección
+        dir_length = math.sqrt(direction_x**2 + direction_z**2)
+        if dir_length > 0:
+            direction_x /= dir_length
+            direction_z /= dir_length
+        
+        # Mover en la dirección del conector desde la posición actual
+        move_x = direction_x * distance
+        move_z = direction_z * distance
+        
+        vehicle.position.x += move_x
+        vehicle.position.z += move_z
         
         vehicle.velocity = self.network_velocity
         
@@ -54,7 +66,7 @@ class StationConnector:
         if completed:
             print(f"✅ VM {vehicle.id} COMPLETÓ conector {self.id}")
         
-        return completed
+        return completed   
     
     def _move_with_trees(self, vehicle, dt):
         for tree in self.acceleration_trees:
