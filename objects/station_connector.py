@@ -2,66 +2,39 @@ from objects.base import Vector3
 import math
 
 class StationConnector:
-    def __init__(self, id: int, origin_station, destination_station, length: float, shape: str = "straight"):                   # Inicia objeto con sus atributos
-        self.id = id                                        # Para poder reconocerlo
-        self.origin_station = origin_station                # Estacion de origen que da el punto de partida para el conector 
-        self.destination_station = destination_station      # Mismo comentario anterior
+    def __init__(self, id: int, origin_station, destination_station, length: float, shape: str = "straight"):
+        self.id = id
+        self.origin_station = origin_station
+        self.destination_station = destination_station
         self.length = length
-        self.shape = shape                                  # "straight", "curve", etc. 
-        self.acceleration_trees = []                        # Los arboles de acceleracion que se desprenden de la via
+        self.shape = shape
+        self.acceleration_trees = []
         self.vehicles = []
-        self.network_velocity = 10.0                        # POR MIENTRAS, DEBERIA SACARLA DE NETWORK m/s
+        self.network_velocity = 10.0
+        
+        print(f"🛣️  Conector {id} creado:")
+        print(f"   Desde: Estación {origin_station.id} ({origin_station.position.x}, {origin_station.position.z})")
+        print(f"   Hasta: Estación {destination_station.id} ({destination_station.position.x}, {destination_station.position.z})")
+        print(f"   Longitud: {length}m")
     
-    def add_acceleration_tree(self, tree):                              # Añade arboles de aceleracion a la via
-        self.acceleration_trees.append(tree)
-    
-    def calculate_trajectory(self, vehicle):                            # Calcula la trayectoria general del MV (arbol de acelaracion y via)
-        """Calculate the trajectory through this connector"""
-        trajectory = []
-        
-        # Add positions through each acceleration tree
-        current_pos = vehicle.position
-        for tree in self.acceleration_trees:
-            # Calculate points along this tree
-            points = self._calculate_tree_points(tree, current_pos)
-            trajectory.extend(points)
-            current_pos = points[-1] if points else current_pos
-        
-        return trajectory
-    
-    def _calculate_tree_points(self, tree, start_pos):                  # Calcula los puntos discretos a lo largo e un arbol de aceleracion
-        points = []
-        slope_rad = math.radians(tree.slope)                            # Combierte a radianes
-        
-        for i in range(10):                                             # 10 puntos equidistantes para cada arbol
-            progress = i / 9.0
-            distance = tree.length * progress                           # Progreso calculado con lenght
-
-            # Calclo de la posicion 3D teniendo considerando la pendiente
-            x = start_pos.x + distance * math.cos(slope_rad)
-            z = start_pos.z + distance * math.sin(slope_rad)
-            
-            points.append(Vector3(x, start_pos.y, z))                   # Aca se añaden los puntos para el calculo (el z sin profundidad, y la distancia calculada con lenght)
-        
-        return points
-
-    def update_vehicle_movement(self, vehicle, dt):                     # Maneja movimiento según tipo de conector
+    def update_vehicle_movement(self, vehicle, dt):
         if self.acceleration_trees:
-            # Movimiento con árboles de aceleración
             return self._move_with_trees(vehicle, dt)
         else:
-            # Movimiento a velocidad constante de red
             return self._move_constant_velocity(vehicle, dt)
     
+    def _move_constant_velocity(self, vehicle, dt):
+        # DEBUG antes
+        debug_before = f"VM {vehicle.id} en conector {self.id}: "
+        debug_before += f"Pos=({vehicle.position.x:.1f},{vehicle.position.z:.1f}) "
+        debug_before += f"Dist={vehicle.distance_traveled_on_tree:.1f}/{self.length:.1f}"
+        print(debug_before)
         
-    def _move_constant_velocity(self, vehicle, dt):                     # Mueve VM a velocidad constante de la red
         distance = self.network_velocity * dt
         vehicle.distance_traveled_on_tree += distance
         
-        # Calcular progreso en el conector (0 a 1)
         progress = min(vehicle.distance_traveled_on_tree / self.length, 1.0)
         
-        # Actualizar posición 3D (interpolación lineal simple)
         start = self.origin_station.position
         end = self.destination_station.position
         
@@ -69,33 +42,22 @@ class StationConnector:
         vehicle.position.y = start.y + (end.y - start.y) * progress  
         vehicle.position.z = start.z + (end.z - start.z) * progress
         
-        # Mantener velocidad constante
         vehicle.velocity = self.network_velocity
         
-        return vehicle.distance_traveled_on_tree >= self.length
-
-    def _move_with_trees(self, vehicle, dt):                            # Movimiento con árboles de aceleración
+        # DEBUG después
+        debug_after = f"  -> Movimiento: +{distance:.2f}m, "
+        debug_after += f"Nueva Pos=({vehicle.position.x:.1f},{vehicle.position.z:.1f}) "
+        debug_after += f"Progreso={progress:.2f}"
+        print(debug_after)
+        
+        completed = vehicle.distance_traveled_on_tree >= self.length
+        if completed:
+            print(f"✅ VM {vehicle.id} COMPLETÓ conector {self.id}")
+        
+        return completed
+    
+    def _move_with_trees(self, vehicle, dt):
         for tree in self.acceleration_trees:
             if not tree.execute_movement(vehicle, dt):
                 return False
         return True
-
-
-# Siguente mejora:
-# 0.
-# agregar un atributo z que de la profundidad de la via
-
-
-###### Notas importantes de la clase #####
-# 1.
-# para los atributos de estacion de origen y estacion final, podria ser buena idea combertirlos en vector inicial y final para no depender de las estaciones
-# y poder controlar la altura en la que se encuentra la via (v2)
-
-# 2.
-# el lenght no se por que tiene que ser entregado, puede ser calculado segun la funcion o la resta de las distintas cordenadas (v2)
-
-# 3.
-# para tramos curbos el shape puede ser clave para definir si la funcion se va a comportar como una recta o como una curva (v3)
-
-# 4.
-# No me gusta que se calcule la trayectoria completa del MV aca, solo se debira calcular la trayectoria de el MV miettras este en esta via (v1)

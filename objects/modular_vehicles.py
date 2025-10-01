@@ -12,13 +12,15 @@ class ModularVehicle:
         self.current_connector = None
         self.distance_traveled_on_tree = 0.0
         
-        # NUEVO: Estados de segmentos y árboles
-        self.current_state = "idle"  # "on_acceleration_tree", "on_connector", "on_deceleration_tree"
+        # Estados de segmentos y árboles
+        self.current_state = "idle"
         self.acceleration_tree = None
         self.deceleration_tree = None
+        
+        # DEBUG: Historial de posiciones
+        self.position_history = []
     
     def assign_route(self, connector, destination_station, acceleration_tree, deceleration_tree):
-        """Asigna ruta completa con todos los segmentos"""
         self.current_connector = connector
         self.destination_station = destination_station
         self.acceleration_tree = acceleration_tree
@@ -28,10 +30,16 @@ class ModularVehicle:
         self.distance_traveled_on_tree = 0.0
         
         # Posicionar en el inicio del árbol de aceleración
-        self.position = acceleration_tree.start_position
+        self.position = Vector3(acceleration_tree.start_position.x, 
+                              acceleration_tree.start_position.y, 
+                              acceleration_tree.start_position.z)
+        
+        print(f"🚀 VM {self.id} INICIA RUTA:")
+        print(f"   Estado: {self.current_state}")
+        print(f"   Posición inicial: ({self.position.x:.1f}, {self.position.y:.1f}, {self.position.z:.1f})")
+        print(f"   Destino: Estación {destination_station.id}")
     
     def get_current_segment(self):
-        """Obtiene el segmento actual según el estado"""
         if self.current_state == "on_acceleration_tree":
             return self.acceleration_tree
         elif self.current_state == "on_connector":
@@ -40,8 +48,26 @@ class ModularVehicle:
             return self.deceleration_tree
         return None
     
+    def get_debug_info(self):
+        segment = self.get_current_segment()
+        segment_type = "None"
+        if segment:
+            if hasattr(segment, 'type'):
+                segment_type = f"Tree_{segment.id}({segment.type})"
+            else:
+                segment_type = f"Connector_{segment.id}"
+        
+        return {
+            'vm_id': self.id,
+            'state': self.current_state,
+            'position': (self.position.x, self.position.y, self.position.z),
+            'velocity': self.velocity,
+            'distance_traveled': self.distance_traveled_on_tree,
+            'segment': segment_type
+        }
+    
     def arrive_at_station(self):
-        """Llegada a estación destino"""
+        print(f"🏁 VM {self.id} LLEGA A ESTACIÓN {self.destination_station.id}")
         self.state = "alighting"
         self.velocity = 0.0
         self.current_connector = None
@@ -50,14 +76,3 @@ class ModularVehicle:
         if self.destination_station:
             self.destination_station.process_arrival(self)
             self.destination_station = None
-
-#### Notas clase #####
-
-# 1.
-# no se el por que el atributo d distancia en el arbol de acelreacion
-
-# 2.
-# se deben revisar bien las responsabilidades de cada una de las clases
-# para que no hallan problemas
-
-# se deben revisar bien los atributos de las clases para que se ocupen bien
