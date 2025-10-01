@@ -1,67 +1,58 @@
-class Brain:                                        # Cordina toda la operacion de transporte
+class Brain:
     def __init__(self, network):
-        self.network = network                      # Red que controla
-        self.vehicles = []                          # Vehiculos que considera
-        self.circular_position = 0                  # Indice para seleccion circular de vehiculos, cola de la serpiente
-
+        self.network = network
+        self.vehicles = []
         self.connectors = network.connectors
-        self.pending_transitions = []
-
-    def add_vehicle(self, vehicle):                 # Añadir Vms al sistema
+    
+    def add_vehicle(self, vehicle):
         self.vehicles.append(vehicle)
         self.network.vehicles.append(vehicle)
-
-    def assign_vehicle_to_route(self, vehicle, origin_station, destination_station):     # asigna ruta valia a un VM entre estacion de origen y de destino
-        connector = self.network.find_route(origin_station.id, destination_station.id)
-        if connector:
-            vehicle.assign_route(connector, destination_station)
-            return True
-        return False
     
-    # FUNCION CRITICA, SE LLAMA DESDE LA SIMULACION
-    def update(self, dt):                           # Update teh etrie system
-        # 1. Network actualiza posiciones y retorna VMs que completaron
+    def assign_vehicle_to_route(self, vehicle, origin_station, destination_station):
+        """Asigna ruta completa: árbol_aceleración → conector → árbol_desaceleración"""
+        # 1. Encontrar conector principal
+        connector = self.network.find_route(origin_station.id, destination_station.id)
+        if not connector:
+            return False
+        
+        # 2. Obtener árboles de las estaciones
+        acceleration_tree = origin_station.get_acceleration_tree()
+        deceleration_tree = destination_station.get_deceleration_tree()
+        
+        if not acceleration_tree or not deceleration_tree:
+            return False
+        
+        # 3. Asignar ruta completa al vehículo
+        vehicle.assign_route(connector, destination_station, acceleration_tree, deceleration_tree)
+        return True
+    
+    def update(self, dt):
+        """Actualiza todo el sistema con nueva lógica de segmentos"""
         completed_vehicles = self.network.update_vehicle_movements(dt)
         
-        # 2. Procesar VMs que completaron sus conectores
         for vehicle in completed_vehicles:
-            self._handle_connector_completion(vehicle)
-
-    def _process_transitions(self):                 # Maneja los Vms que terminaron su conetor actual
-        for vehicle in self.vehicles:
-            if vehicle.current_connector and self._is_connector_completed(vehicle):
-                self._handle_connector_completion(vehicle)
-
-    def _is_connector_completed(self, vehicle):     # Verifica si un VM completó su conector actual
-        return vehicle.distance_traveled_on_tree >= vehicle.current_connector.length
-
-    def _handle_connector_completion(self, vehicle):                # Maneja cuando un VM termina un conector
-        current_connector = vehicle.current_connector
-        current_station = current_connector.destination_station
-        
-        # Limpiar del conector actual
-        if vehicle in current_connector.vehicles:
-            current_connector.vehicles.remove(vehicle)
-        
-        # Lógica simple: si es la estación destino, llega
-        if current_station.id == vehicle.destination_station.id:
-            vehicle.arrive_at_station()
-        else:
-            # Buscar siguiente conector hacia el destino
-            next_connector = self.network.find_route(
-                current_station.id, 
-                vehicle.destination_station.id
-            )
-            if next_connector:
-                self._assign_vehicle_to_connector(vehicle, next_connector)
-            else:
-                # No hay ruta, llega forzadamente
-                vehicle.arrive_at_station()
+            self._handle_segment_completion(vehicle)
     
-    def _assign_vehicle_to_connector(self, vehicle, connector):     # Asigna un VM a un conector espesifico 
-        vehicle.current_connector = connector
-        vehicle.distance_traveled_on_tree = 0.0
-        connector.vehicles.append(vehicle)
+    def _handle_segment_completion(self, vehicle):
+        """Maneja cuando un VM completa un segmento de su ruta"""
+        current_state = vehicle.current_state
+        
+        if current_state == "on_acceleration_tree":
+            # Terminó árbol de aceleración, pasar al conector
+            print(f"DEBUG: VM {vehicle.id} pasando a conector")
+            vehicle.current_state = "on_connector"
+            vehicle.distance_traveled_on_tree = 0.0
+            
+        elif current_state == "on_connector":
+            # Terminó conector, pasar a árbol de desaceleración
+            print(f"DEBUG: VM {vehicle.id} pasando a árbol desaceleración")
+            vehicle.current_state = "on_deceleration_tree"
+            vehicle.distance_traveled_on_tree = 0.0
+            
+        elif current_state == "on_deceleration_tree":
+            # Terminó árbol de desaceleración, llegar a estación
+            print(f"DEBUG: VM {vehicle.id} llegando a estación")
+            vehicle.arrive_at_station()
 
 
 #### Notas Clase ####

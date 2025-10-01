@@ -7,7 +7,28 @@ class Station:
         self.position = position            # Cordenadas (x,y,z) de donde esta la estacion
         self.lanes = []                     # Lista de carriles por estacion (por ahora van a ser simpre 1 por simplificacion)
         self.passengers_waiting = []        # Lista de pasajeros que esperan en la estacion
+
+        # NUEVO: Árboles de aceleración (salida) y desaceleración (entrada)
+        self.acceleration_trees = []  # Para salir de la estación
+        self.deceleration_trees = []  # Para entrar a la estación
+
+    def add_acceleration_tree(self, tree):
+        """Añade árbol de aceleración (salida)"""
+        self.acceleration_trees.append(tree)
     
+    def add_deceleration_tree(self, tree):
+        """Añade árbol de desaceleración (entrada)"""
+        self.deceleration_trees.append(tree)
+    
+    def get_acceleration_tree(self):
+        """Obtiene un árbol de aceleración disponible"""
+        return self.acceleration_trees[0] if self.acceleration_trees else None
+    
+    def get_deceleration_tree(self):
+        """Obtiene un árbol de desaceleración disponible"""
+        return self.deceleration_trees[0] if self.deceleration_trees else None
+
+
     def assign_lane(self, passenger):                                                       # Asignacion del pasajero al carril (implementacion simple)
         for lane in self.lanes:
             if lane.direction == "exit" and len(lane.vehicles) > 0:
