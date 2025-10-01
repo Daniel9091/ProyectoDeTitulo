@@ -9,8 +9,7 @@ class AccelerationTree:
         self.length = length  # meters
         self.position = position
     
-    def calculate_trajectory(self, vehicle, initial_velocity=0):
-        """Calculate trajectory based on gravity and slope"""
+    def calculate_trajectory(self, vehicle, initial_velocity=0):        # Calculate trajectory based on gravity and slope"""
         g = 9.81  # gravity m/s²
         
         if self.type == "constant":
@@ -33,19 +32,15 @@ class AccelerationTree:
         
         return acceleration, final_velocity, time
     
-    def execute_movement(self, vehicle, dt):
-        """Execute movement along the acceleration tree"""
+    def execute_movement(self, vehicle, dt):                        # Execute movement along the acceleration tree
+        # Si ya completó este árbol, retornar True inmediatamente
         if vehicle.distance_traveled_on_tree >= self.length:
-            return True  # Tree completed
+            return True
         
         if self.type == "constant":
             # Movement at constant velocity
             distance = vehicle.velocity * dt
             vehicle.distance_traveled_on_tree += distance
-            
-            # Calculate 3D position along the tree
-            progress_ratio = vehicle.distance_traveled_on_tree / self.length
-            vehicle.position.x = self.position.x + progress_ratio * self.length
         else:
             slope_rad = math.radians(self.slope)
             g = 9.81
@@ -61,12 +56,16 @@ class AccelerationTree:
             # Update position along the slope
             distance = vehicle.velocity * dt
             vehicle.distance_traveled_on_tree += distance
-            
-            # Calculate 3D position along the tree
-            progress_ratio = vehicle.distance_traveled_on_tree / self.length
-            height_change = self.length * math.sin(slope_rad) * progress_ratio
-            
-            vehicle.position.x = self.position.x + progress_ratio * self.length * math.cos(slope_rad)
-            vehicle.position.z = self.position.z + height_change
+        
+        # Calcular posición 3D
+        progress_ratio = vehicle.distance_traveled_on_tree / self.length
+        slope_rad = math.radians(self.slope)
+        
+        vehicle.position.x = self.position.x + progress_ratio * self.length * math.cos(slope_rad)
+        vehicle.position.z = self.position.z + progress_ratio * self.length * math.sin(slope_rad)
+        
+        # DEBUG: Mostrar progreso
+        if vehicle.distance_traveled_on_tree >= self.length:
+            print(f"DEBUG: Tree {self.id} completado por VM {vehicle.id}")
         
         return vehicle.distance_traveled_on_tree >= self.length

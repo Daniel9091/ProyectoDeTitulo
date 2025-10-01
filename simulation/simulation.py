@@ -38,6 +38,7 @@ class Simulation:
         self.connectors.clear()
         self.network.connectors.clear()
         self.network.vehicles.clear()
+        self.brain.vehicles.clear()
         
         # Crear estaciones en posiciones fijas simples
         station1 = Station(1, "Central Station", Vector3(0, 0, 0))
@@ -58,41 +59,41 @@ class Simulation:
         self.connectors.append(connector2)
         self.network.add_connector(connector1)
         self.network.add_connector(connector2)
-        
-        # Crear vehículos en posiciones iniciales y asignar rutas
+
+        # NUEVO: Crear vehículos usando Brain
         for i in range(3):
-            # Posicionar vehículos cerca de la primera estación
             start_pos = Vector3(i * 10, 0, 0)
             vehicle = ModularVehicle(i, 20, start_pos)
             
-            # Asignar ruta al vehículo
+            # Asignar ruta usando Brain
             if i % 2 == 0:
-                self.brain.assign_vehicle_to_route(vehicle, station1, station2)
+                success = self.brain.assign_vehicle_to_route(vehicle, station1, station2)
             else:
-                self.brain.assign_vehicle_to_route(vehicle, station2, station3)
-                
-            # Dar una velocidad inicial para que se muevan
-            vehicle.velocity = 5.0  # m/s                                               # Por ahora esto esta raro, velocidad para que partan desde arriba (estacion)
-    
-            self.vehicles.append(vehicle)
-            self.network.vehicles.append(vehicle)
+                success = self.brain.assign_vehicle_to_route(vehicle, station2, station3)
+            
+            if success:
+                # NUEVO: Añadir vehículo al sistema través de Brain
+                self.brain.add_vehicle(vehicle)
+                self.vehicles.append(vehicle)
     
     def update(self, dt):                                                                       # Acutaliza la simulacion basada en el tiempo real
         # Escalar delta time por la escala de tiempo
         scaled_dt = dt * self.time_scale
         
-        # Manejar rebobinado temporal
-        current_time = pygame.time.get_ticks() / 1000.0
-        if self.rewinding:                                                                      # Si se esta rebobinando, mover vehiculos hacia atras   
+        # Usar Brain para actualizar todo el sistema
+        if self.rewinding:
+            current_time = pygame.time.get_ticks() / 1000.0
             elapsed = current_time - self.rewind_start_time
             if elapsed < self.rewind_duration:
-                self.network.update_vehicle_positions(-scaled_dt * 2.0)
+                # Rebobinado temporal (simplificado)
+                self.brain.update(-scaled_dt * 2.0)
             else:
                 self.rewinding = False
                 self.time_scale = self.pre_rewind_scale
-        else:                                                                                   # Actualizar posiciones de vehiculos normalmente            
-            self.network.update_vehicle_positions(scaled_dt)
-    
+        else:
+            # Actualización normal usando Brain
+            self.brain.update(scaled_dt)
+
     def handle_command(self, command):                                                          # Maneja comandos de entrada para controlar la simulación y la cámara
         # Control de escala de tiempo
         if command == "time_scale_up":

@@ -6,7 +6,7 @@ python3 -m simulation.main
 ### Notas Ultima reunion con profesor:
 - cada tramo tiene su funcion de movimiento
 - el cerebro sabe el orden de los tramos
-- cada tramo sabe cuales son los proxios
+- cada tramo sabe cuales son los proximos
 
 
 ### Por hacer:

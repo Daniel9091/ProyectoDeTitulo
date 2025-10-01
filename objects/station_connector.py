@@ -10,6 +10,7 @@ class StationConnector:
         self.shape = shape                                  # "straight", "curve", etc. 
         self.acceleration_trees = []                        # Los arboles de acceleracion que se desprenden de la via
         self.vehicles = []
+        self.network_velocity = 10.0                        # POR MIENTRAS, DEBERIA SACARLA DE NETWORK m/s
     
     def add_acceleration_tree(self, tree):                              # Añade arboles de aceleracion a la via
         self.acceleration_trees.append(tree)
@@ -43,26 +44,46 @@ class StationConnector:
             points.append(Vector3(x, start_pos.y, z))                   # Aca se añaden los puntos para el calculo (el z sin profundidad, y la distancia calculada con lenght)
         
         return points
+
+    def update_vehicle_movement(self, vehicle, dt):                     # Maneja movimiento según tipo de conector
+        if self.acceleration_trees:
+            # Movimiento con árboles de aceleración
+            return self._move_with_trees(vehicle, dt)
+        else:
+            # Movimiento a velocidad constante de red
+            return self._move_constant_velocity(vehicle, dt)
     
-    def update_vehicle_movement(self, vehicle, dt):                     # Actualiza movimiento dle vehiculo a travez del conector
-        if not self.acceleration_trees:                                 # Retorna Falso si no hay arboles de aceleracion definidos
-            return False
         
-        # Movimiento a travezz de cada arbol de aceleracion en secuencia
-        for tree in self.acceleration_trees:                        
+    def _move_constant_velocity(self, vehicle, dt):                     # Mueve VM a velocidad constante de la red
+        distance = self.network_velocity * dt
+        vehicle.distance_traveled_on_tree += distance
+        
+        # Calcular progreso en el conector (0 a 1)
+        progress = min(vehicle.distance_traveled_on_tree / self.length, 1.0)
+        
+        # Actualizar posición 3D (interpolación lineal simple)
+        start = self.origin_station.position
+        end = self.destination_station.position
+        
+        vehicle.position.x = start.x + (end.x - start.x) * progress
+        vehicle.position.y = start.y + (end.y - start.y) * progress  
+        vehicle.position.z = start.z + (end.z - start.z) * progress
+        
+        # Mantener velocidad constante
+        vehicle.velocity = self.network_velocity
+        
+        return vehicle.distance_traveled_on_tree >= self.length
+
+    def _move_with_trees(self, vehicle, dt):                            # Movimiento con árboles de aceleración
+        for tree in self.acceleration_trees:
             if not tree.execute_movement(vehicle, dt):
-                return False                                            # Continua con el movimiento
-        
-        return True                                                     # Conector completado
-    
+                return False
+        return True
 
 
 # Siguente mejora:
 # 0.
 # agregar un atributo z que de la profundidad de la via
-
-
-
 
 
 ###### Notas importantes de la clase #####

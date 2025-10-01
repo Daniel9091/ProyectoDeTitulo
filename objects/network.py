@@ -15,13 +15,18 @@ class Network:
         return None
     
     # (FUNCION CRITICA QUE SE LLAMA DESDE BRAIN)
-    def update_vehicle_positions(self, dt):                             # Actualiza las posiciones de todos los VM
+    def update_vehicle_movements(self, dt):                             # Actualiza movimiento de cada VM en su conector actual
+        completed_vehicles = []
+        
         for vehicle in self.vehicles:
             if vehicle.current_connector:
+                # Delegar movimiento al conector actual
                 connector_completed = vehicle.current_connector.update_vehicle_movement(vehicle, dt)
                 if connector_completed:
-                    vehicle.arrive_at_station()
-
+                    completed_vehicles.append(vehicle)
+        
+        # Retornar lista de VMs que completaron sus conectores
+        return completed_vehicles
 
 #### Notas de la clase #####
 
@@ -30,3 +35,7 @@ class Network:
 # pero la red nesesita saber los conectores que tiene
 # considere que el vm sabe en que tramo va
 # puede darse que esta inconsistencia sirva para las consultas futuras
+
+
+
+### Responsabilidades de la clase ###
