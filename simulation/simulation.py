@@ -32,7 +32,7 @@ class Simulation:
         self.init_simulation()
     
     def init_simulation(self):
-        # LIMPIEZA COMPLETA
+        # Limpieza completa
         self.vehicles.clear()
         self.stations.clear()
         self.connectors.clear()
@@ -54,7 +54,7 @@ class Simulation:
         for station in self.stations:
             self.brain.add_station(station)
         
-        # CREAR ÁRBOLES DE ACELERACIÓN/DESACELERACIÓN CON PARÁMETROS CORRECTOS
+        # CREAR ÁRBOLES DE ACELERACIÓN/DESACELERACIÓN
         # Árboles de BAJADA (salida)
         accel_tree1 = AccelerationTree(1, Vector3(100, 0, 0), Vector3(150, 0, -20), "down", station_id=1)
         accel_tree2 = AccelerationTree(2, Vector3(400, 0, 0), Vector3(450, 0, -20), "down", station_id=2)
@@ -91,43 +91,56 @@ class Simulation:
             self.network.add_track(connector)
         
         # CONFIGURAR RED COMPLETA DE CONEXIONES
-        # Conexiones desde árboles de salida
+        # Ruta: Estación 1 → Estación 2
         self.network.connect_tracks(1, 7)  # accel_tree1 -> connector1
+        self.network.connect_tracks(7, 5)  # connector1 -> decel_tree2
+        
+        # Ruta: Estación 2 → Estación 3
         self.network.connect_tracks(2, 8)  # accel_tree2 -> connector2
-        self.network.connect_tracks(3, 8)  # accel_tree3 -> connector2 (para futuras rutas)
+        self.network.connect_tracks(8, 6)  # connector2 -> decel_tree3
         
-        # Conexiones desde connectors
-        self.network.connect_tracks(7, 5)  # connector1 -> decel_tree2 (estación 2)
-        self.network.connect_tracks(7, 6)  # connector1 -> decel_tree3 (estación 3 - ruta alternativa)
-        self.network.connect_tracks(8, 6)  # connector2 -> decel_tree3 (estación 3)
-        
-        # CREAR Y CONFIGURAR VEHÍCULO CORRECTAMENTE
+        # CREAR Y CONFIGURAR VEHÍCULO
         vm1 = ModularVehicle(1, 20, Vector3(100, 0, 0))
         
-        # ASIGNAR RUTA USANDO BRAIN (CORREGIDO)
+        # ASIGNAR RUTA USANDO BRAIN
         success = self.brain.assign_vehicle_to_route(vm1, station1, station2)
         
         if success:
             self.brain.add_vehicle(vm1)
             self.vehicles.append(vm1)
             
-            # PREPARAR VEHÍCULO PARA SALIR (USANDO EL FLUJO NORMAL)
-            station1.undock_vehicle(vm1, 2)  # Destino: estación 2
+            # CORRECCIÓN CRÍTICA: Forzar la salida inmediata del vehículo
+            # En lugar de solo undock, transferir directamente al árbol de salida
+            if station1.departure_trees:
+                departure_tree = station1.departure_trees[0]
+                
+                # Remover de estación y agregar al árbol de salida
+                if vm1 in station1.docked_vehicles:
+                    station1.docked_vehicles.remove(vm1)
+                
+                # Agregar al árbol de salida con posición inicial
+                departure_tree.add_vehicle(vm1)
+                vm1.current_track = departure_tree
+                vm1.state = "accelerating_down"
+                
+                # Actualizar posición inicial del vehículo
+                vm1.current_position = Vector3(100, 0, 0)
+                
+                print(f"✓ VM {vm1.vehicle_id} posicionado en árbol de salida")
+                print(f"✓ Estado: {vm1.state}")
+                print(f"✓ Track actual: {vm1.current_track.track_id if vm1.current_track else 'None'}")
             
             print(f"✓ VM {vm1.vehicle_id} configurado correctamente")
             print(f"✓ Ruta: Estación 1 → Estación 2")
-            print(f"✓ Estado inicial: {vm1.state}")
             
             # DEBUG: Verificar configuración
             print(f"✓ Estaciones en Brain: {list(self.brain.stations.keys())}")
             print(f"✓ Vehículos en Brain: {list(self.brain.vehicles.keys())}")
             print(f"✓ Tracks en Network: {len(self.network.tracks)}")
+            print(f"✓ Conexiones en Network: {self.network.adjacency}")
         else:
             print(f"✗ ERROR: No se pudo asignar ruta al VM {vm1.vehicle_id}")
-            # Debug detallado
-            print(f"  - Estación 1 en Brain: {1 in self.brain.stations}")
-            print(f"  - Estación 2 en Brain: {2 in self.brain.stations}")
-   
+            
     def update(self, dt):                                                                       # Acutaliza la simulacion basada en el tiempo real
         # Escalar delta time por la escala de tiempo
         scaled_dt = dt * self.time_scale
