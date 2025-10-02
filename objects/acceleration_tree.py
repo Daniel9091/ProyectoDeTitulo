@@ -1,272 +1,235 @@
+from objects.track import Track
 from objects.base import Vector3
+import math
 
-class Station:
+class AccelerationTree(Track):
     """
-    ESTACIÓN FÍSICA DEL SISTEMA DE TRANSPORTE
-    
-    Responsabilidades (Primera Etapa):
-    - Gestionar vehículos docked (estacionados)
-    - Administrar árboles de aceleración de llegada y salida
-    - Asignar destinos manualmente a los VMs (sin pasajeros por ahora)
-    - Coordinar transiciones entre estación y red de vías
+    RAMPA DE ACELERACIÓN/DESACELERACIÓN CON FÍSICA REAL
     
     Características:
-    - No considera pasajeros ni andenes (lanes) en esta etapa
-    - Asignación manual de destinos a VMs
-    - Gestión de árboles de aceleración para entrada/salida
+    - Movimiento con aceleración basada en el ángulo de inclinación
+    - Aceleración = g * sin(θ) donde θ es el ángulo de la rampa
+    - Dirección: 'up' (subida) o 'down' (bajada)
+    - Sin roce (gravedad pura)
+    - Velocidad variable según la inclinación real
     """
-
-    def __init__(self, station_id, name, position):
-        self.station_id = station_id
-        self.name = name
-        self.position = position  # Vector3 - posición en superficie
-        self.arrival_trees = []   # Lista de AccelerationTree (dirección 'up')
-        self.departure_trees = [] # Lista de AccelerationTree (dirección 'down')
-        self.docked_vehicles = [] # Lista de ModularVehicle estacionados
-        self.capacity = 10  # Capacidad máxima de vehículos docked
-        
-    def add_arrival_tree(self, acceleration_tree):
-        """
-        Agrega un árbol de aceleración de LLEGADA a la estación
-        
-        Args:
-            acceleration_tree: Instancia de AccelerationTree con dirección 'up'
-        """
-        if acceleration_tree.direction != 'up':
-            raise ValueError("Los árboles de llegada deben tener dirección 'up'")
-        
-        self.arrival_trees.append(acceleration_tree)
-        print(f"Árbol de llegada {acceleration_tree.track_id} agregado a estación {self.name}")
     
-    def add_departure_tree(self, acceleration_tree):
-        """
-        Agrega un árbol de aceleración de SALIDA de la estación
+    def __init__(self, track_id, start_pos, end_pos, direction):
+        super().__init__(track_id, start_pos, end_pos)
+        self.direction = direction  # 'up' o 'down'
+        self.gravity = 9.8  # m/s²
         
-        Args:
-            acceleration_tree: Instancia de AccelerationTree con dirección 'down'
-        """
-        if acceleration_tree.direction != 'down':
-            raise ValueError("Los árboles de salida deben tener dirección 'down'")
+        # CALCULAR ÁNGULO DE INCLINACIÓN REAL
+        self.angle, self.sin_angle = self._calculate_ramp_angle()
         
-        self.departure_trees.append(acceleration_tree)
-        print(f"Árbol de salida {acceleration_tree.track_id} agregado a estación {self.name}")
-    
-    def dock_vehicle(self, vehicle):
-        """
-        Estaciona un vehículo en la estación (llegada)
+        # CALCULAR ACELERACIÓN REAL BASADA EN EL ÁNGULO
+        if self.direction == 'down':
+            self.acceleration = self.gravity * self.sin_angle  # a = g * sin(θ)
+            self.initial_velocity = 0.0  # Comienza desde reposo
+        else:  # 'up'
+            self.acceleration = -self.gravity * self.sin_angle  # a = -g * sin(θ)
+            self.initial_velocity = 20.0  # Velocidad de los StationConnector
         
-        Args:
-            vehicle: Instancia de ModularVehicle
-        """
-        if len(self.docked_vehicles) >= self.capacity:
-            print(f"ERROR: Estación {self.name} está a capacidad máxima")
-            return False
+        # Calcular velocidad final teórica
+        self.final_velocity = self._calculate_final_velocity()
         
-        if vehicle not in self.docked_vehicles:
-            self.docked_vehicles.append(vehicle)
-            vehicle.current_station = self.station_id
-            vehicle.state = "docked"
-            vehicle.current_track = None
-            vehicle.destination_station = None  # Reset destino al llegar
-            vehicle.target_acceleration_trees = []  # Limpiar ruta
-            
-            print(f"Vehículo {vehicle.vehicle_id} docked en estación {self.name}")
-            return True
-        return False
-    
-    def undock_vehicle(self, vehicle, destination_station_id):
+    def _calculate_ramp_angle(self):
         """
-        Prepara un vehículo para salir de la estación con un destino
+        Calcula el ángulo de inclinación real de la rampa
         
-        Args:
-            vehicle: Instancia de ModularVehicle
-            destination_station_id: ID de la estación destino
-            
         Returns:
-            bool: True si se pudo preparar para salir, False en caso contrario
+            tuple: (angle_radians, sin_angle)
         """
-        if vehicle not in self.docked_vehicles:
-            print(f"ERROR: Vehículo {vehicle.vehicle_id} no está en estación {self.name}")
-            return False
+        # Calcular diferencia de altura (cateto opuesto)
+        delta_z = abs(self.end_pos.z - self.start_pos.z)
         
-        if not self.departure_trees:
-            print(f"ERROR: Estación {self.name} no tiene árboles de salida")
-            return False
+        # Calcular distancia horizontal (cateto adyacente)
+        delta_x = self.end_pos.x - self.start_pos.x
+        delta_y = self.end_pos.y - self.start_pos.y
+        horizontal_distance = math.sqrt(delta_x**2 + delta_y**2)
         
-        # Asignar destino al vehículo
-        vehicle.destination_station = destination_station_id
-        vehicle.state = "ready_to_depart"
-        
-        print(f"Vehículo {vehicle.vehicle_id} preparado para salir de {self.name} hacia estación {destination_station_id}")
-        return True
-    
-    def process_departures(self, brain):
-        """
-        Procesa los vehículos listos para salir y los envía a los árboles de salida
-        
-        Args:
-            brain: Instancia de Brain para obtener rutas
-        """
-        vehicles_to_depart = []
-        
-        # Identificar vehículos listos para salir
-        for vehicle in self.docked_vehicles:
-            if vehicle.state == "ready_to_depart" and vehicle.destination_station:
-                vehicles_to_depart.append(vehicle)
-        
-        # Procesar salidas
-        for vehicle in vehicles_to_depart:
-            self._depart_vehicle(vehicle, brain)
-    
-    def _depart_vehicle(self, vehicle, brain):
-        """
-        Envía un vehículo desde la estación a un árbol de salida
-        
-        Args:
-            vehicle: Instancia de ModularVehicle
-            brain: Instancia de Brain para calcular ruta
-        """
-        if not self.departure_trees:
-            return
-        
-        # Calcular ruta usando Brain
-        target_trees = brain.find_route(self.station_id, vehicle.destination_station)
-        vehicle.target_acceleration_trees = target_trees
-        
-        # Seleccionar árbol de salida (por simplicidad, el primero)
-        departure_tree = self.departure_trees[0]
-        
-        # Remover de la estación
-        self.docked_vehicles.remove(vehicle)
-        
-        # Agregar al árbol de salida
-        departure_tree.add_vehicle(vehicle)
-        vehicle.current_track = departure_tree
-        vehicle.state = "accelerating_down"
-        
-        print(f"Vehículo {vehicle.vehicle_id} partió de {self.name} hacia estación {vehicle.destination_station}")
-        print(f"  Buscará árboles: {target_trees}")
-    
-    def receive_vehicle(self, vehicle, arrival_tree):
-        """
-        Recibe un vehículo que llega a través de un árbol de llegada
-        
-        Args:
-            vehicle: Instancia de ModularVehicle
-            arrival_tree: AccelerationTree por el que llegó el vehículo
-        """
-        if arrival_tree not in self.arrival_trees:
-            print(f"ERROR: Árbol {arrival_tree.track_id} no pertenece a estación {self.name}")
-            return False
-        
-        # Remover del árbol de llegada
-        arrival_tree.remove_vehicle(vehicle)
-        
-        # Dockear en la estación
-        success = self.dock_vehicle(vehicle)
-        
-        if success:
-            print(f"Vehículo {vehicle.vehicle_id} recibido en {self.name} desde árbol {arrival_tree.track_id}")
+        if horizontal_distance > 0:
+            # Ángulo = arctan(altura / distancia_horizontal)
+            angle_radians = math.atan2(delta_z, horizontal_distance)
+            sin_angle = math.sin(angle_radians)
         else:
-            print(f"ERROR: No se pudo recibir vehículo {vehicle.vehicle_id} en {self.name}")
+            # Si no hay distancia horizontal, es vertical (90°)
+            angle_radians = math.pi / 2
+            sin_angle = 1.0
         
-        return success
+        return angle_radians, sin_angle
     
-    def get_available_departure_tree(self):
+    def _calculate_final_velocity(self):
+        """Calcula la velocidad final usando ecuaciones de MRUA"""
+        # v² = u² + 2as
+        v_squared = self.initial_velocity**2 + 2 * self.acceleration * self.length
+        return math.sqrt(max(0, v_squared))
+    
+    def add_vehicle(self, vehicle, entry_velocity=None):
         """
-        Obtiene un árbol de salida disponible (con capacidad)
+        Agrega un vehículo al AccelerationTree
         
-        Returns:
-            AccelerationTree o None si no hay disponibles
+        Args:
+            vehicle: Instancia de ModularVehicle
+            entry_velocity: Velocidad inicial (opcional)
         """
-        for tree in self.departure_trees:
-            # Por ahora, asumimos que todos tienen capacidad
-            # En el futuro podríamos verificar la cantidad de vehículos en el árbol
-            return tree
-        return None
-    
-    def get_station_info(self):
-        """
-        Retorna información completa de la estación
-        """
-        return {
-            "station_id": self.station_id,
-            "name": self.name,
-            "position": self.position.to_tuple(),
-            "docked_vehicles": len(self.docked_vehicles),
-            "capacity": self.capacity,
-            "arrival_trees": [tree.track_id for tree in self.arrival_trees],
-            "departure_trees": [tree.track_id for tree in self.departure_trees],
-            "vehicle_ids": [v.vehicle_id for v in self.docked_vehicles],
-            "status": "FULL" if len(self.docked_vehicles) >= self.capacity else "AVAILABLE"
+        # Usar entry_velocity si se proporciona, de lo contrario la velocidad por defecto
+        initial_velocity = entry_velocity if entry_velocity is not None else self.initial_velocity
+        
+        self.vehicles[vehicle.vehicle_id] = {
+            'vehicle': vehicle,
+            'progress': 0.0,
+            'velocity': initial_velocity,
+            'current_position': self.start_pos,
+            'time_in_track': 0.0
         }
+        
+        # Actualizar estado del vehículo
+        vehicle.current_track = self
+        vehicle.state = "accelerating_down" if self.direction == 'down' else "accelerating_up"
+        
+        print(f"Vehículo {vehicle.vehicle_id} entró a AccelerationTree {self.track_id}")
+        print(f"  Dirección: {self.direction}, Ángulo: {math.degrees(self.angle):.1f}°, Aceleración: {self.acceleration:.2f} m/s²")
     
-    def get_docked_vehicles_info(self):
-        """
-        Retorna información detallada de los vehículos docked
-        """
-        vehicles_info = []
-        for vehicle in self.docked_vehicles:
-            vehicle_info = {
-                "vehicle_id": vehicle.vehicle_id,
-                "state": vehicle.state,
-                "destination": vehicle.destination_station,
-                "passengers": vehicle.passengers,
-                "capacity": vehicle.capacity
-            }
-            vehicles_info.append(vehicle_info)
-        return vehicles_info
+    def remove_vehicle(self, vehicle):
+        """Remueve un vehículo del AccelerationTree"""
+        if vehicle.vehicle_id in self.vehicles:
+            del self.vehicles[vehicle.vehicle_id]
+            print(f"Vehículo {vehicle.vehicle_id} salió de AccelerationTree {self.track_id}")
     
-    def set_capacity(self, new_capacity):
+    def update_vehicles(self, dt):
         """
-        Cambia la capacidad de la estación
-        """
-        old_capacity = self.capacity
-        self.capacity = new_capacity
-        print(f"Capacidad de estación {self.name} cambiada de {old_capacity} a {new_capacity}")
-    
-    def has_available_capacity(self):
-        """
-        Verifica si la estación tiene capacidad disponible
-        """
-        return len(self.docked_vehicles) < self.capacity
-    
-    def find_vehicle_by_id(self, vehicle_id):
-        """
-        Busca un vehículo docked por su ID
+        Actualiza la posición de todos los vehículos en el árbol usando MRUA
         
         Returns:
-            ModularVehicle o None si no se encuentra
+            Lista de vehículos que completaron el track
         """
-        for vehicle in self.docked_vehicles:
-            if vehicle.vehicle_id == vehicle_id:
-                return vehicle
-        return None
-
-    def update(self, brain, dt):
-        """
-        Actualiza el estado de la estación (para ser llamado cada frame)
+        completed_vehicles = []
         
-        Args:
-            brain: Instancia de Brain para procesar salidas
-            dt: Delta time (no utilizado directamente por ahora)
-        """
-        self.process_departures(brain)
-    
-    def assign_destination_to_vehicle(self, vehicle_id, destination_station_id):
-        """
-        Asigna un destino a un vehículo específico en la estación
-        
-        Args:
-            vehicle_id: ID del vehículo
-            destination_station_id: ID de la estación destino
+        for vehicle_id, vehicle_data in list(self.vehicles.items()):
+            vehicle = vehicle_data['vehicle']
+            progress = vehicle_data['progress']
+            current_velocity = vehicle_data['velocity']
+            time_in_track = vehicle_data['time_in_track']
             
-        Returns:
-            bool: True si se pudo asignar, False en caso contrario
-        """
-        vehicle = self.find_vehicle_by_id(vehicle_id)
-        if not vehicle:
-            print(f"ERROR: Vehículo {vehicle_id} no encontrado en estación {self.name}")
-            return False
+            # Calcular nueva velocidad (v = u + at)
+            new_velocity = current_velocity + self.acceleration * dt
+            
+            # Limitar velocidad mínima a 0 (no velocidades negativas)
+            if self.direction == 'up' and new_velocity < 0:
+                new_velocity = 0
+            
+            # Calcular distancia recorrida en este paso (s = ut + ½at²)
+            distance_traveled = current_velocity * dt + 0.5 * self.acceleration * dt**2
+            
+            # Calcular nuevo progreso
+            progress_increment = distance_traveled / self.length
+            new_progress = progress + progress_increment
+            new_time = time_in_track + dt
+            
+            # Si completó el track
+            if new_progress >= 1.0:
+                new_progress = 1.0
+                completed_vehicles.append(vehicle)
+            
+            # Actualizar datos del vehículo
+            self.vehicles[vehicle_id]['progress'] = new_progress
+            self.vehicles[vehicle_id]['velocity'] = new_velocity
+            self.vehicles[vehicle_id]['time_in_track'] = new_time
+            self.vehicles[vehicle_id]['current_position'] = self.calculate_position_at_progress(new_progress)
+            
+            # Actualizar posición y velocidad en el vehículo
+            vehicle.current_position = self.vehicles[vehicle_id]['current_position']
+            vehicle.velocity = self.get_direction_vector() * new_velocity
         
-        return self.undock_vehicle(vehicle, destination_station_id)
+        return completed_vehicles
+    
+    def get_vehicle_position(self, vehicle):
+        """Obtiene la posición 3D actual del vehículo"""
+        if vehicle.vehicle_id in self.vehicles:
+            return self.vehicles[vehicle.vehicle_id]['current_position']
+        return self.start_pos
+    
+    def get_vehicle_progress(self, vehicle):
+        """Obtiene el progreso normalizado del vehículo (0 a 1)"""
+        if vehicle.vehicle_id in self.vehicles:
+            return self.vehicles[vehicle.vehicle_id]['progress']
+        return 0.0
+    
+    def get_vehicle_velocity(self, vehicle):
+        """Obtiene la velocidad actual del vehículo"""
+        if vehicle.vehicle_id in self.vehicles:
+            return self.vehicles[vehicle.vehicle_id]['velocity']
+        return self.initial_velocity
+    
+    def get_exit_position(self):
+        """Posición de salida del track (final del árbol)"""
+        return self.end_pos
+    
+    def get_exit_velocity(self, vehicle):
+        """
+        Velocidad de salida del vehículo
+        
+        Returns:
+            Vector3 con dirección y magnitud de la velocidad de salida
+        """
+        if vehicle.vehicle_id in self.vehicles:
+            exit_speed = self.vehicles[vehicle.vehicle_id]['velocity']
+        else:
+            exit_speed = self.final_velocity
+        
+        direction = self.get_direction_vector()
+        return direction * exit_speed
+    
+    def get_angle_degrees(self):
+        """Retorna el ángulo de la rampa en grados"""
+        return math.degrees(self.angle)
+    
+    def get_ramp_info(self):
+        """Información detallada de la rampa"""
+        base_status = self.get_status()
+        base_status.update({
+            "direction": self.direction,
+            "angle_degrees": self.get_angle_degrees(),
+            "sin_angle": self.sin_angle,
+            "acceleration": self.acceleration,
+            "initial_velocity": self.initial_velocity,
+            "final_velocity": self.final_velocity,
+            "height_difference": abs(self.end_pos.z - self.start_pos.z),
+            "horizontal_distance": math.sqrt(
+                (self.end_pos.x - self.start_pos.x)**2 + 
+                (self.end_pos.y - self.start_pos.y)**2
+            ),
+            "vehicle_details": {
+                vid: {
+                    "progress": data['progress'],
+                    "velocity": data['velocity'],
+                    "position": data['current_position'].to_tuple(),
+                    "time_in_track": data['time_in_track']
+                } for vid, data in self.vehicles.items()
+            }
+        })
+        return base_status
+    
+    def get_time_to_complete(self, initial_velocity=None):
+        """
+        Calcula el tiempo teórico para completar el árbol
+        
+        Returns:
+            Tiempo en segundos, o None si no es posible (subida con velocidad insuficiente)
+        """
+        v0 = initial_velocity if initial_velocity is not None else self.initial_velocity
+        
+        # Resolver: s = v0*t + ½a*t²
+        # ½a*t² + v0*t - s = 0
+        a = self.acceleration
+        discriminant = v0**2 + 2 * a * self.length
+        
+        if discriminant < 0:
+            return None  # No hay solución real
+            
+        t1 = (-v0 + math.sqrt(discriminant)) / a
+        t2 = (-v0 - math.sqrt(discriminant)) / a
+        
+        # Devolver el tiempo positivo
+        return max(t1, t2) if t1 > 0 and t2 > 0 else (t1 if t1 > 0 else t2)
