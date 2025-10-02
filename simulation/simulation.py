@@ -32,75 +32,102 @@ class Simulation:
         self.init_simulation()
     
     def init_simulation(self):
-
-        # Limpieza
+        # LIMPIEZA COMPLETA
         self.vehicles.clear()
         self.stations.clear()
         self.connectors.clear()
-        self.network.connectors.clear()
-        self.network.vehicles.clear()
+        self.network.tracks.clear()
+        self.network.adjacency.clear()
+        self.network.entry_points.clear()
+        self.network.exit_points.clear()
         self.brain.vehicles.clear()
+        self.brain.stations.clear()
         
-        # CREAR ESTACIONES - posición corregida para mejor visualización
-        station1 = Station(1, "Central Station", Vector3(100, 0, 0))     
-        station2 = Station(2, "North Station", Vector3(400, 0, 0))    
-        station3 = Station(3, "South Station", Vector3(700, 0, 0))    
+        # CREAR ESTACIONES
+        station1 = Station(1, "Central Station", Vector3(100, 0, 0))
+        station2 = Station(2, "North Station", Vector3(400, 0, 0))
+        station3 = Station(3, "South Station", Vector3(700, 0, 0))
         
         self.stations.extend([station1, station2, station3])
         
-        # CREAR ÁRBOLES CON ORIENTACIÓN CORRECTA
-        # Árboles de ACELERACIÓN (bajan)
-        accel_tree1 = AccelerationTree(1, "acceleration", 
-                                    Vector3(100, 0, 0),     # Estación 1 (superficie)
-                                    Vector3(150, 0, -10))   # Vía subterránea
+        # AGREGAR ESTACIONES AL BRAIN PRIMERO
+        for station in self.stations:
+            self.brain.add_station(station)
         
-        accel_tree2 = AccelerationTree(2, "acceleration",
-                                    Vector3(400, 0, 0),     # Estación 2 (superficie)
-                                    Vector3(450, 0, -10))   # Vía subterránea
+        # CREAR ÁRBOLES DE ACELERACIÓN/DESACELERACIÓN CON PARÁMETROS CORRECTOS
+        # Árboles de BAJADA (salida)
+        accel_tree1 = AccelerationTree(1, Vector3(100, 0, 0), Vector3(150, 0, -20), "down", station_id=1)
+        accel_tree2 = AccelerationTree(2, Vector3(400, 0, 0), Vector3(450, 0, -20), "down", station_id=2)
+        accel_tree3 = AccelerationTree(3, Vector3(700, 0, 0), Vector3(750, 0, -20), "down", station_id=3)
         
-        # Árboles de DESACELERACIÓN (suben)
-        decel_tree2 = AccelerationTree(3, "deceleration",
-                                    Vector3(350, 0, -10),   # Vía subterránea
-                                    Vector3(400, 0, 0))     # Estación 2 (superficie)
-                                    
-        decel_tree3 = AccelerationTree(4, "deceleration",
-                                    Vector3(650, 0, -10),   # Vía subterránea
-                                    Vector3(700, 0, 0))     # Estación 3 (superficie)
+        # Árboles de SUBIDA (llegada)
+        decel_tree1 = AccelerationTree(4, Vector3(50, 0, -20), Vector3(100, 0, 0), "up", station_id=1)
+        decel_tree2 = AccelerationTree(5, Vector3(350, 0, -20), Vector3(400, 0, 0), "up", station_id=2)
+        decel_tree3 = AccelerationTree(6, Vector3(650, 0, -20), Vector3(700, 0, 0), "up", station_id=3)
         
-        # Asignar árboles a estaciones
-        station1.add_acceleration_tree(accel_tree1)
-        station2.add_acceleration_tree(accel_tree2)
-        station2.add_deceleration_tree(decel_tree2) 
-        station3.add_deceleration_tree(decel_tree3)
+        # ASIGNAR ÁRBOLES A ESTACIONES
+        station1.add_departure_tree(accel_tree1)
+        station1.add_arrival_tree(decel_tree1)
         
-        # CREAR CONECTORES SUBTERRÁNEOS (con longitudes ajustadas)
-        connector1 = StationConnector(1, station1, station2, 250.0)  # 400-150 = 250m
-        connector2 = StationConnector(2, station2, station3, 250.0)  # 700-450 = 250m
+        station2.add_departure_tree(accel_tree2)
+        station2.add_arrival_tree(decel_tree2)
         
-        self.connectors.append(connector1)
-        self.connectors.append(connector2)
-        self.network.add_connector(connector1)
-        self.network.add_connector(connector2)
+        station3.add_departure_tree(accel_tree3)
+        station3.add_arrival_tree(decel_tree3)
         
-        # CREAR VEHÍCULOS CON POSICIONES INICIALES MEJORADAS
-        for i in range(3):
-            # Posición inicial en la estación correspondiente
-            if i % 2 == 0:
-                # VM0 y VM2 comienzan en estación 1
-                start_pos = Vector3(100 + i * 5, 0, 0)
-                vehicle = ModularVehicle(i, 20, start_pos)
-                success = self.brain.assign_vehicle_to_route(vehicle, station1, station2)
-            else:
-                # VM1 comienza en estación 2  
-                start_pos = Vector3(400 + i * 5, 0, 0)
-                vehicle = ModularVehicle(i, 20, start_pos)
-                success = self.brain.assign_vehicle_to_route(vehicle, station2, station3)
+        # AGREGAR TODOS LOS ÁRBOLES A LA RED
+        trees = [accel_tree1, accel_tree2, accel_tree3, decel_tree1, decel_tree2, decel_tree3]
+        for tree in trees:
+            self.network.add_track(tree)
+        
+        # CREAR STATION CONNECTORS
+        connector1 = StationConnector(7, Vector3(150, 0, -20), Vector3(350, 0, -20), speed=20.0)
+        connector2 = StationConnector(8, Vector3(450, 0, -20), Vector3(650, 0, -20), speed=20.0)
+        
+        self.connectors.extend([connector1, connector2])
+        
+        # AGREGAR CONNECTORS A LA RED
+        for connector in self.connectors:
+            self.network.add_track(connector)
+        
+        # CONFIGURAR RED COMPLETA DE CONEXIONES
+        # Conexiones desde árboles de salida
+        self.network.connect_tracks(1, 7)  # accel_tree1 -> connector1
+        self.network.connect_tracks(2, 8)  # accel_tree2 -> connector2
+        self.network.connect_tracks(3, 8)  # accel_tree3 -> connector2 (para futuras rutas)
+        
+        # Conexiones desde connectors
+        self.network.connect_tracks(7, 5)  # connector1 -> decel_tree2 (estación 2)
+        self.network.connect_tracks(7, 6)  # connector1 -> decel_tree3 (estación 3 - ruta alternativa)
+        self.network.connect_tracks(8, 6)  # connector2 -> decel_tree3 (estación 3)
+        
+        # CREAR Y CONFIGURAR VEHÍCULO CORRECTAMENTE
+        vm1 = ModularVehicle(1, 20, Vector3(100, 0, 0))
+        
+        # ASIGNAR RUTA USANDO BRAIN (CORREGIDO)
+        success = self.brain.assign_vehicle_to_route(vm1, station1, station2)
+        
+        if success:
+            self.brain.add_vehicle(vm1)
+            self.vehicles.append(vm1)
             
-            if success:
-                self.brain.add_vehicle(vehicle)
-                self.vehicles.append(vehicle)
-                print(f"DEBUG: VM {vehicle.id} asignado a ruta completa")
-
+            # PREPARAR VEHÍCULO PARA SALIR (USANDO EL FLUJO NORMAL)
+            station1.undock_vehicle(vm1, 2)  # Destino: estación 2
+            
+            print(f"✓ VM {vm1.vehicle_id} configurado correctamente")
+            print(f"✓ Ruta: Estación 1 → Estación 2")
+            print(f"✓ Estado inicial: {vm1.state}")
+            
+            # DEBUG: Verificar configuración
+            print(f"✓ Estaciones en Brain: {list(self.brain.stations.keys())}")
+            print(f"✓ Vehículos en Brain: {list(self.brain.vehicles.keys())}")
+            print(f"✓ Tracks en Network: {len(self.network.tracks)}")
+        else:
+            print(f"✗ ERROR: No se pudo asignar ruta al VM {vm1.vehicle_id}")
+            # Debug detallado
+            print(f"  - Estación 1 en Brain: {1 in self.brain.stations}")
+            print(f"  - Estación 2 en Brain: {2 in self.brain.stations}")
+   
     def update(self, dt):                                                                       # Acutaliza la simulacion basada en el tiempo real
         # Escalar delta time por la escala de tiempo
         scaled_dt = dt * self.time_scale
