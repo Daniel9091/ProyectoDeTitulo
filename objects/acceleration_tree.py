@@ -180,12 +180,7 @@ class AccelerationTree(Track):
         return self.end_pos
     
     def get_exit_velocity(self, vehicle):
-        """
-        Velocidad de salida del vehículo
-        
-        Returns:
-            Vector3 con dirección y magnitud de la velocidad de salida
-        """
+        """Velocidad de salida del vehículo basada en la física de la rampa"""
         if vehicle.vehicle_id in self.vehicles:
             exit_speed = self.vehicles[vehicle.vehicle_id]['velocity']
         else:

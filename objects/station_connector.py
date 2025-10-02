@@ -94,12 +94,7 @@ class StationConnector(Track):
         return self.end_pos
     
     def get_exit_velocity(self, vehicle):
-        """
-        Velocidad de salida del vehículo
-        
-        Returns:
-            Vector3 con dirección y magnitud de la velocidad constante
-        """
+        """Velocidad de salida del vehículo (constante)"""
         return self.direction * self.speed
     
     def get_connector_info(self):

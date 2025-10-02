@@ -152,6 +152,6 @@ class Camera:                                                                   
         
         # Aplicar zoom y centrar en pantalla
         x_screen = (x_rot * self.zoom) + self.screen_width / 2
-        y_screen = (z_final * self.zoom) + self.screen_height / 2
+        y_screen = (y_rot * self.zoom) + self.screen_height / 2
         
         return (int(x_screen), int(y_screen))                                               # Retorna las coordenadas 2D en pantalla

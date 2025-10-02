@@ -113,16 +113,26 @@ class Network:
         
         next_track = self.tracks[next_track_id]
         
-        # ✅ VALIDACIÓN 4: Verificar que ambos tracks tienen los métodos necesarios
         try:
             # Remover del track actual
             current_track.remove_vehicle(vehicle)
             
-            # Obtener posición de salida para transición suave
+            # Obtener posición y velocidad de salida para transición suave
             exit_position = current_track.get_exit_position()
             
-            # Agregar al siguiente track
-            next_track.add_vehicle(vehicle, exit_position)
+            # **CORRECCIÓN CRÍTICA**: Obtener la velocidad como magnitud escalar, no como Vector3
+            if hasattr(current_track, 'get_exit_velocity'):
+                exit_velocity = current_track.get_exit_velocity(vehicle)
+                # Si es Vector3, obtener solo la magnitud
+                if hasattr(exit_velocity, 'length'):
+                    exit_velocity_magnitude = exit_velocity.length()
+                else:
+                    exit_velocity_magnitude = exit_velocity
+            else:
+                exit_velocity_magnitude = 20.0  # Velocidad por defecto
+            
+            # Agregar al siguiente track con la posición y velocidad correctas
+            next_track.add_vehicle(vehicle, exit_velocity_magnitude)
             vehicle.current_track = next_track
             
             # Actualizar estado del vehículo según el tipo de track
@@ -136,10 +146,10 @@ class Network:
                 
             print(f"Vehículo {vehicle.vehicle_id} transferido de {current_track_id} a {next_track_id}")
             
-        except AttributeError as e:
-            print(f"ERROR en transición: {e}")
         except Exception as e:
-            print(f"ERROR inesperado en transferencia: {e}")
+            print(f"ERROR en transferencia de vehículo {vehicle.vehicle_id}: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _choose_next_track(self, vehicle, possible_track_ids):
         """
