@@ -14,11 +14,13 @@ class AccelerationTree(Track):
     - Velocidad variable según la inclinación real
     """
     
-    def __init__(self, track_id, start_pos, end_pos, direction):
+    def __init__(self, track_id, start_pos, end_pos, direction, station_id=None):
         super().__init__(track_id, start_pos, end_pos)
         self.direction = direction  # 'up' o 'down'
         self.gravity = 9.8  # m/s²
+        self.station_id = station_id
         
+
         # CALCULAR ÁNGULO DE INCLINACIÓN REAL
         self.angle, self.sin_angle = self._calculate_ramp_angle()
         
@@ -32,7 +34,18 @@ class AccelerationTree(Track):
         
         # Calcular velocidad final teórica
         self.final_velocity = self._calculate_final_velocity()
+
+    def get_station_id(self):
+        """
+        Obtiene el ID de la estación asociada a este árbol de aceleración
         
+        Returns:
+            str o int: ID de la estación, o None si no está asignado
+        """
+        if self.station_id is None:
+            print(f"ADVERTENCIA: AccelerationTree {self.track_id} no tiene station_id asignado")
+        return self.station_id
+
     def _calculate_ramp_angle(self):
         """
         Calcula el ángulo de inclinación real de la rampa

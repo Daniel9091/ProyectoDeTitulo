@@ -1,3 +1,5 @@
+from objects.acceleration_tree import AccelerationTree
+
 class Network:
     """
     RED COMPLETA DE VÍAS DEL SISTEMA
@@ -49,55 +51,78 @@ class Network:
     
     def update_vehicles(self, dt):
         """
-        Actualiza el movimiento de todos los vehículos en la red
-        
-        Flujo:
-        1. Por cada track, actualizar posición de sus vehículos
-        2. Detectar vehículos que terminaron su tramo
-        3. Manejar transiciones al siguiente track
+        Actualiza el movimiento de todos los vehículos en la red con manejo de errores
         """
         vehicles_to_transfer = []
         
-        # 1. Actualizar movimiento en cada track
-        for track_id, track in self.tracks.items():
-            finished_vehicles = track.update_vehicles(dt)
-            for vehicle in finished_vehicles:
-                vehicles_to_transfer.append((vehicle, track_id))
-        
-        # 2. Procesar transiciones
-        for vehicle, current_track_id in vehicles_to_transfer:
-            self._transfer_vehicle(vehicle, current_track_id)
+        try:
+            # 1. Actualizar movimiento en cada track
+            for track_id, track in list(self.tracks.items()):  # Usar list() para evitar modificación durante iteración
+                try:
+                    finished_vehicles = track.update_vehicles(dt)
+                    for vehicle in finished_vehicles:
+                        vehicles_to_transfer.append((vehicle, track_id))
+                except Exception as e:
+                    print(f"ERROR actualizando track {track_id}: {e}")
+                    continue
+            
+            # 2. Procesar transiciones
+            for vehicle, current_track_id in vehicles_to_transfer:
+                try:
+                    self._transfer_vehicle(vehicle, current_track_id)
+                except Exception as e:
+                    print(f"ERROR transfiriendo vehículo {vehicle.vehicle_id}: {e}")
+                    continue
+                    
+        except Exception as e:
+            print(f"ERROR crítico en Network.update_vehicles: {e}")
     
     def _transfer_vehicle(self, vehicle, current_track_id):
         """
-        Transfiere un vehículo del track actual al siguiente
-        
-        Lógica de transición:
-        - Si el vehicle.target_acceleration_trees está en los tracks siguientes → tomar ese
-        - Si no, tomar el primer track disponible
-        - Si no hay tracks siguientes → error (llegó a destino final)
+        Transfiere un vehículo del track actual al siguiente con validaciones
         """
+        # VALIDACIÓN 1: Verificar que el track actual existe
+        if current_track_id not in self.tracks:
+            print(f"ERROR: Track actual {current_track_id} no encontrado en la red")
+            return
+        
+        current_track = self.tracks[current_track_id]
         possible_next_tracks = self.adjacency.get(current_track_id, [])
         
         if not possible_next_tracks:
             # Llegó al final del camino - debería estar en un acceleration tree de subida
-            current_track = self.tracks[current_track_id]
             if isinstance(current_track, AccelerationTree) and current_track.direction == "up":
                 # Llegó a una estación
                 self._arrive_at_station(vehicle, current_track)
+            else:
+                print(f"WARNING: Vehículo {vehicle.vehicle_id} llegó al final sin estación")
             return
         
         # Buscar el mejor track siguiente
         next_track_id = self._choose_next_track(vehicle, possible_next_tracks)
-        if next_track_id:
-            next_track = self.tracks[next_track_id]
-            current_track = self.tracks[current_track_id]
-            
+        
+        # VALIDACIÓN 2: Verificar que se encontró un track siguiente
+        if not next_track_id:
+            print(f"ERROR: No se pudo encontrar track siguiente para vehículo {vehicle.vehicle_id}")
+            return
+        
+        # VALIDACIÓN 3: Verificar que el track siguiente existe
+        if next_track_id not in self.tracks:
+            print(f"ERROR: Track siguiente {next_track_id} no encontrado en la red")
+            return
+        
+        next_track = self.tracks[next_track_id]
+        
+        # ✅ VALIDACIÓN 4: Verificar que ambos tracks tienen los métodos necesarios
+        try:
             # Remover del track actual
             current_track.remove_vehicle(vehicle)
             
+            # Obtener posición de salida para transición suave
+            exit_position = current_track.get_exit_position()
+            
             # Agregar al siguiente track
-            next_track.add_vehicle(vehicle, current_track.get_exit_position())
+            next_track.add_vehicle(vehicle, exit_position)
             vehicle.current_track = next_track
             
             # Actualizar estado del vehículo según el tipo de track
@@ -108,25 +133,37 @@ class Network:
                     vehicle.state = "accelerating_up"
             else:
                 vehicle.state = "moving"
-    
+                
+            print(f"Vehículo {vehicle.vehicle_id} transferido de {current_track_id} a {next_track_id}")
+            
+        except AttributeError as e:
+            print(f"ERROR en transición: {e}")
+        except Exception as e:
+            print(f"ERROR inesperado en transferencia: {e}")
+
     def _choose_next_track(self, vehicle, possible_track_ids):
         """
-        Elige el mejor track siguiente para un vehículo
-        
-        Prioridad:
-        1. Tracks que llevan a los acceleration trees objetivo del VM
-        2. Primer track disponible
+        Elige el mejor track siguiente para un vehículo con validaciones
         """
+        # FILTRAR solo tracks que existen realmente
+        valid_track_ids = [track_id for track_id in possible_track_ids 
+                        if track_id in self.tracks]
+        
+        if not valid_track_ids:
+            print(f"WARNING: No hay tracks válidos desde la posición actual")
+            return None
+        
+        # Si el vehículo no tiene destino específico, tomar el primero
         if not vehicle.target_acceleration_trees:
-            return possible_track_ids[0] if possible_track_ids else None
+            return valid_track_ids[0]
         
         # Buscar tracks que lleven a los acceleration trees objetivo
-        for track_id in possible_track_ids:
+        for track_id in valid_track_ids:
             if self._leads_to_target(track_id, vehicle.target_acceleration_trees):
                 return track_id
         
-        # Si no encuentra, tomar el primero
-        return possible_track_ids[0] if possible_track_ids else None
+        # Si no encuentra uno que lleve al objetivo, tomar el primero disponible
+        return valid_track_ids[0]
     
     def _leads_to_target(self, track_id, target_trees, visited=None):
         """

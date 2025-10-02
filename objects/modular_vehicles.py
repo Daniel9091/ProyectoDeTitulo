@@ -43,6 +43,9 @@ class ModularVehicle:
         self.acceleration_rate = 2.0  # m/s² (para movimientos propios)
         self.deceleration_rate = 3.0  # m/s²
         
+        # Traking
+        self._last_progress = 0.0
+        
         print(f"Vehículo modular {vehicle_id} creado con capacidad {capacity}")
 
     def update(self, dt):

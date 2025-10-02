@@ -35,6 +35,9 @@ class Station:
         if acceleration_tree.direction != 'up':
             raise ValueError("Los árboles de llegada deben tener dirección 'up'")
         
+        # ESTABLECER LA RELACIÓN BIDIRECCIONAL
+        acceleration_tree.station_id = self.station_id
+        
         self.arrival_trees.append(acceleration_tree)
         print(f"Árbol de llegada {acceleration_tree.track_id} agregado a estación {self.name}")
     
@@ -47,6 +50,9 @@ class Station:
         """
         if acceleration_tree.direction != 'down':
             raise ValueError("Los árboles de salida deben tener dirección 'down'")
+        
+        # ESTABLECER LA RELACIÓN BIDIRECCIONAL
+        acceleration_tree.station_id = self.station_id
         
         self.departure_trees.append(acceleration_tree)
         print(f"Árbol de salida {acceleration_tree.track_id} agregado a estación {self.name}")
