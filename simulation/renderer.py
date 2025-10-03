@@ -3,16 +3,16 @@ from ui.info_panel import draw_info_panel
 import math
 
 class Renderer:
-    def __init__(self, screen, camera):                                                         # Inisialisacion de el renderizador con la camara 
-        self.screen = screen                                                                    # Superficie de Pygame donde se dibujara iniciada
-        self.camera = camera                                                                    # Camara que maneja la proyeccion 3D a 2D
+    def __init__(self, screen, camera):
+        self.screen = screen
+        self.camera = camera
     
-    def draw(self, simulation):                                                                 # Dibuja todos los elementeos de la simulacion con todos los objetos de la simulacion
-        self.screen.fill((20, 20, 30))                                                          # Color oscuro
+    def draw(self, simulation):
+        self.screen.fill((20, 20, 30))
         
-        # Dibujar conexiones entre estaciones (conectores)
-        self.draw_connectors(simulation.connectors)
-
+        # Dibujar todos los tracks de la red (conectores y árboles de aceleración)
+        self.draw_network_tracks(simulation.network)
+        
         # Dibujar estaciones
         for station in simulation.stations:
             self.draw_station(station)
@@ -21,93 +21,109 @@ class Renderer:
         for vehicle in simulation.vehicles:
             self.draw_vehicle(vehicle)
 
-        # dibujar información de depuración (estaciones, vehiculos, arboles)
+        # Dibujar información de depuración
         self.draw_debug_info(simulation)
         
-        # Dibujar UI si esta activado
+        # Dibujar UI si está activado
         if simulation.show_info:
             draw_info_panel(self.screen, simulation, self.camera)
     
-    def draw_connectors(self, connectors):                                                      # Dibuja conectores entre estaciones
-        """Dibuja los conectores entre estaciones"""
-        for connector in connectors:
-            # Dibujar línea entre estaciones
-            start_pos = connector.origin_station.position                                      # ESTO DEBE CAMBIAR EN UN FUTURO (DEBE SER POR PUNTO ARBITRARIO NO SOLO ESTACIONES)
-            end_pos = connector.destination_station.position
-            start_2d = self.camera.project_3d_to_2d((start_pos.x, start_pos.y, start_pos.z))
-            end_2d = self.camera.project_3d_to_2d((end_pos.x, end_pos.y, end_pos.z))
-            if start_2d and end_2d:
-                pygame.draw.line(self.screen, (0, 255, 0), start_2d, end_2d, 2)
+    def draw_network_tracks(self, network):
+        """Dibuja todos los tracks de la red (StationConnectors y AccelerationTrees)"""
+        for track_id, track in network.tracks.items():
+            if hasattr(track, 'get_track_type'):
+                track_type = track.get_track_type()
                 
-                # Arboles de aceleracion
-                for tree in connector.acceleration_trees:
-                    self.draw_acceleration_tree(tree)
+                if track_type == "StationConnector":
+                    self.draw_station_connector(track)
+                elif track_type == "AccelerationTree":
+                    self.draw_acceleration_tree(track)
     
-    def draw_acceleration_tree(self, tree):                                                     # Dibuja un árbol de aceleración con colores según el tipo"""
+    def draw_station_connector(self, connector):
+        """Dibuja un StationConnector como una línea recta"""
+        start_2d = self.camera.project_3d_to_2d((connector.start_pos.x, connector.start_pos.y, connector.start_pos.z))
+        end_2d = self.camera.project_3d_to_2d((connector.end_pos.x, connector.end_pos.y, connector.end_pos.z))
         
-        # Calcular puntos a lo largo del árbol
+        if start_2d and end_2d:
+            # Color verde para conectores subterráneos
+            color = (0, 200, 100) if connector.start_pos.z < -5 else (100, 200, 100)
+            pygame.draw.line(self.screen, color, start_2d, end_2d, 3)
+            
+            # Dibujar vehículos en el conector
+            for vehicle_data in connector.vehicles.values():
+                vehicle = vehicle_data['vehicle']
+                pos_2d = self.camera.project_3d_to_2d((
+                    vehicle.current_position.x,
+                    vehicle.current_position.y, 
+                    vehicle.current_position.z
+                ))
+                if pos_2d:
+                    pygame.draw.circle(self.screen, (255, 255, 0), pos_2d, 3)
+    
+    def draw_acceleration_tree(self, tree):
+        """Dibuja un árbol de aceleración con colores según la dirección"""
+        # Calcular puntos a lo largo del árbol para una línea suave
         points = []
-        slope_rad = math.radians(tree.slope)
+        num_segments = 20
         
-        # Más puntos para una línea más suave
-        for i in range(20):
-            progress = i / 19.0
-            distance = tree.length * progress                                                   # NO ME GUSTA EL ATRIBUTO LENGH
-            
-            x = tree.position.x + distance * math.cos(slope_rad)
-            z = tree.position.z + distance * math.sin(slope_rad)
-            
-            point_2d = self.camera.project_3d_to_2d((x, 0, z))
+        for i in range(num_segments + 1):
+            progress = i / num_segments
+            point_3d = tree.calculate_position_at_progress(progress)
+            point_2d = self.camera.project_3d_to_2d((point_3d.x, point_3d.y, point_3d.z))
             if point_2d:
                 points.append(point_2d)
         
-        # Dibujar línea que representa el árbol con color según el tipo
+        # Dibujar línea con color según la dirección
         if len(points) > 1:
-            if tree.type == "acceleration":
-                color = (255, 100, 100)  # Rojo para aceleración
-                thickness = 3
-            elif tree.type == "deceleration":
-                color = (100, 100, 255)  # Azul para desaceleración
-                thickness = 3
-            else:  # constant
-                color = (100, 255, 100)  # Verde para velocidad constante
-                thickness = 2
+            if tree.direction == "down":
+                color = (255, 100, 100)  # Rojo para bajada (aceleración)
+            else:  # "up"
+                color = (100, 100, 255)  # Azul para subida (desaceleración)
             
-            pygame.draw.lines(self.screen, color, False, points, thickness)
+            pygame.draw.lines(self.screen, color, False, points, 3)
             
-            # Dibujar punto al inicio y final del árbol
+            # Dibujar punto al inicio y final
             if points:
                 pygame.draw.circle(self.screen, color, points[0], 4)
                 pygame.draw.circle(self.screen, color, points[-1], 4)
+            
+            # Dibujar vehículos en el árbol
+            for vehicle_data in tree.vehicles.values():
+                vehicle = vehicle_data['vehicle']
+                pos_2d = self.camera.project_3d_to_2d((
+                    vehicle.current_position.x,
+                    vehicle.current_position.y, 
+                    vehicle.current_position.z
+                ))
+                if pos_2d:
+                    pygame.draw.circle(self.screen, (255, 255, 0), pos_2d, 4)
     
     def draw_station(self, station):
-        """Dibuja una estación como prismas rectangulares de 3 pisos SUPERPUESTOS"""
-        # Dimensiones de la estación (ancho, largo, altura por piso)
-        width = 30  # metros de ancho
-        length = 60  # metros de largo
-        floor_height = 5  # altura de cada piso
-        floor_spacing = 6  # espacio vertical entre pisos
+        """Dibuja una estación como prismas rectangulares de 3 pisos"""
+        # Dimensiones de la estación
+        width = 30
+        length = 60
+        floor_height = 5
+        floor_spacing = 6
         
-        # Posición de la estación (coordenadas del centro del piso superior)
+        # Posición de la estación
         center_x, center_y, top_z = station.position.x, station.position.y, station.position.z
         
-        # Definir y dibujar cada uno de los 3 pisos
+        # Dibujar cada uno de los 3 pisos
         for floor_level in range(3):
-            # Calcular la altura Z de este piso (cada piso está más abajo)
             floor_z = top_z - (floor_level * floor_spacing)
             
-            # Calcular las coordenadas de los 8 vértices para ESTE piso
             half_width = width / 2
             half_length = length / 2
             
             vertices = [
-                # Cara superior (techo del piso)
+                # Cara superior
                 (center_x - half_width, center_y - half_length, floor_z),
                 (center_x + half_width, center_y - half_length, floor_z),
                 (center_x + half_width, center_y + half_length, floor_z),
                 (center_x - half_width, center_y + half_length, floor_z),
                 
-                # Cara inferior (piso del piso)
+                # Cara inferior
                 (center_x - half_width, center_y - half_length, floor_z - floor_height),
                 (center_x + half_width, center_y - half_length, floor_z - floor_height),
                 (center_x + half_width, center_y + half_length, floor_z - floor_height),
@@ -121,42 +137,50 @@ class Renderer:
                 if projected:
                     vertices_2d.append(projected)
             
-            # Color diferente para cada piso para distinguirlos
+            # Color diferente para cada piso
             floor_colors = [
-                (200, 150, 100),   # Piso 0 - superficie (marrón claro)
-                (150, 150, 200),   # Piso 1 - vestíbulo (azul claro) 
-                (200, 100, 100)    # Piso 2 - andenes (rojo claro)
+                (200, 150, 100),   # Piso 0 - superficie
+                (150, 150, 200),   # Piso 1 - vestíbulo
+                (200, 100, 100)    # Piso 2 - andenes
             ]
             
-            # Dibujar las caras del prisma para este piso
+            # Dibujar las caras del prisma
             if len(vertices_2d) >= 8:
                 color = floor_colors[floor_level]
                 
-                # Cara superior (techo)
+                # Cara superior
                 pygame.draw.polygon(self.screen, color, 
                                 [vertices_2d[0], vertices_2d[1], vertices_2d[2], vertices_2d[3]], 1)
                 
-                # Cara inferior (piso)
+                # Cara inferior
                 pygame.draw.polygon(self.screen, color, 
                                 [vertices_2d[4], vertices_2d[5], vertices_2d[6], vertices_2d[7]], 1)
                 
                 # Caras laterales
                 for i in range(4):
-                    # Conectar vértices superiores e inferiores (paredes verticales)
                     pygame.draw.line(self.screen, color, vertices_2d[i], vertices_2d[i+4], 1)
-                    
-                    # Conectar vértices adyacentes en la misma cara
                     next_i = (i + 1) % 4
                     pygame.draw.line(self.screen, color, vertices_2d[i], vertices_2d[next_i], 1)
                     pygame.draw.line(self.screen, color, vertices_2d[i+4], vertices_2d[next_i+4], 1)
+        
+        # Dibujar vehículos docked en la estación
+        for vehicle in station.docked_vehicles:
+            dock_pos_2d = self.camera.project_3d_to_2d((
+                station.position.x,
+                station.position.y + 10,
+                station.position.z
+            ))
+            if dock_pos_2d:
+                pygame.draw.circle(self.screen, (255, 200, 0), dock_pos_2d, 5)
   
-    def draw_vehicle(self, vehicle):                                                    # Dibujo de un VM
+    def draw_vehicle(self, vehicle):
+        """Dibuja un vehículo modular"""
         # Tamaño del vehículo
-        size = 8
+        size = 6
         half_size = size / 2
         
-        # Posición del vehículo
-        pos = vehicle.position
+        # Usar la posición actual del vehículo
+        pos = vehicle.current_position
         vertices = [
             (pos.x - half_size, pos.y - half_size, pos.z - half_size),
             (pos.x + half_size, pos.y - half_size, pos.z - half_size),
@@ -177,7 +201,15 @@ class Renderer:
         
         # Dibujar el cubo si tenemos suficientes puntos
         if len(vertices_2d) >= 8:
-            color = (255, 0, 0)  # Rojo para vehículos
+            # Color según el estado del vehículo
+            if vehicle.state == "docked":
+                color = (255, 200, 0)  # Amarillo para docked
+            elif vehicle.state in ["accelerating_down", "accelerating_up"]:
+                color = (255, 100, 100)  # Rojo para aceleración
+            elif vehicle.state == "moving":
+                color = (100, 255, 100)  # Verde para movimiento constante
+            else:
+                color = (255, 255, 255)  # Blanco para otros estados
             
             # Cara frontal
             pygame.draw.polygon(self.screen, color, 
@@ -194,77 +226,99 @@ class Renderer:
                 pygame.draw.line(self.screen, color, vertices_2d[i], vertices_2d[next_i], 1)
                 pygame.draw.line(self.screen, color, vertices_2d[i+4], vertices_2d[next_i+4], 1)
 
-    def draw_debug_info(self, simulation):                                              # Informacion de debug mostrada
+    def draw_debug_info(self, simulation):
+        """Muestra información de depuración"""
         font = pygame.font.SysFont('Arial', 12)
-        used_positions = []  # Lista para trackear posiciones ya usadas
+        used_positions = []
         
         # Mostrar información de estaciones
-        for i, station in enumerate(simulation.stations):
-            text = font.render(f"S{station.id}: {station.name}", True, (0, 255, 0))
-            pos_2d = self.camera.project_3d_to_2d((station.position.x, station.position.y + 15, station.position.z))
+        for station in simulation.stations:
+            station_info = f"S{station.station_id}: {station.name}"
+            pos_2d = self.camera.project_3d_to_2d((
+                station.position.x, 
+                station.position.y + 20, 
+                station.position.z
+            ))
             
-            if pos_2d and self._is_position_available(pos_2d, used_positions, text.get_size()):
+            if pos_2d and self._is_position_available(pos_2d, used_positions, font.size(station_info)):
+                text = font.render(station_info, True, (0, 255, 0))
                 self.screen.blit(text, pos_2d)
                 used_positions.append((pos_2d[0], pos_2d[1], text.get_width(), text.get_height()))
+                
+                # Info adicional de la estación
+                docked_info = f"Docked: {len(station.docked_vehicles)}"
+                docked_pos_2d = (pos_2d[0], pos_2d[1] + 15)
+                if self._is_position_available(docked_pos_2d, used_positions, font.size(docked_info)):
+                    text2 = font.render(docked_info, True, (200, 200, 0))
+                    self.screen.blit(text2, docked_pos_2d)
+                    used_positions.append((docked_pos_2d[0], docked_pos_2d[1], text2.get_width(), text2.get_height()))
         
         # Mostrar información de vehículos
         for vehicle in simulation.vehicles:
-            speed_color = (255, 255, 255)
-            if vehicle.velocity > 15:
+            # Color de velocidad
+            speed = vehicle.velocity.length()
+            if speed > 15:
                 speed_color = (255, 0, 0)
-            elif vehicle.velocity > 10:
+            elif speed > 10:
                 speed_color = (255, 165, 0)
-            elif vehicle.velocity > 5:
+            elif speed > 5:
                 speed_color = (255, 255, 0)
+            else:
+                speed_color = (200, 200, 200)
             
+            # Líneas de información
             info_lines = [
-                f"V{vehicle.id}",
-                f"Vel: {vehicle.velocity:.1f}m/s ({vehicle.velocity*3.6:.1f}km/h)",
+                f"VM{vehicle.vehicle_id}",
+                f"Vel: {speed:.1f}m/s",
                 f"Estado: {vehicle.state}",
-                f"Dist: {vehicle.distance_traveled_on_tree:.1f}m"
+                f"Track: {vehicle.current_track.track_id if vehicle.current_track else 'None'}"
             ]
             
-            if vehicle.current_connector:
-                info_lines.append(f"Conector: {vehicle.current_connector.id}")
             if vehicle.destination_station:
-                info_lines.append(f"Dest: S{vehicle.destination_station.id}")
+                info_lines.append(f"Dest: S{vehicle.destination_station}")
             
-            # Dibujar líneas de información del vehículo
+            # Dibujar cada línea
             for i, line in enumerate(info_lines):
                 color = speed_color if "Vel:" in line else (200, 200, 200)
                 text = font.render(line, True, color)
                 pos_2d = self.camera.project_3d_to_2d((
-                    vehicle.position.x, 
-                    vehicle.position.y + 5 + i * 12, 
-                    vehicle.position.z
+                    vehicle.current_position.x, 
+                    vehicle.current_position.y + 8 + i * 12, 
+                    vehicle.current_position.z
                 ))
                 
                 if pos_2d and self._is_position_available(pos_2d, used_positions, text.get_size()):
                     self.screen.blit(text, pos_2d)
                     used_positions.append((pos_2d[0], pos_2d[1], text.get_width(), text.get_height()))
         
-        # Mostrar información de árboles de aceleración
-        for connector in simulation.connectors:
-            for tree in connector.acceleration_trees:
-                tree_info = f"Tree {tree.id}: {tree.type} {tree.slope}°"
-                tree_pos_2d = self.camera.project_3d_to_2d((
-                    tree.position.x + tree.length/2, 
-                    tree.position.y + 10, 
-                    tree.position.z
-                ))
+        # Mostrar información de tracks
+        for track_id, track in simulation.network.tracks.items():
+            if hasattr(track, 'get_track_type'):
+                track_type = track.get_track_type()
                 
-                if tree_pos_2d:
-                    text = font.render(tree_info, True, (180, 180, 255))
-                    if self._is_position_available(tree_pos_2d, used_positions, text.get_size()):
-                        self.screen.blit(text, tree_pos_2d)
-                        used_positions.append((tree_pos_2d[0], tree_pos_2d[1], text.get_width(), text.get_height()))
+                if track_type == "AccelerationTree":
+                    tree_info = f"Tree{track_id}: {track.direction}"
+                    mid_point = track.calculate_position_at_progress(0.5)
+                    tree_pos_2d = self.camera.project_3d_to_2d((
+                        mid_point.x, 
+                        mid_point.y + 5, 
+                        mid_point.z
+                    ))
+                    
+                    if tree_pos_2d:
+                        color = (180, 180, 255) if track.direction == "up" else (255, 180, 180)
+                        text = font.render(tree_info, True, color)
+                        if self._is_position_available(tree_pos_2d, used_positions, text.get_size()):
+                            self.screen.blit(text, tree_pos_2d)
+                            used_positions.append((tree_pos_2d[0], tree_pos_2d[1], text.get_width(), text.get_height()))
 
-    def _is_position_available(self, pos_2d, used_positions, text_size, margin=2):      # Verifica si una posicion esta disponible par dibujar texto sin superponerse
-        x, y = pos_2d                                                       # Posicion propuesta en 2d
-        w, h = text_size                                                    # del texto
-        new_rect = (x - margin, y - margin, w + 2*margin, h + 2*margin)     # El margen se ocupa para saber cuanta distancia se guarda
+    def _is_position_available(self, pos_2d, used_positions, text_size, margin=2):
+        """Verifica si una posición está disponible para dibujar texto sin superponerse"""
+        x, y = pos_2d
+        w, h = text_size
+        new_rect = (x - margin, y - margin, w + 2*margin, h + 2*margin)
         
-        for used in used_positions:                                         # Retorna True or False dependiendo de si se puede o no dibujar
+        for used in used_positions:
             if (new_rect[0] < used[0] + used[2] and
                 new_rect[0] + new_rect[2] > used[0] and
                 new_rect[1] < used[1] + used[3] and
