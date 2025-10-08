@@ -1,6 +1,7 @@
 import pygame
 from ui.info_panel import draw_info_panel
 import math
+from objects.base import Vector3
 
 class Renderer:
     def __init__(self, screen, camera):
@@ -97,37 +98,40 @@ class Renderer:
                 ))
                 if pos_2d:
                     pygame.draw.circle(self.screen, (255, 255, 0), pos_2d, 4)
-    
+      
     def draw_station(self, station):
-        """Dibuja una estación como prismas rectangulares de 3 pisos"""
-        # Dimensiones de la estación
-        width = 30
-        length = 60
-        floor_height = 5
-        floor_spacing = 6
-        
-        # Posición de la estación
-        center_x, center_y, top_z = station.position.x, station.position.y, station.position.z
-        
-        # Dibujar cada uno de los 3 pisos
+        """Dibuja una estación como prismas rectangulares de 3 pisos creciendo hacia arriba"""
+        # NUEVAS DIMENSIONES según especificaciones
+        width = 50      # metros en eje X (ancho)
+        length = 60     # metros en eje Y (largo)
+        floor_height = 4.9  # metros de alto por piso
+        floor_spacing = 1.0 # metros entre pisos
+
+        # Posición de la estación - el punto de origen está en la BASE
+        center_x, center_y, base_z = station.position.x, station.position.y, station.position.z
+
+        # Dibujar cada uno de los 3 pisos, desde el más bajo (naranja) hasta el más alto (rojo)
         for floor_level in range(3):
-            floor_z = top_z - (floor_level * floor_spacing)
+            # Calcular la altura de la base de cada piso
+            # El piso 0 (naranja) está en la base, luego sube floor_spacing + floor_height para cada piso siguiente
+            floor_base_z = base_z + (floor_height + floor_spacing) * floor_level
             
             half_width = width / 2
             half_length = length / 2
-            
+
+            # Vertices del prisma para este piso
             vertices = [
-                # Cara superior
-                (center_x - half_width, center_y - half_length, floor_z),
-                (center_x + half_width, center_y - half_length, floor_z),
-                (center_x + half_width, center_y + half_length, floor_z),
-                (center_x - half_width, center_y + half_length, floor_z),
+                # Cara superior del piso
+                (center_x - half_width, center_y - half_length, floor_base_z + floor_height),
+                (center_x + half_width, center_y - half_length, floor_base_z + floor_height),
+                (center_x + half_width, center_y + half_length, floor_base_z + floor_height),
+                (center_x - half_width, center_y + half_length, floor_base_z + floor_height),
                 
-                # Cara inferior
-                (center_x - half_width, center_y - half_length, floor_z - floor_height),
-                (center_x + half_width, center_y - half_length, floor_z - floor_height),
-                (center_x + half_width, center_y + half_length, floor_z - floor_height),
-                (center_x - half_width, center_y + half_length, floor_z - floor_height)
+                # Cara inferior del piso
+                (center_x - half_width, center_y - half_length, floor_base_z),
+                (center_x + half_width, center_y - half_length, floor_base_z),
+                (center_x + half_width, center_y + half_length, floor_base_z),
+                (center_x - half_width, center_y + half_length, floor_base_z)
             ]
             
             # Proyectar vértices a 2D
@@ -137,14 +141,14 @@ class Renderer:
                 if projected:
                     vertices_2d.append(projected)
             
-            # Color diferente para cada piso
+            # Color diferente para cada piso (según el orden especificado)
             floor_colors = [
-                (200, 150, 100),   # Piso 0 - superficie
-                (150, 150, 200),   # Piso 1 - vestíbulo
-                (200, 100, 100)    # Piso 2 - andenes
+                (255, 150, 100),   # Piso 0 - naranja (base, donde se toman los VMs)
+                (150, 150, 200),   # Piso 1 - azul/morado (pago de tiquetes)
+                (255, 100, 100)    # Piso 2 - rojo (el más alto)
             ]
             
-            # Dibujar las caras del prisma
+            # Dibujar las caras del prisma si tenemos suficientes puntos proyectados
             if len(vertices_2d) >= 8:
                 color = floor_colors[floor_level]
                 
@@ -158,38 +162,52 @@ class Renderer:
                 
                 # Caras laterales
                 for i in range(4):
+                    # Conectar cara superior e inferior
                     pygame.draw.line(self.screen, color, vertices_2d[i], vertices_2d[i+4], 1)
+                    # Bordes de la cara superior
                     next_i = (i + 1) % 4
                     pygame.draw.line(self.screen, color, vertices_2d[i], vertices_2d[next_i], 1)
+                    # Bordes de la cara inferior
                     pygame.draw.line(self.screen, color, vertices_2d[i+4], vertices_2d[next_i+4], 1)
         
-        # Dibujar vehículos docked en la estación
+        # Dibujar vehículos docked en la estación (en el piso naranja - base)
         for vehicle in station.docked_vehicles:
+            # Posición de dock en el piso naranja (base)
             dock_pos_2d = self.camera.project_3d_to_2d((
                 station.position.x,
                 station.position.y + 10,
-                station.position.z
+                base_z + 2.5  # Mitad del piso naranja
             ))
             if dock_pos_2d:
                 pygame.draw.circle(self.screen, (255, 200, 0), dock_pos_2d, 5)
-  
+
     def draw_vehicle(self, vehicle):
-        """Dibuja un vehículo modular"""
-        # Tamaño del vehículo
-        size = 6
-        half_size = size / 2
+        """Dibuja un vehículo modular con dimensiones 1m (largo) × 1m (ancho) × 1.5m (alto)"""
+        # NUEVAS DIMENSIONES según especificaciones
+        length = 1.0    # 1 metro de largo (eje X)
+        width = 1.0     # 1 metro de ancho (eje Y) 
+        height = 1.5    # 1.5 metros de alto (eje Z)
         
-        # Usar la posición actual del vehículo
+        half_length = length / 2
+        half_width = width / 2
+        half_height = height / 2
+
+        # Usar la posición actual del vehículo (centro de la base)
         pos = vehicle.current_position
+        
+        # Definir los 8 vértices del prisma rectangular
         vertices = [
-            (pos.x - half_size, pos.y - half_size, pos.z - half_size),
-            (pos.x + half_size, pos.y - half_size, pos.z - half_size),
-            (pos.x + half_size, pos.y + half_size, pos.z - half_size),
-            (pos.x - half_size, pos.y + half_size, pos.z - half_size),
-            (pos.x - half_size, pos.y - half_size, pos.z + half_size),
-            (pos.x + half_size, pos.y - half_size, pos.z + half_size),
-            (pos.x + half_size, pos.y + half_size, pos.z + half_size),
-            (pos.x - half_size, pos.y + half_size, pos.z + half_size)
+            # Cara inferior (base)
+            (pos.x - half_length, pos.y - half_width, pos.z),           # 0: esquina inferior-izquierda-atrás
+            (pos.x + half_length, pos.y - half_width, pos.z),           # 1: esquina inferior-derecha-atrás  
+            (pos.x + half_length, pos.y + half_width, pos.z),           # 2: esquina inferior-derecha-delante
+            (pos.x - half_length, pos.y + half_width, pos.z),           # 3: esquina inferior-izquierda-delante
+            
+            # Cara superior (techo)
+            (pos.x - half_length, pos.y - half_width, pos.z + height),  # 4: esquina superior-izquierda-atrás
+            (pos.x + half_length, pos.y - half_width, pos.z + height),  # 5: esquina superior-derecha-atrás
+            (pos.x + half_length, pos.y + half_width, pos.z + height),  # 6: esquina superior-derecha-delante
+            (pos.x - half_length, pos.y + half_width, pos.z + height)   # 7: esquina superior-izquierda-delante
         ]
         
         # Proyectar vértices a 2D
@@ -199,7 +217,7 @@ class Renderer:
             if projected:
                 vertices_2d.append(projected)
         
-        # Dibujar el cubo si tenemos suficientes puntos
+        # Dibujar el prisma si tenemos suficientes puntos
         if len(vertices_2d) >= 8:
             # Color según el estado del vehículo
             if vehicle.state == "docked":
@@ -211,20 +229,42 @@ class Renderer:
             else:
                 color = (255, 255, 255)  # Blanco para otros estados
             
-            # Cara frontal
-            pygame.draw.polygon(self.screen, color, 
-                            [vertices_2d[4], vertices_2d[5], vertices_2d[6], vertices_2d[7]], 1)
+            # Definir las caras del prisma
+            faces = [
+                # Cara frontal (delante)
+                [vertices_2d[3], vertices_2d[2], vertices_2d[6], vertices_2d[7]],
+                # Cara trasera (atrás)
+                [vertices_2d[0], vertices_2d[1], vertices_2d[5], vertices_2d[4]],
+                # Cara izquierda
+                [vertices_2d[0], vertices_2d[3], vertices_2d[7], vertices_2d[4]],
+                # Cara derecha
+                [vertices_2d[1], vertices_2d[2], vertices_2d[6], vertices_2d[5]],
+                # Cara superior (techo)
+                [vertices_2d[4], vertices_2d[5], vertices_2d[6], vertices_2d[7]],
+                # Cara inferior (base)
+                [vertices_2d[0], vertices_2d[1], vertices_2d[2], vertices_2d[3]]
+            ]
             
-            # Cara trasera
-            pygame.draw.polygon(self.screen, color, 
-                            [vertices_2d[0], vertices_2d[1], vertices_2d[2], vertices_2d[3]], 1)
+            # Dibujar cada cara
+            for face in faces:
+                if len(face) == 4:
+                    pygame.draw.polygon(self.screen, color, face, 1)
             
-            # Conectar las caras
-            for i in range(4):
-                pygame.draw.line(self.screen, color, vertices_2d[i], vertices_2d[i+4], 1)
-                next_i = (i + 1) % 4
-                pygame.draw.line(self.screen, color, vertices_2d[i], vertices_2d[next_i], 1)
-                pygame.draw.line(self.screen, color, vertices_2d[i+4], vertices_2d[next_i+4], 1)
+            # Resaltar aristas principales para mejor visibilidad
+            edge_pairs = [
+                # Aristas verticales
+                (vertices_2d[0], vertices_2d[4]), (vertices_2d[1], vertices_2d[5]),
+                (vertices_2d[2], vertices_2d[6]), (vertices_2d[3], vertices_2d[7]),
+                # Aristas del techo
+                (vertices_2d[4], vertices_2d[5]), (vertices_2d[5], vertices_2d[6]),
+                (vertices_2d[6], vertices_2d[7]), (vertices_2d[7], vertices_2d[4]),
+                # Aristas de la base
+                (vertices_2d[0], vertices_2d[1]), (vertices_2d[1], vertices_2d[2]),
+                (vertices_2d[2], vertices_2d[3]), (vertices_2d[3], vertices_2d[0])
+            ]
+            
+            for start, end in edge_pairs:
+                pygame.draw.line(self.screen, color, start, end, 2)
 
     def draw_debug_info(self, simulation):
         """Muestra información de depuración"""
