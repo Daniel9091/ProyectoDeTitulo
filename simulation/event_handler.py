@@ -1,28 +1,30 @@
 import pygame
-from simulation.camera import Camera
 
 class EventHandler:
     def __init__(self, simulation): 
         self.simulation = simulation
         self.camera = simulation.camera
     
-    def handle_events(self):                                                                    # Maneja eventos de pygame y actualiza la cámara
+    def handle_events(self):
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:                                                       # Salir del programa si se cierra la ventana
+            if event.type == pygame.QUIT:
                 return False
-            elif event.type == pygame.KEYDOWN:                                                  # Manejar eventos de teclado    
-                if event.key == pygame.K_i:                                                     # Alternar visualización de información (I)       
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_i:
                     self.simulation.show_info = not self.simulation.show_info
-                elif event.key == pygame.K_r:                                                   # Reiniciar simulación (R)
-                    self.simulation.camera = Camera(self.simulation.camera.screen_width, 
-                                                  self.simulation.camera.screen_height)
+                elif event.key == pygame.K_r:  # Reiniciar cámara (R)
+                    # Resetear la cámara
+                    self.simulation.camera.reset()
+                    # Actualizar la referencia local
+                    self.camera = self.simulation.camera
+                    print("Cámara resetada a posición inicial")
                 
                 # Pasar evento a la cámara y manejar comandos
                 command = self.camera.handle_event(event)
                 if command:
                     self.simulation.handle_command(command)
             
-            elif event.type == pygame.MOUSEBUTTONDOWN:                                          # Pasar eventos de ratón a la cámara
+            elif event.type == pygame.MOUSEBUTTONDOWN:
                 self.camera.handle_event(event)
         
         # Actualizar cámara según teclas presionadas
