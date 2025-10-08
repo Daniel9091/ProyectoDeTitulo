@@ -1,25 +1,31 @@
 import pygame
 
-# Dibuja los panesles de informacion  en la pantalla
+def format_coordinate(value):
+    """Formatea coordenadas eliminando el signo negativo en ceros"""
+    if abs(value) < 0.0001:  # Si es prácticamente cero
+        return "0"
+    return f"{value:.0f}"
+
+# Dibuja los paneles de información en la pantalla
 def draw_info_panel(screen, simulation, camera):
     # Fuentes de texto
     font = pygame.font.SysFont(None, 24)
     small_font = pygame.font.SysFont(None, 18)
     
-    # Obtener información de los controles principales de la camara
+    # Obtener información de los controles principales de la cámara
     cam_info = camera.get_info()
     pos_x, pos_y, pos_z = cam_info['position']
     rot_theta, rot_alpha = cam_info['rotation']
     
-    # Información principal del estado de la simulacion
+    # Información principal del estado de la simulación
     main_info = [
         f"FPS: {pygame.time.Clock().get_fps():.0f}",
         f"Tiempo: {simulation.time_scale:+.1f}x",
         f"Vehículos: {len(simulation.vehicles)}",
         f"Estaciones: {len(simulation.stations)}",
         f"Rutas: {len(simulation.connectors)}",
-        f"Pos: ({pos_x:.0f}, {pos_y:.0f}, {pos_z:.0f})",
-        f"Rot: ({rot_theta:.0f}°, {rot_alpha:.0f}°)",
+        f"Pos: ({format_coordinate(pos_x)}, {format_coordinate(pos_y)}, {format_coordinate(pos_z)})",
+        f"Rot: ({format_coordinate(rot_theta)}°, {format_coordinate(rot_alpha)}°)",
         f"Zoom: {cam_info['zoom']:.1f}x",
     ]
     
