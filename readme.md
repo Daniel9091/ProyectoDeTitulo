@@ -19,7 +19,7 @@ for f in *.webm; do ffmpeg -i "$f" -c:v libx264 -c:a aac "${f%.webm}.mp4"; done
 ### Cosas Por Hacer:
 #### Perspectiva simple
 - ~~Corregir perspectiva~~ (Mas dificil de lo que pense)
-- ~~Corregir diseño de las estacionesy medidas de las estaciones~~
+- ~~Corregir diseño de las estaciones y medidas de las estaciones~~
 - Corregir dibujo de los arboles de aceleracion con medidas del profesor
 - ~~Corregir medidas de los vm~~
 
