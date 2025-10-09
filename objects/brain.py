@@ -51,6 +51,20 @@ class Brain:
         target_trees = self._find_target_acceleration_trees(to_station.station_id)
         vehicle.target_acceleration_trees = target_trees
         
+
+        # DEBUG: Imprimir información de ruta
+        print(f"DEBUG RUTA: Vehículo {vehicle.vehicle_id}")
+        print(f"  Desde: Estación {from_station.station_id} ({from_station.name})")
+        print(f"  Hacia: Estación {to_station.station_id} ({to_station.name})")
+        print(f"  Target Trees: {target_trees}")
+        
+        # Mostrar árboles de llegada de la estación destino
+        station = self.stations.get(to_station.station_id)
+        if station:
+            print(f"  Árboles de llegada en {station.name}: {[tree.track_id for tree in station.arrival_trees]}")
+
+
+
         # Posicionar vehículo en la estación de origen
         vehicle.current_station = from_station.station_id
         vehicle.state = "docked"

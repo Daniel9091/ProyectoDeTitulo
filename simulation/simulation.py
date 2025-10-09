@@ -47,71 +47,75 @@ class Simulation:
         builder = SimulationBuilder(self)
         
         try:
-            # CONFIGURACIÓN CON DIMENSIONES REALES Y SENTIDO ÚNICO
+            # 1. Estaciones
+            builder.add_station(1, "North Station", Vector3(425, 0, 0))
+            builder.add_station(2, "Central Station", Vector3(1425, 0, 0))
+            builder.add_station(3, "South Station", Vector3(2425, 0, 0))
+            # (Estaciones cada 1km)
+
+            # 2. Árboles de Aceleración
+            # North
+            builder.add_acceleration_tree(1, 1, Vector3(0, 0, -20), Vector3(400, 0, 0), "up")       # North UP
+            builder.add_acceleration_tree(2, 1, Vector3(450, 0, 0), Vector3(850, 0, -20), "down")   # North Down
+            # Central
+            builder.add_acceleration_tree(3, 2, Vector3(1000, 0, -20), Vector3(1400, 0, 0), "up")   # Central UP
+            builder.add_acceleration_tree(4, 2, Vector3(1450, 0, 0), Vector3(1850, 0, -20), "down") # Central Down
+            # South
+            builder.add_acceleration_tree(5, 3, Vector3(2000, 0, -20), Vector3(2400, 0, 0), "up")   # South UP
+            builder.add_acceleration_tree(6, 3, Vector3(2450, 0, 0), Vector3(2850, 0, -20), "down") # South Down
+
+            # 3. Conectores Subterráneos (Entre arboles y estaciones)
+            builder.add_connector(7, Vector3(0, 0, -20), Vector3(850, 0, -20))      # Entre Arboles North
+            builder.add_connector(8, Vector3(850, 0, -20), Vector3(1000, 0, -20))   # Entre North y Central
+            builder.add_connector(9, Vector3(1000, 0, -20), Vector3(1850, 0, -20))  # Entre Arboles Central
+            builder.add_connector(10, Vector3(1850, 0, -20), Vector3(2000, 0, -20)) # Entre Central y South
+            builder.add_connector(11, Vector3(2000, 0, -20), Vector3(2850, 0, -20)) # Entre Arboles South
+            # Para hacer Efecto Dona
+            builder.add_connector(12, Vector3(2850, 0, -20), Vector3(2900, 0, -20)) # Fin South
+
+            # 4. Conexiones de los conectores entre si
+            builder.connect_tracks(7, 8)   
+            builder.connect_tracks(8, 9)  
+            builder.connect_tracks(9, 10)
+            builder.connect_tracks(10, 11)
+            # Efecto Dona
+            builder.connect_tracks(11, 12)
+            builder.connect_tracks(12, 7)
+
+            # 5. Conexiones de los arboles con los conectores
+            builder.connect_tracks(2, 8)   # Track North Down ->  Track Entre North y Central
+            builder.connect_tracks(8, 3)   # Entre North y Central -> Track Central Up
+            builder.connect_tracks(4, 10)  # Track Central Down -> Track Entre Central
+            builder.connect_tracks(10, 5)  # Entre Central y South -> Track South Up
+            # Arboles del principio y final
+            builder.connect_tracks(6, 12)   # Track South Down -> Fin South
+            builder.connect_tracks(12,1 )    # Fin South -> Track North Up
+
             
-            # 1. ESTACIONES 
-            builder.add_station(1, "North Station", Vector3(0, 0, 0))
-            builder.add_station(2, "Central Station", Vector3(1000, 0, 0))
-            builder.add_station(3, "South Station", Vector3(2000, 0, 0))
+            # 6. Incorporacion de Vehiculos
+            # Creacion del Vehiculo
+            # Pocision del vehiculo en Tracks (solo puedo poner un vm por track)
+
+            builder.add_vehicle(1, 20, 2,3)         # VM1: Estación 1 → Estación 3 (DESTINO FINAL)
+            builder.start_vehicle_on_track(1, 2)    # VM1 en árbol de salida Estación 1
+
+            builder.add_vehicle(2, 20, 2)           # VM2: Estación 2 → Sin destino (usará bucles)
+            builder.start_vehicle_on_track(2, 4)    # VM2 en árbol de salida Estación 3
             
-            # 2. ÁRBOLES DE ACELERACIÓN 
-            # North: solo árbol de bajada
-            builder.add_acceleration_tree(1, 1, Vector3(0, 0, 0), Vector3(400, 0, -20), "down")
-            # Central: árbol de subida y bajada
-            builder.add_acceleration_tree(4, 2, Vector3(600, 0, -20), Vector3(1000, 0, 0), "up")
-            builder.add_acceleration_tree(2, 2, Vector3(1000, 0, 0), Vector3(1400, 0, -20), "down")
-            # South: solo árbol de subida
-            builder.add_acceleration_tree(5, 3, Vector3(1600, 0, -20), Vector3(2000, 0, 0), "up")
-            
-            # 3. CONECTORES SUBTERRÁNEOS
-            builder.add_connector(7, Vector3(400, 0, -20), Vector3(600, 0, -20))
-            builder.add_connector(8, Vector3(1400, 0, -20), Vector3(1600, 0, -20))
-            
-            # 4. CONEXIONES DE LA RED
-            builder.connect_tracks(1, 7)   # North down -> connector7
-            builder.connect_tracks(7, 4)   # connector7 -> Central up
-            builder.connect_tracks(2, 8)   # Central down -> connector8
-            builder.connect_tracks(8, 5)   # connector8 -> South up
-            
-            # 5. VEHÍCULOS 
-            builder.add_vehicle(1, 20, 1, 2)  # VM1: North -> Central
-            builder.add_vehicle(2, 20, 2, 3)  # VM2: Central -> South
-            
-            # 6. INICIAR VEHÍCULOS EN ESTACIONES (docked)
-            # No es necesario iniciarlos en tracks, porque se asignan a estaciones y luego se les da destino.
-            
-            # Validar configuración
+            # Validar
             builder.validate_network()
-            
+
             # Mostrar resumen
             summary = builder.get_summary()
-            print("=== CONFIGURACIÓN CON SENTIDO ÚNICO ===")
+            print("=== CONFIGURACIÓN COMPLETADA ===")
             print(f"Estaciones: {summary['stations']}")
             print(f"Tracks: {summary['tracks']}") 
             print(f"Vehículos: {summary['vehicles']}")
             print(f"Conexiones: {summary['connections']}")
-            
-            # INFORMACIÓN DE FÍSICA
-            print("\n=== FÍSICA DE ÁRBOLES ===")
-            for track_id, track in builder.tracks.items():
-                if hasattr(track, 'get_track_type') and track.get_track_type() == "AccelerationTree":
-                    print(f"Árbol {track_id} ({track.direction}):")
-                    print(f"  - Longitud: {track.length:.1f}m")
-                    print(f"  - Ángulo: {track.get_angle_degrees():.1f}°")
-                    print(f"  - Aceleración: {track.acceleration:.2f}m/s²")
-                    if track.direction == "down":
-                        print(f"  - Velocidad final: {track.final_velocity:.1f}m/s")
-                    else:
-                        print(f"  - Velocidad inicial: {track.initial_velocity:.1f}m/s")
+            print("\nCOMPORTAMIENTO ESPERADO:")
+            print("• VM1: Estación 1 → Estación 3 (se quedará DOCKED)")
+            print("• VM2: Bucle continuo en Estación 3 (sin destino)")
 
-            print("\n=== CONECTORES SUBTERRÁNEOS ===")
-            for track_id, track in builder.tracks.items():
-                if hasattr(track, 'get_track_type') and track.get_track_type() == "StationConnector":
-                    print(f"Conector {track_id}:")
-                    print(f"  - Longitud: {track.length:.1f}m")
-                    print(f"  - Velocidad: {track.speed}m/s")
-                    print(f"  - Dirección: {track.direction}")
-            
         except (ValueError, RuntimeError) as e:
             print(f"ERROR en configuración: {e}")
             import traceback

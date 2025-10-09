@@ -155,26 +155,49 @@ class Network:
         """
         Elige el mejor track siguiente para un vehículo con validaciones
         """
+        # DEBUG MEJORADO
+        print(f"🚗 NAVEGACIÓN VM{vehicle.vehicle_id}:")
+        print(f"   Destino: Estación {vehicle.destination_station}")
+        print(f"   Target Trees: {vehicle.target_acceleration_trees}")
+        print(f"   Opciones disponibles: {possible_track_ids}")
+        
         # FILTRAR solo tracks que existen realmente
         valid_track_ids = [track_id for track_id in possible_track_ids 
                         if track_id in self.tracks]
         
+        print(f"   Opciones válidas: {valid_track_ids}")
+        
         if not valid_track_ids:
-            print(f"WARNING: No hay tracks válidos desde la posición actual")
+            print(f"❌ ERROR: No hay tracks válidos desde la posición actual")
             return None
         
-        # Si el vehículo no tiene destino específico, tomar el primero
-        if not vehicle.target_acceleration_trees:
-            return valid_track_ids[0]
+        # VERIFICACIÓN CRÍTICA: Targets directos disponibles
+        direct_targets = [t for t in valid_track_ids if t in vehicle.target_acceleration_trees]
+        print(f"   Targets directos disponibles: {direct_targets}")
         
-        # Buscar tracks que lleven a los acceleration trees objetivo
+        # PRIORIDAD 1: Si el vehículo no tiene destino específico, tomar el primero
+        if not vehicle.target_acceleration_trees:
+            chosen = valid_track_ids[0]
+            print(f"🔄 SIN DESTINO: Tomando primer track {chosen}")
+            return chosen
+        
+        # PRIORIDAD 2: Targets directos (¡ESTA ES LA CLAVE!)
+        if direct_targets:
+            chosen = direct_targets[0]
+            print(f"🎯 TOMANDO TARGET DIRECTO: {chosen}")
+            return chosen
+        
+        # PRIORIDAD 3: Buscar tracks que lleven a los acceleration trees objetivo
         for track_id in valid_track_ids:
             if self._leads_to_target(track_id, vehicle.target_acceleration_trees):
+                print(f"🔄 TOMANDO RUTA AL TARGET: {track_id}")
                 return track_id
         
-        # Si no encuentra uno que lleve al objetivo, tomar el primero disponible
-        return valid_track_ids[0]
-    
+        # PRIORIDAD 4: Si no encuentra uno que lleve al objetivo, tomar el primero disponible
+        chosen = valid_track_ids[0]
+        print(f"⚠️  SIN RUTA AL TARGET: Tomando primer disponible {chosen}")
+        return chosen
+
     def _leads_to_target(self, track_id, target_trees, visited=None):
         """
         Verifica recursivamente si un track lleva a alguno de los trees objetivo
