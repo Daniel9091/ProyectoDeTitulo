@@ -57,9 +57,11 @@ class Simulation:
             # North
             builder.add_acceleration_tree(1, 1, Vector3(0, 0, -20), Vector3(400, 0, 0), "up")       # North UP
             builder.add_acceleration_tree(2, 1, Vector3(450, 0, 0), Vector3(850, 0, -20), "down")   # North Down
+
             # Central
             builder.add_acceleration_tree(3, 2, Vector3(1000, 0, -20), Vector3(1400, 0, 0), "up")   # Central UP
             builder.add_acceleration_tree(4, 2, Vector3(1450, 0, 0), Vector3(1850, 0, -20), "down") # Central Down
+
             # South
             builder.add_acceleration_tree(5, 3, Vector3(2000, 0, -20), Vector3(2400, 0, 0), "up")   # South UP
             builder.add_acceleration_tree(6, 3, Vector3(2450, 0, 0), Vector3(2850, 0, -20), "down") # South Down
@@ -73,7 +75,14 @@ class Simulation:
             # Para hacer Efecto Dona
             builder.add_connector(12, Vector3(2850, 0, -20), Vector3(2900, 0, -20)) # Fin South
 
-            # 4. Conexiones de los conectores entre si
+            # 4. Conectores en la estacion
+            builder.add_connector(13, Vector3(400, 0, 0), Vector3(450, 0, 0),1)       # En North Station
+            builder.add_connector(14, Vector3(1400, 0, 0), Vector3(1450, 0, 0),1)     # En Central Station
+            builder.add_connector(15, Vector3(2400, 0, 0), Vector3(2450, 0, 0),1)     # En South Station
+
+
+
+            # 5. Conexiones de los conectores entre si
             builder.connect_tracks(7, 8)   
             builder.connect_tracks(8, 9)  
             builder.connect_tracks(9, 10)
@@ -82,7 +91,7 @@ class Simulation:
             builder.connect_tracks(11, 12)
             builder.connect_tracks(12, 7)
 
-            # 5. Conexiones de los arboles con los conectores
+            # 6. Conexiones de los arboles con los conectores
             builder.connect_tracks(2, 8)   # Track North Down ->  Track Entre North y Central
             builder.connect_tracks(8, 3)   # Entre North y Central -> Track Central Up
             builder.connect_tracks(4, 10)  # Track Central Down -> Track Entre Central
@@ -90,6 +99,14 @@ class Simulation:
             # Arboles del principio y final
             builder.connect_tracks(6, 12)   # Track South Down -> Fin South
             builder.connect_tracks(12,1 )    # Fin South -> Track North Up
+
+            # Conectores d las estaciones con los arboles
+            builder.connect_tracks(1, 13)   # Track North Up -> En North Station
+            builder.connect_tracks(13, 2)   # En North Station -> Track North Down
+            builder.connect_tracks(3, 14)   # Track Central Up -> En Central Station
+            builder.connect_tracks(14, 4)   # En Central Station -> Track Central Down
+            builder.connect_tracks(5, 15)   # Track South Up -> En South Station
+            builder.connect_tracks(15, 6)   # En South Station -> Track South Down
 
             
             # 6. Incorporacion de Vehiculos
@@ -102,10 +119,10 @@ class Simulation:
             builder.add_vehicle(2, 20, 2)           # VM2: Estación 2 → Sin destino (usará bucles)
             builder.start_vehicle_on_track(2, 4)    # VM2 en árbol de salida Estación 3
             
-            # Validar
+            # 7. Validar
             builder.validate_network()
 
-            # Mostrar resumen
+            # 8. Mostrar resumen
             summary = builder.get_summary()
             print("=== CONFIGURACIÓN COMPLETADA ===")
             print(f"Estaciones: {summary['stations']}")

@@ -20,13 +20,13 @@ for f in *.webm; do ffmpeg -i "$f" -c:v libx264 -c:a aac "${f%.webm}.mp4"; done
 #### Perspectiva simple
 - ~~Corregir perspectiva~~ (Mas dificil de lo que pense)
 - ~~Corregir diseño de las estaciones y medidas de las estaciones~~
-- Corregir dibujo de los arboles de aceleracion con medidas del profesor
+- ~~Corregir dibujo de los arboles de aceleracion con medidas del profesor~~
 - ~~Corregir medidas de los vm~~
 
 #### Movimiento
-- Agregar perspectiva dona
+- ~~Agregar perspectiva dona~~
 - Agregar mas andenes por estacion (revisar como se elije la ruta en el movimiento)
-- agregar nuevo trak que va con la banda en la estacion
+- ~~agregar nuevo trak que va con la banda en la estacion~~
 - Manejo de que se hace cuando un vm ya llego a la estacion
 
 
