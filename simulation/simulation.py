@@ -62,6 +62,13 @@ class Simulation:
             builder.add_acceleration_tree(3, 2, Vector3(1000, 0, -20), Vector3(1400, 0, 0), "up")   # Central UP
             builder.add_acceleration_tree(4, 2, Vector3(1450, 0, 0), Vector3(1850, 0, -20), "down") # Central Down
 
+            ## Nuevos arboles de Aceleracion
+            builder.add_acceleration_tree(16, 2, Vector3(1000, 0, -20), Vector3(1400, 10, 0), "up")   # Central UP 2
+            builder.add_acceleration_tree(17, 2, Vector3(1450, 10, 0), Vector3(1850, 0, -20), "down") # Central Down 2
+
+            builder.add_acceleration_tree(18, 2, Vector3(1000, 0, -20), Vector3(1400, -10, 0), "up")   # Central UP 3
+            builder.add_acceleration_tree(19, 2, Vector3(1450, -10, 0), Vector3(1850, 0, -20), "down") # Central Down 3
+
             # South
             builder.add_acceleration_tree(5, 3, Vector3(2000, 0, -20), Vector3(2400, 0, 0), "up")   # South UP
             builder.add_acceleration_tree(6, 3, Vector3(2450, 0, 0), Vector3(2850, 0, -20), "down") # South Down
@@ -79,8 +86,9 @@ class Simulation:
             builder.add_connector(13, Vector3(400, 0, 0), Vector3(450, 0, 0),1)       # En North Station
             builder.add_connector(14, Vector3(1400, 0, 0), Vector3(1450, 0, 0),1)     # En Central Station
             builder.add_connector(15, Vector3(2400, 0, 0), Vector3(2450, 0, 0),1)     # En South Station
-
-
+            # Nuevos andenes en Central
+            builder.add_connector(20, Vector3(1400, 10, 0), Vector3(1450, 10, 0),1)     # En Central Station 2
+            builder.add_connector(21, Vector3(1400, -10, 0), Vector3(1450, -10, 0),1)     # En Central Station 3
 
             # 5. Conexiones de los conectores entre si
             builder.connect_tracks(7, 8)   
@@ -96,24 +104,35 @@ class Simulation:
             builder.connect_tracks(8, 3)   # Entre North y Central -> Track Central Up
             builder.connect_tracks(4, 10)  # Track Central Down -> Track Entre Central
             builder.connect_tracks(10, 5)  # Entre Central y South -> Track South Up
+            # Arboles 2 y 3 central
+            builder.connect_tracks(8,16)    # Entre North y Central -> Track Central Up 2
+            builder.connect_tracks(8,18)    # Entre North y Central -> Track Central Up 3
+            builder.connect_tracks(17,10)   # Track Central Down 2 -> Track Entre Central y South
+            builder.connect_tracks(19,10)   # Track Central Down 3 -> Track Entre Central y South
+
             # Arboles del principio y final
             builder.connect_tracks(6, 12)   # Track South Down -> Fin South
-            builder.connect_tracks(12,1 )    # Fin South -> Track North Up
+            builder.connect_tracks(12,1)    # Fin South -> Track North Up
 
-            # Conectores d las estaciones con los arboles
+            # Conectores de las estaciones con los arboles
             builder.connect_tracks(1, 13)   # Track North Up -> En North Station
             builder.connect_tracks(13, 2)   # En North Station -> Track North Down
             builder.connect_tracks(3, 14)   # Track Central Up -> En Central Station
             builder.connect_tracks(14, 4)   # En Central Station -> Track Central Down
             builder.connect_tracks(5, 15)   # Track South Up -> En South Station
             builder.connect_tracks(15, 6)   # En South Station -> Track South Down
+            # Arboles extra en Central
+            builder.connect_tracks(16, 20)   # Track Central Up 2 -> En Central Station 2
+            builder.connect_tracks(20, 17)   # En Central Station 2 -> Track Central Down 2
+            builder.connect_tracks(18, 21)   # Track Central Up 3 -> En Central Station 3
+            builder.connect_tracks(21, 19)   # En Central Station 3 -> Track Central Down 3
 
             
             # 6. Incorporacion de Vehiculos
             # Creacion del Vehiculo
             # Pocision del vehiculo en Tracks (solo puedo poner un vm por track)
 
-            builder.add_vehicle(1, 20, 2,3)         # VM1: Estación 1 → Estación 3 (DESTINO FINAL)
+            builder.add_vehicle(1, 20, 2,2)         # VM1: Estación 1 → Estación 2 (DESTINO FINAL)
             builder.start_vehicle_on_track(1, 2)    # VM1 en árbol de salida Estación 1
 
             builder.add_vehicle(2, 20, 2)           # VM2: Estación 2 → Sin destino (usará bucles)

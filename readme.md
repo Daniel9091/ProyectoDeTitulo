@@ -25,7 +25,7 @@ for f in *.webm; do ffmpeg -i "$f" -c:v libx264 -c:a aac "${f%.webm}.mp4"; done
 
 #### Movimiento
 - ~~Agregar perspectiva dona~~
-- Agregar mas andenes por estacion (revisar como se elije la ruta en el movimiento)
+- Agregar mas andenes por estacion (revisar como se elije la ruta en el movimiento) (por ahora perfiere el con menos  vm)
 - ~~agregar nuevo trak que va con la banda en la estacion~~
 - Manejo de que se hace cuando un vm ya llego a la estacion
 
@@ -34,5 +34,10 @@ for f in *.webm; do ffmpeg -i "$f" -c:v libx264 -c:a aac "${f%.webm}.mp4"; done
 - Como se puedo manejar los choques, si todo esto es denso
 - Se me hace complicado de aplicar y de pensar como manejar choques con varios andenes y con flujo denso
 - cuenteme de nuevo que era lo de la matriz que me conto la reunion anterior
+
+
+### Tareas para la proxima semana
+- personas y andenes que incorporan personas
+- problema desface optimo andenes de la misma estacion
 
 
