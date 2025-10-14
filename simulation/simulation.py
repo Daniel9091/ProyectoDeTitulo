@@ -59,14 +59,14 @@ class Simulation:
             builder.add_acceleration_tree(2, 1, Vector3(450, 0, 0), Vector3(850, 0, -20), "down")   # North Down
 
             # Central
-            builder.add_acceleration_tree(3, 2, Vector3(1000, 0, -20), Vector3(1400, 0, 0), "up")   # Central UP
-            builder.add_acceleration_tree(4, 2, Vector3(1450, 0, 0), Vector3(1850, 0, -20), "down") # Central Down
+            builder.add_acceleration_tree(3, 2, Vector3(1000.15, 0, -20), Vector3(1400.15, 0, 0), "up")   # Central UP
+            builder.add_acceleration_tree(4, 2, Vector3(1449.85, 0, 0), Vector3(1850, 0, -20), "down") # Central Down
 
             ## Nuevos arboles de Aceleracion
-            builder.add_acceleration_tree(16, 2, Vector3(1000, 0, -20), Vector3(1400, 10, 0), "up")   # Central UP 2
+            builder.add_acceleration_tree(16, 2, Vector3(1000.15, 0, -20), Vector3(1400, 10, 0), "up")   # Central UP 2
             builder.add_acceleration_tree(17, 2, Vector3(1450, 10, 0), Vector3(1850, 0, -20), "down") # Central Down 2
 
-            builder.add_acceleration_tree(18, 2, Vector3(1000, 0, -20), Vector3(1400, -10, 0), "up")   # Central UP 3
+            builder.add_acceleration_tree(18, 2, Vector3(1000.15, 0, -20), Vector3(1400, -10, 0), "up")   # Central UP 3
             builder.add_acceleration_tree(19, 2, Vector3(1450, -10, 0), Vector3(1850, 0, -20), "down") # Central Down 3
 
             # South
@@ -75,8 +75,8 @@ class Simulation:
 
             # 3. Conectores Subterráneos (Entre arboles y estaciones)
             builder.add_connector(7, Vector3(0, 0, -20), Vector3(850, 0, -20))      # Entre Arboles North
-            builder.add_connector(8, Vector3(850, 0, -20), Vector3(1000, 0, -20))   # Entre North y Central
-            builder.add_connector(9, Vector3(1000, 0, -20), Vector3(1850, 0, -20))  # Entre Arboles Central
+            builder.add_connector(8, Vector3(850, 0, -20), Vector3(1000.15, 0, -20))   # Entre North y Central
+            builder.add_connector(9, Vector3(1000.15, 0, -20), Vector3(1850, 0, -20))  # Entre Arboles Central
             builder.add_connector(10, Vector3(1850, 0, -20), Vector3(2000, 0, -20)) # Entre Central y South
             builder.add_connector(11, Vector3(2000, 0, -20), Vector3(2850, 0, -20)) # Entre Arboles South
             # Para hacer Efecto Dona
@@ -84,7 +84,7 @@ class Simulation:
 
             # 4. Conectores en la estacion
             builder.add_connector(13, Vector3(400, 0, 0), Vector3(450, 0, 0),1)       # En North Station
-            builder.add_connector(14, Vector3(1400, 0, 0), Vector3(1450, 0, 0),1)     # En Central Station
+            builder.add_connector(14, Vector3(1400.15, 0, 0), Vector3(1449.85, 0, 0),1)     # En Central Station
             builder.add_connector(15, Vector3(2400, 0, 0), Vector3(2450, 0, 0),1)     # En South Station
             # Nuevos andenes en Central
             builder.add_connector(20, Vector3(1400, 10, 0), Vector3(1450, 10, 0),1)     # En Central Station 2
@@ -137,7 +137,27 @@ class Simulation:
 
             builder.add_vehicle(2, 20, 2)           # VM2: Estación 2 → Sin destino (usará bucles)
             builder.start_vehicle_on_track(2, 4)    # VM2 en árbol de salida Estación 3
-            
+
+            # # Test demoran mismo tiempo en llegar a la estacion central (Cambiar ID en caso de ser nesesario)
+            # builder.add_vehicle(3, 20, 2)           
+            # builder.start_vehicle_on_track(3, 3)
+
+            # builder.add_vehicle(4, 20, 2)           
+            # builder.start_vehicle_on_track(4, 16)
+
+            # builder.add_vehicle(5, 20, 2)           
+            # builder.start_vehicle_on_track(5, 18)
+
+            # # Test demoran mismo tiempo en llegar nodo de via subterranea (Cambiar ID en caso de ser nesesario)
+            # builder.add_vehicle(6, 20, 2)           
+            # builder.start_vehicle_on_track(6, 4)
+
+            # builder.add_vehicle(7, 20, 2)           
+            # builder.start_vehicle_on_track(7, 17)
+
+            # builder.add_vehicle(8, 20, 2)           
+            # builder.start_vehicle_on_track(8, 19)
+
             # 7. Validar
             builder.validate_network()
 

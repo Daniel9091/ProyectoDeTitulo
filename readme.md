@@ -8,7 +8,7 @@ python3 -m simulation.main
 #### Urgentes
 - personas y andenes que incorporan personas
 - Manejo de que se hace cuando un vm ya llego a la estacion
-- problema desface optimo andenes de la misma estacion
+- ~~problema desface optimo andenes de la misma estacion~~
 - Agregar mas vm (en tiempo de simulacion)
 #### No tan Urgentes
 - Matriz, estacion de origen, estacion de destino (Mostrar, Editar, Cumplir)
@@ -43,3 +43,8 @@ El problema es que la estacion tiene varios arboles de aceleracion de subida que
 - Cual es el largo que debe tener para permitir que un arbol de subida y de bajada pueda partir antes o despues
 ##### Evaluar
 - La velocidad variante de los station connector en la estacion no puede ser muy diferente a 0.5 metros/segundo para que la gente sea capaz de subir y no alterar la capacidad de la estacion calculada
+
+- No fueron mas de 15 centimetros los modificados
+
+
+
