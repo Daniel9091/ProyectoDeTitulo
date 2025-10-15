@@ -6,12 +6,14 @@ python3 -m simulation.main
 ### Cosas Por Hacer:
 
 #### Urgentes
-- personas y andenes que incorporan personas
+- Personas y andenes que incorporan personas
 - Manejo de que se hace cuando un vm ya llego a la estacion
+- Manejo de eleccion de arbol de aceleracion
 - ~~problema desface optimo andenes de la misma estacion~~
-- Agregar mas vm (en tiempo de simulacion)
+- ~~Agregar mas vm (en tiempo de simulacion)~~
 #### No tan Urgentes
 - Matriz, estacion de origen, estacion de destino (Mostrar, Editar, Cumplir)
+- Revisar por qeu se descordina la simulacion cuando aumento o disminuyo el tiempo de la simulacion
 
 
 #### Problema de desface optimo

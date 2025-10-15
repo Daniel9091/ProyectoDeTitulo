@@ -7,6 +7,7 @@ from objects.network import Network
 from objects.brain import Brain
 from objects.base import Vector3
 from simulation.camera import Camera
+from simulation.spawn_system import SpawnSystem
 import pygame
 
 class Simulation:
@@ -29,6 +30,7 @@ class Simulation:
         self.pre_rewind_scale = 1.0
         self.last_time_scale = 1.0
         
+        self.spawn_system = SpawnSystem()
         self.init_simulation()
     
     def init_simulation(self):
@@ -129,14 +131,14 @@ class Simulation:
 
             
             # 6. Incorporacion de Vehiculos
-            # Creacion del Vehiculo
-            # Pocision del vehiculo en Tracks (solo puedo poner un vm por track)
+            ## Creacion del Vehiculo
 
-            builder.add_vehicle(1, 20, 2,2)         # VM1: Estación 1 → Estación 2 (DESTINO FINAL)
-            builder.start_vehicle_on_track(1, 2)    # VM1 en árbol de salida Estación 1
+            # builder.add_vehicle(1, 20, 2,2)         # VM1: Estación 1 → Estación 2 (DESTINO FINAL)
+            # builder.start_vehicle_on_track(1, 2)    # VM1 en árbol de salida Estación 1
 
-            builder.add_vehicle(2, 20, 2)           # VM2: Estación 2 → Sin destino (usará bucles)
-            builder.start_vehicle_on_track(2, 4)    # VM2 en árbol de salida Estación 3
+            # builder.add_vehicle(2, 20, 2)           # VM2: Estación 2 → Sin destino (usará bucles)
+            # builder.start_vehicle_on_track(2, 4)    # VM2 en árbol de salida Estación 3
+
 
             # # Test demoran mismo tiempo en llegar a la estacion central (Cambiar ID en caso de ser nesesario)
             # builder.add_vehicle(3, 20, 2)           
@@ -157,6 +159,17 @@ class Simulation:
 
             # builder.add_vehicle(8, 20, 2)           
             # builder.start_vehicle_on_track(8, 19)
+
+            # Spawn System (Opcional)
+            self.spawn_system.add_spawn_point(
+            spawn_id="S",
+            track_id=7,  # Track Inicial (conector subterráneo)
+            spawn_interval=0.6,  # Cada x segundos sale un nuevo VM (ideal 0.075)
+            max_vehicles=210,     # Máximo 20 VMs
+            vehicle_capacity=2, # Capacidad de cada VM
+            destination_station_id=None  # Sin destino fijo
+        )
+
 
             # 7. Validar
             builder.validate_network()
@@ -183,6 +196,9 @@ class Simulation:
     def update(self, dt):                                                                       # Acutaliza la simulacion basada en el tiempo real
         # Escalar delta time por la escala de tiempo
         scaled_dt = dt * self.time_scale
+
+        # Actualizar sistema de spawn antes de Brain
+        self.spawn_system.update(self, scaled_dt)
         
         # Usar Brain para actualizar todo el sistema
         if self.rewinding:
