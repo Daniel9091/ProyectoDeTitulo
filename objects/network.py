@@ -175,13 +175,38 @@ class Network:
         direct_targets = [t for t in valid_track_ids if t in vehicle.target_acceleration_trees]
         print(f"   Targets directos disponibles: {direct_targets}")
         
+        # PRIORIDAD 1: Si el vehículo tiene destino específico, buscar árboles de subida
+        if vehicle.destination_station:
+            # Buscar árboles de subida que lleven a la estación destino
+            up_trees = [t for t in valid_track_ids 
+                    if self.tracks[t].get_track_type() == "AccelerationTree" 
+                    and self.tracks[t].direction == "up"
+                    and self.tracks[t].get_station_id() == vehicle.destination_station]
+            
+            if up_trees:
+                # Verificar distancia segura en cada árbol
+                for tree_id in up_trees:
+                    tree = self.tracks[tree_id]
+                    if self._check_safe_distance_in_tree(vehicle, tree):
+                        chosen = tree_id
+                        print(f"🎯 TOMANDO ÁRBOL DE SUBIDA: {chosen}")
+                        return chosen
+                
+                # Si ningún árbol tiene distancia segura, tomar el primero disponible
+                if up_trees:
+                    chosen = up_trees[0]
+                    print(f"⚠️  Tomando árbol de subida {chosen} sin verificación de distancia")
+                    return chosen
+
+
+
         # PRIORIDAD 1: Si el vehículo no tiene destino específico, tomar el primero
         if not vehicle.target_acceleration_trees:
             chosen = valid_track_ids[0]
             print(f"🔄 SIN DESTINO: Tomando primer track {chosen}")
             return chosen
         
-        # PRIORIDAD 2: Targets directos (¡ESTA ES LA CLAVE!)
+        # PRIORIDAD 2: Targets directos 
         if direct_targets:
             chosen = direct_targets[0]
             print(f"🎯 TOMANDO TARGET DIRECTO: {chosen}")
@@ -197,6 +222,18 @@ class Network:
         chosen = valid_track_ids[0]
         print(f"⚠️  SIN RUTA AL TARGET: Tomando primer disponible {chosen}")
         return chosen
+
+    def _check_safe_distance_in_tree(self, vehicle, tree):
+        """Verifica distancia segura en un árbol específico"""
+        for other_vehicle_id, vehicle_data in tree.vehicles.items():
+            if other_vehicle_id != vehicle.vehicle_id:
+                other_progress = vehicle_data['progress']
+                # Distancia mínima reducida
+                if other_progress > 0.9:  # Si está cerca del final, permitir entrada
+                    continue
+                if abs(other_progress - 0.5) < 0.3:  # Zona crítica del árbol
+                    return False
+        return True
 
     def _leads_to_target(self, track_id, target_trees, visited=None):
         """

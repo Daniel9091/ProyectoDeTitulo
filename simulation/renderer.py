@@ -17,10 +17,12 @@ class Renderer:
         # Dibujar estaciones
         for station in simulation.stations:
             self.draw_station(station)
+            self.draw_passengers(station)
 
         # Dibujar vehículos
         for vehicle in simulation.vehicles:
             self.draw_vehicle(vehicle)
+            self.draw_passengers_in_vehicles(vehicle)
 
         # Dibujar información de depuración
         self.draw_debug_info(simulation)
@@ -265,6 +267,77 @@ class Renderer:
             
             for start, end in edge_pairs:
                 pygame.draw.line(self.screen, color, start, end, 2)
+
+    def draw_passengers(self, station):
+        """Dibuja los pasajeros en una estación"""
+        # Dibujar pasajeros en cola de espera
+        queue_start_pos = self.camera.project_3d_to_2d((
+            station.position.x - 25,
+            station.position.y,
+            station.position.z + 2
+        ))
+        
+        if queue_start_pos:
+            for i, passenger in enumerate(station.waiting_passengers[:10]):  # Máximo 10 visibles
+                pos = (queue_start_pos[0] + i * 8, queue_start_pos[1])
+                pygame.draw.circle(self.screen, (255, 255, 100), pos, 3)
+                
+                # Dibujar línea destino
+                if i < 5:  # No saturar con texto
+                    font = pygame.font.SysFont('Arial', 10)
+                    dest_text = f"→{passenger.destination_station_id}"
+                    text_surface = font.render(dest_text, True, (200, 200, 200))
+                    self.screen.blit(text_surface, (pos[0] - 5, pos[1] - 10))
+        
+        # Dibujar pasajeros en andenes
+        for lane in station.lanes:
+            self.draw_passengers_on_lane(station, lane)
+
+    def draw_passengers_on_lane(self, station, lane):
+        """Dibuja pasajeros en un andén específico"""
+        lane_start_pos = self.camera.project_3d_to_2d((
+            station.position.x - 20 + lane.id * 8,
+            station.position.y - 15,
+            station.position.z + 1
+        ))
+        
+        if lane_start_pos:
+            for i, passenger in enumerate(lane.passengers[:5]):  # Máximo 5 visibles por andén
+                # Calcular posición basada en progreso en el lane
+                lane_progress_x = lane_start_pos[0] + passenger.position_on_lane * 40
+                lane_progress_y = lane_start_pos[1] + i * 6
+                
+                color = (100, 255, 100) if passenger.state == "ready_to_board" else (255, 200, 100)
+                pygame.draw.circle(self.screen, color, (int(lane_progress_x), int(lane_progress_y)), 3)
+                
+                # Indicador de destino
+                if passenger.position_on_lane > 0.5:
+                    font = pygame.font.SysFont('Arial', 8)
+                    dest_text = f"→{passenger.destination_station_id}"
+                    text_surface = font.render(dest_text, True, (200, 200, 200))
+                    self.screen.blit(text_surface, (int(lane_progress_x) + 5, int(lane_progress_y) - 5))
+
+    def draw_passengers_in_vehicles(self, vehicle):
+        """Dibuja indicadores de pasajeros en los vehículos"""
+        if vehicle.passengers > 0:
+            vehicle_pos_2d = self.camera.project_3d_to_2d((
+                vehicle.current_position.x,
+                vehicle.current_position.y,
+                vehicle.current_position.z + 2.5
+            ))
+            
+            if vehicle_pos_2d:
+                # Dibujar contador de pasajeros
+                font = pygame.font.SysFont('Arial', 10)
+                passenger_text = f"{vehicle.passengers}/{vehicle.capacity}"
+                text_surface = font.render(passenger_text, True, (255, 255, 255))
+                text_rect = text_surface.get_rect(center=(vehicle_pos_2d[0], vehicle_pos_2d[1] - 10))
+                
+                # Fondo del contador
+                pygame.draw.rect(self.screen, (0, 0, 0, 128), 
+                            (text_rect.x - 2, text_rect.y - 2, 
+                                text_rect.width + 4, text_rect.height + 4))
+                self.screen.blit(text_surface, text_rect)
 
     def draw_debug_info(self, simulation):
         """Muestra información de depuración"""

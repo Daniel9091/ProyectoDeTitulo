@@ -50,3 +50,16 @@ El problema es que la estacion tiene varios arboles de aceleracion de subida que
 
 
 
+# preg
+
+Preguntas de la implementacion;
+por que en lane los andenes son deentry or exit?, quiero que la gente se pueda subir y bajar en el mismo anen o no?
+
+por que en modular vehicles no eliminas sefl.passengers si ya tienes self.passengers_info, estaba hecho para que fuera facil la actualizacion
+
+los passengers deben estar llamados en briainpara poder gnerarlos
+
+la generacion aleatorea de pasageros esta bien en el lugar donde esta o es mejor que este en otro lugar para que se manejen mejor las responsabilidades, pensando en algo parecido a lo que se hace con los vms
+
+
+

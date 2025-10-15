@@ -1,4 +1,5 @@
 from objects.base import Vector3
+from objects.lane import Lane
 
 class Station:
     """
@@ -20,11 +21,144 @@ class Station:
         self.station_id = station_id
         self.name = name
         self.position = position  # Vector3 - posición en superficie
-        self.arrival_trees = []   # Lista de AccelerationTree (dirección 'up')
-        self.departure_trees = [] # Lista de AccelerationTree (dirección 'down')
-        self.docked_vehicles = [] # Lista de ModularVehicle estacionados
-        self.capacity = 10  # Capacidad máxima de vehículos docked
         
+        # Componentes Fisicos
+        self.arrival_trees = []     # Lista de AccelerationTree (dirección 'up')
+        self.departure_trees = []   # Lista de AccelerationTree (dirección 'down')
+        self.docked_vehicles = []   # Lista de ModularVehicle estacionados
+        self.lanes = []             # Lista de Lane asociados a la estación    
+        
+        # Gestion de pasageros
+        self.waiting_passengers = []  # Pasajeros esperando en la estación (no implementado aún)
+        self.passenger_queue = []      # Cola de pasajeros para abordar (no implementado aún)
+        self.arrived_passengers = []    # Pasajeros que han llegado (no implementado aún)
+
+        # Configuración
+        self.capacity = 10  # Capacidad máxima de vehículos docked
+        self.max_queue_length = 50  # Longitud máxima de la cola de pasajeros (no implementado aún)
+
+        # Estadisticas
+        self.total_passengers_served = 0  # Total de pasajeros que han sido servidos (no implementado aún)
+        self.avarage_wait_time = 0.0      # Tiempo promedio de espera de pasajeros (no implementado aún)
+
+    def add_lane(self, lane_id, belt_speed, direction, station_connector_id):
+        """ Agrega un anden  a la estacion"""
+        lane = Lane(lane_id, belt_speed, direction, station_connector_id)
+        self.lanes.append(lane)
+        return lane
+
+    def add_passenger(self, passenger):
+        """Agrega un pasajero a la estación"""
+        if len(self.waiting_passengers) < self.max_queue_length:
+            passenger.current_station_id = self.station_id
+            passenger.state = "in_queue"
+            self.waiting_passengers.append(passenger)
+            
+            # Intentar asignar inmediatamente a un andén
+            self._assign_passenger_to_lane(passenger)
+            return True
+        return False
+
+    def process_passenger_assignments(self):
+        """Asigna pasajeros en espera a andenes disponibles"""
+        for passenger in self.waiting_passengers[:]:
+            self._assign_passenger_to_lane(passenger)
+
+    def _assign_passenger_to_lane(self, passenger):
+        """Asigna un pasajero a un andén disponible"""
+        available_lanes = self._get_available_lanes_for_destination(passenger.destination_station_id)
+        
+        for lane in available_lanes:
+            if len(lane.passengers) < 8:  # Aumentar capacidad por andén
+                passenger.assign_to_lane(lane.id)
+                lane.add_passenger(passenger)
+                if passenger in self.waiting_passengers:
+                    self.waiting_passengers.remove(passenger)
+                print(f"✅ Pasajero {passenger.id} asignado al andén {lane.id}")
+                return True
+        
+        print(f"⚠️  No hay andenes disponibles para pasajero {passenger.id}")
+        return False
+
+    def _get_available_lanes_for_destination(self, destination_station_id):
+        """Obtiene andenes disponibles para una estación destino"""
+        available_lanes = []
+        
+        for lane in self.lanes:
+            # Verificar si hay VMs en este lane que vayan al destino
+            for vehicle in lane.vehicles:
+                if vehicle.destination_station == destination_station_id and vehicle.passengers < vehicle.capacity:
+                    available_lanes.append(lane)
+                    break
+                # Si no hay VMs actuales, el lane está disponible para nuevos VMs
+                elif len(lane.vehicles) == 0:
+                    available_lanes.append(lane)
+                
+        return available_lanes
+
+    def _request_vehicle_for_passenger(self, passenger):
+        """Solicita un VM vacío para un pasajero"""
+        # Buscar VMs vacíos en la red que puedan redirigirse aquí
+        # Esta lógica se coordinará con el Brain
+        print(f"Estación {self.station_id} solicitando VM para pasajero {passenger.id} hacia estación {passenger.destination_station_id}")
+        return True  # Por ahora siempre retorna éxito
+
+    def process_vehicle_arrival(self, vehicle, arrival_tree):
+        """Procesa la llegada de un vehículo a la estación"""
+        # Desembarcar pasajeros
+        disembarked_count = vehicle.disembark_passengers()
+        
+        # Actualizar estadísticas de pasajeros que llegaron
+        for passenger in vehicle.passengers_info:
+            if passenger.destination_station_id == self.station_id:
+                passenger.exit_vehicle(self.station_id)
+                self.arrived_passengers.append(passenger)
+                self.total_passengers_served += 1
+        
+        # Remover del árbol de llegada
+        arrival_tree.remove_vehicle(vehicle)
+        
+        # Dockear en la estación
+        success = self.dock_vehicle(vehicle)
+        
+        if success:
+            print(f"Vehículo {vehicle.vehicle_id} llegó a {self.name}. Pasajeros desembarcados: {disembarked_count}")
+            
+            # Asignar nuevos pasajeros a este VM si está disponible
+            if vehicle.passengers < vehicle.capacity and self.waiting_passengers:
+                self._assign_passengers_to_vehicle(vehicle)
+        
+        return success
+
+    def _assign_passengers_to_vehicle(self, vehicle):
+        """Asigna pasajeros a un vehículo disponible"""
+        assigned_count = 0
+        
+        for passenger in self.waiting_passengers[:]:  # Copia para iterar seguramente
+            if passenger.destination_station_id == vehicle.destination_station:
+                if passenger.board_vehicle(vehicle):
+                    self.waiting_passengers.remove(passenger)
+                    assigned_count += 1
+                    
+                    if vehicle.passengers >= vehicle.capacity:
+                        break
+        
+        if assigned_count > 0:
+            print(f"Se asignaron {assigned_count} pasajeros al vehículo {vehicle.vehicle_id}")
+
+    def update_lanes(self, dt):
+        """Actualiza todos los andenes de la estación"""
+        for lane in self.lanes:
+            lane.update_passengers(dt)
+            
+            # Sincronizar VMs con StationConnectors
+            self._sync_lane_vehicles(lane)
+
+    def _sync_lane_vehicles(self, lane):
+        """Sincroniza los VMs del lane con los StationConnectors"""
+        # Esta función se conectará con la red para obtener VMs en el connector asociado
+        pass
+
     def add_arrival_tree(self, acceleration_tree):
         """
         Agrega un árbol de aceleración de LLEGADA a la estación
@@ -192,20 +326,24 @@ class Station:
         return None
     
     def get_station_info(self):
-        """
-        Retorna información completa de la estación
-        """
-        return {
+        """Retorna información completa de la estación"""
+        base_info = {
             "station_id": self.station_id,
             "name": self.name,
             "position": self.position.to_tuple(),
             "docked_vehicles": len(self.docked_vehicles),
             "capacity": self.capacity,
+            "waiting_passengers": len(self.waiting_passengers),
+            "passenger_queue": len(self.passenger_queue),
+            "arrived_passengers": len(self.arrived_passengers),
+            "total_passengers_served": self.total_passengers_served,
+            "lanes": [lane.get_lane_info() for lane in self.lanes],
             "arrival_trees": [tree.track_id for tree in self.arrival_trees],
             "departure_trees": [tree.track_id for tree in self.departure_trees],
-            "vehicle_ids": [v.vehicle_id for v in self.docked_vehicles],
-            "status": "FULL" if len(self.docked_vehicles) >= self.capacity else "AVAILABLE"
+            "vehicle_ids": [v.vehicle_id for v in self.docked_vehicles]
         }
+        
+        return base_info
     
     def get_docked_vehicles_info(self):
         """

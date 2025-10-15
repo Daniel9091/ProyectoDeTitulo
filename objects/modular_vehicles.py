@@ -20,6 +20,8 @@ class ModularVehicle:
         self.vehicle_id = vehicle_id
         self.capacity = capacity
         self.passengers = 0  # En primera etapa, simulado
+        self.passengers_info = []   # Lista de IDs de pasajeros a bordo (simulado)
+
         
         # Estado de posición y movimiento
         self.current_position = initial_position if initial_position else Vector3(0, 0, 0)
@@ -47,6 +49,41 @@ class ModularVehicle:
         self._last_progress = 0.0
         
         print(f"Vehículo modular {vehicle_id} creado con capacidad {capacity}")
+
+    def add_passenger(self, passenger):
+        """
+        Agrega un pasajero al vehículo
+        
+        Args:
+            passenger: Objeto Passenger
+            
+        Returns:
+            bool: True si se pudo agregar el pasajero
+        """
+        if self.passengers < self.capacity:
+            self.passengers += 1
+            self.passengers_info.append(passenger)
+            
+            # Si es el primer pasajero, establecer destino
+            if self.passengers == 1 and not self.destination_station:
+                self.destination_station = passenger.destination_station_id
+            
+            print(f"Vehículo {self.vehicle_id}: Pasajero {passenger.id} embarcado. Total: {self.passengers}/{self.capacity}")
+            return True
+        return False
+
+    def remove_passenger(self, passenger):
+        """
+        Remueve un pasajero del vehículo
+        
+        Args:
+            passenger: Objeto Passenger a remover
+        """
+        if passenger in self.passengers_info:
+            self.passengers_info.remove(passenger)
+            self.passengers -= 1
+            return True
+        return False
 
     def update(self, dt):
         """
@@ -113,16 +150,25 @@ class ModularVehicle:
 
     def disembark_passengers(self):
         """
-        Simula el desembarque de todos los pasajeros
+        Desembarca todos los pasajeros cuyo destino es la estación actual
         
         Returns:
-            int: Número de pasajeros que desembarcaron
+            int: Número de pasajeros desembarcados
         """
-        disembarked = self.passengers
-        if disembarked > 0:
-            print(f"Vehículo {self.vehicle_id}: {disembarked} pasajeros desembarcados")
-            self.passengers = 0
-        return disembarked
+        passengers_to_disembark = [
+            p for p in self.passengers_info 
+            if p.destination_station_id == self.current_station
+        ]
+        
+        for passenger in passengers_to_disembark:
+            self.remove_passenger(passenger)
+            passenger.exit_vehicle(self.current_station)
+        
+        disembarked_count = len(passengers_to_disembark)
+        if disembarked_count > 0:
+            print(f"Vehículo {self.vehicle_id}: {disembarked_count} pasajeros desembarcados en estación {self.current_station}")
+        
+        return disembarked_count
 
     def transfer_to_track(self, new_track, entry_velocity=None):
         """
@@ -170,9 +216,7 @@ class ModularVehicle:
             print(f"Vehículo {self.vehicle_id} llegó a estación {station_id} (en ruta)")
 
     def get_vehicle_info(self):
-        """
-        Retorna información completa del vehículo
-        """
+        """Retorna información completa del vehículo"""
         info = {
             "vehicle_id": self.vehicle_id,
             "state": self.state,
@@ -182,6 +226,7 @@ class ModularVehicle:
             "passengers": self.passengers,
             "capacity": self.capacity,
             "occupancy_rate": (self.passengers / self.capacity) * 100 if self.capacity > 0 else 0,
+            "passenger_details": [p.get_passenger_info() for p in self.passengers_info],
             "current_station": self.current_station,
             "destination_station": self.destination_station,
             "current_track": self.current_track.track_id if self.current_track else None,

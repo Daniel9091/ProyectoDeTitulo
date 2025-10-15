@@ -54,8 +54,13 @@ class Simulation:
             builder.add_station(2, "Central Station", Vector3(1425, 0, 0))
             builder.add_station(3, "South Station", Vector3(2425, 0, 0))
             # (Estaciones cada 1km)
+            
+            # 2.Andenes
+            builder.add_lane_to_station(2, 1, 1.0, "entry", 14)  # Central Station, lane 1
+            builder.add_lane_to_station(2, 2, 1.0, "entry", 20)  # Central Station, lane 2  
+            builder.add_lane_to_station(2, 3, 1.0, "entry", 21)  # Central Station, lane 3
 
-            # 2. Árboles de Aceleración
+            # 3. Árboles de Aceleración
             # North
             builder.add_acceleration_tree(1, 1, Vector3(0, 0, -20), Vector3(400, 0, 0), "up")       # North UP
             builder.add_acceleration_tree(2, 1, Vector3(450, 0, 0), Vector3(850, 0, -20), "down")   # North Down
@@ -75,7 +80,7 @@ class Simulation:
             builder.add_acceleration_tree(5, 3, Vector3(2000, 0, -20), Vector3(2400, 0, 0), "up")   # South UP
             builder.add_acceleration_tree(6, 3, Vector3(2450, 0, 0), Vector3(2850, 0, -20), "down") # South Down
 
-            # 3. Conectores Subterráneos (Entre arboles y estaciones)
+            # 4. Conectores Subterráneos (Entre arboles y estaciones)
             builder.add_connector(7, Vector3(0, 0, -20), Vector3(850, 0, -20))      # Entre Arboles North
             builder.add_connector(8, Vector3(850, 0, -20), Vector3(1000.15, 0, -20))   # Entre North y Central
             builder.add_connector(9, Vector3(1000.15, 0, -20), Vector3(1850, 0, -20))  # Entre Arboles Central
@@ -84,7 +89,7 @@ class Simulation:
             # Para hacer Efecto Dona
             builder.add_connector(12, Vector3(2850, 0, -20), Vector3(2900, 0, -20)) # Fin South
 
-            # 4. Conectores en la estacion
+            # 5. Conectores en la estacion
             builder.add_connector(13, Vector3(400, 0, 0), Vector3(450, 0, 0),1)       # En North Station
             builder.add_connector(14, Vector3(1400.15, 0, 0), Vector3(1449.85, 0, 0),1)     # En Central Station
             builder.add_connector(15, Vector3(2400, 0, 0), Vector3(2450, 0, 0),1)     # En South Station
@@ -92,7 +97,7 @@ class Simulation:
             builder.add_connector(20, Vector3(1400, 10, 0), Vector3(1450, 10, 0),1)     # En Central Station 2
             builder.add_connector(21, Vector3(1400, -10, 0), Vector3(1450, -10, 0),1)     # En Central Station 3
 
-            # 5. Conexiones de los conectores entre si
+            # 6. Conexiones de los conectores entre si
             builder.connect_tracks(7, 8)   
             builder.connect_tracks(8, 9)  
             builder.connect_tracks(9, 10)
@@ -101,7 +106,7 @@ class Simulation:
             builder.connect_tracks(11, 12)
             builder.connect_tracks(12, 7)
 
-            # 6. Conexiones de los arboles con los conectores
+            # 7. Conexiones de los arboles con los conectores
             builder.connect_tracks(2, 8)   # Track North Down ->  Track Entre North y Central
             builder.connect_tracks(8, 3)   # Entre North y Central -> Track Central Up
             builder.connect_tracks(4, 10)  # Track Central Down -> Track Entre Central
@@ -130,7 +135,7 @@ class Simulation:
             builder.connect_tracks(21, 19)   # En Central Station 3 -> Track Central Down 3
 
             
-            # 6. Incorporacion de Vehiculos
+            # 8. Incorporacion de Vehiculos
             ## Creacion del Vehiculo
 
             # builder.add_vehicle(1, 20, 2,2)         # VM1: Estación 1 → Estación 2 (DESTINO FINAL)
@@ -170,11 +175,15 @@ class Simulation:
             destination_station_id=None  # Sin destino fijo
         )
 
+            # 9. Passengers
+            self.brain.generate_passenger(1, 2) # Pasajero 1: North -> Central
+            self.brain.generate_passenger(2, 3) # Pasajero 2: Central -> South  
+            self.brain.generate_passenger(3, 1) # Pasajero 3: South -> North
 
-            # 7. Validar
+            # 10. Validar
             builder.validate_network()
 
-            # 8. Mostrar resumen
+            # 11. Mostrar resumen
             summary = builder.get_summary()
             print("=== CONFIGURACIÓN COMPLETADA ===")
             print(f"Estaciones: {summary['stations']}")
@@ -200,6 +209,12 @@ class Simulation:
         # Actualizar sistema de spawn antes de Brain
         self.spawn_system.update(self, scaled_dt)
         
+
+        # Generar pasajeros aleatoriamente (opcional)
+        # if pygame.time.get_ticks() % 5000 < scaled_dt * 1000:  # Cada ~5 segundos
+        #     self.generate_random_passenger()
+
+
         # Usar Brain para actualizar todo el sistema
         if self.rewinding:
             current_time = pygame.time.get_ticks() / 1000.0
@@ -312,7 +327,16 @@ class SimulationBuilder:
         self.simulation.connectors.append(connector)
         self.simulation.network.add_track(connector)
         return self
-    
+
+    def add_lane_to_station(self, station_id, lane_id, belt_speed, direction, station_connector_id):
+        """Agrega un andén a una estación"""
+        if station_id not in self.stations:
+            raise ValueError(f"Estación {station_id} no existe")
+            
+        station = self.stations[station_id]
+        station.add_lane(lane_id, belt_speed, direction, station_connector_id)
+        return self
+
     def connect_tracks(self, from_track_id, to_track_id):
         """Conecta dos tracks en la red"""
         if from_track_id not in self.tracks or to_track_id not in self.tracks:
