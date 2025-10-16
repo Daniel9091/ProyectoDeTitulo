@@ -24,8 +24,8 @@ class AccelerationTree(Track):
         self.station_id = station_id
         
         # CONFIGURACIÓN DE DENSIDAD - NUEVO
-        self.min_safe_distance = 15.0       # metros entre VMs
-        self.max_concurrent_vehicles = 3    # máximo de VMs simultáneos
+        self.min_safe_distance = 20.0       # metros entre VMs
+        self.max_concurrent_vehicles = 50    # máximo de VMs simultáneos
         
         # CALCULAR ÁNGULO DE INCLINACIÓN REAL (existente)
         self.angle, self.sin_angle = self._calculate_ramp_angle()

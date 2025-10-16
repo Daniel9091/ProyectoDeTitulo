@@ -46,6 +46,9 @@ class SpawnPoint:
         # Configurar destino si se especificó
         if self.destination_station_id:
             new_vehicle.destination_station = self.destination_station_id
+            target_trees = simulation.brain._find_optimal_target_trees(self.destination_station_id, new_vehicle)
+            new_vehicle.target_acceleration_trees = target_trees
+
         
         # Incorporar a todos los sistemas
         simulation.vehicles.append(new_vehicle)

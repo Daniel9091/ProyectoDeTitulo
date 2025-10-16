@@ -166,11 +166,13 @@ class Simulation:
             spawn_id="S",
             track_id=7,  # Track Inicial (conector subterráneo)
             spawn_interval=0.6,  # Cada x segundos sale un nuevo VM (ideal 0.075)
-            max_vehicles=4,     # Máximo 210 VMs 
+            max_vehicles=100,     # Máximo 210 VMs 
             vehicle_capacity=2, # Capacidad de cada VM
             destination_station_id=2  # Sin destino fijo
         )
-            # builder.add_vehicle(6, 20, 2)           
+            
+            # Test
+            # builder.add_vehicle(6, 20, 2, 2)           
             # builder.start_vehicle_on_track(6, 4)
             
             # 7. Iniciar tree selector y asignar a red y estaciones
