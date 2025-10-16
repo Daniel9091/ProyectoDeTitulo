@@ -8,6 +8,7 @@ from objects.brain import Brain
 from objects.base import Vector3
 from simulation.camera import Camera
 from simulation.spawn_system import SpawnSystem
+from objects.tree_selector import TreeSelector
 import pygame
 
 class Simulation:
@@ -47,7 +48,7 @@ class Simulation:
         
         # Usar el Builder para configurar la simulación
         builder = SimulationBuilder(self)
-        
+  
         try:
             # 1. Estaciones
             builder.add_station(1, "North Station", Vector3(425, 0, 0))
@@ -164,26 +165,42 @@ class Simulation:
             self.spawn_system.add_spawn_point(
             spawn_id="S",
             track_id=7,  # Track Inicial (conector subterráneo)
-            spawn_interval=0.6,  # Cada x segundos sale un nuevo VM (ideal 0.075)
-            max_vehicles=210,     # Máximo 20 VMs
+            spawn_interval=0.1,  # Cada x segundos sale un nuevo VM (ideal 0.075)
+            max_vehicles=100,     # Máximo 210 VMs 
             vehicle_capacity=2, # Capacidad de cada VM
-            destination_station_id=None  # Sin destino fijo
+            destination_station_id=2  # Sin destino fijo
         )
+            
+            # Test
+            # builder.add_vehicle(6, 20, 2, 2)           
+            # builder.start_vehicle_on_track(6, 4)
+            
+            # 7. Iniciar tree selector y asignar a red y estaciones
+            tree_selector = TreeSelector()
+            self.network.set_tree_selector(tree_selector)
+            for station in self.stations:
+                station.set_tree_selector(tree_selector)
 
 
-            # 7. Validar
+            # Validar que las estaciones tienen árboles configurados
+            for station in self.stations:
+                if not station.arrival_trees:
+                    print(f"ADVERTENCIA: {station.name} no tiene árboles de llegada")
+                if not station.departure_trees:
+                    print(f"ADVERTENCIA: {station.name} no tiene árboles de salida")
+            
+            print("Sistema de navegación completamente configurado")
+
+            # 8. Validar
             builder.validate_network()
 
-            # 8. Mostrar resumen
+            # 9. Mostrar resumen
             summary = builder.get_summary()
             print("=== CONFIGURACIÓN COMPLETADA ===")
             print(f"Estaciones: {summary['stations']}")
             print(f"Tracks: {summary['tracks']}") 
             print(f"Vehículos: {summary['vehicles']}")
             print(f"Conexiones: {summary['connections']}")
-            print("\nCOMPORTAMIENTO ESPERADO:")
-            print("• VM1: Estación 1 → Estación 3 (se quedará DOCKED)")
-            print("• VM2: Bucle continuo en Estación 3 (sin destino)")
 
         except (ValueError, RuntimeError) as e:
             print(f"ERROR en configuración: {e}")

@@ -4,19 +4,19 @@ class Network:
     """
     RED COMPLETA DE VÍAS DEL SISTEMA
     
-    Responsabilidades:
+    Responsabilidades PRINCIPALES:
     - Almacenar y gestionar la topología completa de tracks
     - Manejar conexiones entre diferentes tipos de vías
     - Delegar movimiento a cada track individual
     - Administrar transiciones entre tracks
     - Proporcionar información de rutas y conexiones
     
-    Estructura:
-    - tracks: Diccionario de todos los tramos (StationConnector + AccelerationTree)
-    - adjacency: Grafo de conexiones entre tracks
-    - entry_points/exit_points: Mapeo estaciones -> acceleration trees
+    Responsabilidades NO incluidas:
+    - Selección de árboles de aceleración (lo hace TreeSelector)
+    - Toma de decisiones de routing complejas (solo sigue destinos)
+    - Gestión de pasajeros (lo hace Station/Brain)
     """
-    
+
     def __init__(self):
         self.tracks = {}  # dict: track_id -> Track (StationConnector o AccelerationTree)
         self.adjacency = {}  # dict: track_id -> [next_possible_tracks]
@@ -24,12 +24,16 @@ class Network:
         self.exit_points = {}   # station_id -> [acceleration_trees_entrada]
         self.vehicles_in_transit = {}  # track_id -> [vehicles]
         
+        # ✅ NUEVO: TreeSelector inyectado (se configurará desde Simulation)
+        self.tree_selector = None
+
+    # ========== MÉTODOS EXISTENTES (SIN CAMBIOS) ==========
+
     def add_track(self, track):
-        """Agrega un track a la red"""
+        """Agrega un track a la red (sin cambios)"""
         self.tracks[track.track_id] = track
         self.adjacency[track.track_id] = []
         
-        # Registrar en entry_points o exit_points según el tipo
         if isinstance(track, AccelerationTree):
             if track.direction == "down":  # Árbol de salida
                 station_id = track.get_station_id()
@@ -41,47 +45,40 @@ class Network:
                 if station_id not in self.exit_points:
                     self.exit_points[station_id] = []
                 self.exit_points[station_id].append(track.track_id)
-    
+
     def connect_tracks(self, from_track_id, to_track_id):
-        """Conecta dos tracks en la red"""
+        """Conecta dos tracks en la red (sin cambios)"""
         if from_track_id in self.adjacency:
             self.adjacency[from_track_id].append(to_track_id)
         else:
             self.adjacency[from_track_id] = [to_track_id]
-    
+
     def update_vehicles(self, dt):
-        """
-        Actualiza el movimiento de todos los vehículos en la red con manejo de errores
-        """
+        """Actualiza movimiento de vehículos (sin cambios)"""
         vehicles_to_transfer = []
         
         try:
-            # 1. Actualizar movimiento en cada track
-            for track_id, track in list(self.tracks.items()):  # Usar list() para evitar modificación durante iteración
+            for track_id, track in list(self.tracks.items()):
                 try:
                     finished_vehicles = track.update_vehicles(dt)
                     for vehicle in finished_vehicles:
                         vehicles_to_transfer.append((vehicle, track_id))
                 except Exception as e:
-                    print(f"ERROR actualizando track {track_id}: {e}")
+                    print(f"ERROR: actualizando track {track_id}: {e}")
                     continue
             
-            # 2. Procesar transiciones
             for vehicle, current_track_id in vehicles_to_transfer:
                 try:
                     self._transfer_vehicle(vehicle, current_track_id)
                 except Exception as e:
-                    print(f"ERROR transfiriendo vehículo {vehicle.vehicle_id}: {e}")
+                    print(f"ERROR: transfiriendo vehículo {vehicle.vehicle_id}: {e}")
                     continue
                     
         except Exception as e:
             print(f"ERROR crítico en Network.update_vehicles: {e}")
-    
+
     def _transfer_vehicle(self, vehicle, current_track_id):
-        """
-        Transfiere un vehículo del track actual al siguiente con validaciones
-        """
-        # VALIDACIÓN 1: Verificar que el track actual existe
+        """Transfiere vehículo entre tracks (sin cambios)"""
         if current_track_id not in self.tracks:
             print(f"ERROR: Track actual {current_track_id} no encontrado en la red")
             return
@@ -90,23 +87,19 @@ class Network:
         possible_next_tracks = self.adjacency.get(current_track_id, [])
         
         if not possible_next_tracks:
-            # Llegó al final del camino - debería estar en un acceleration tree de subida
             if isinstance(current_track, AccelerationTree) and current_track.direction == "up":
-                # Llegó a una estación
                 self._arrive_at_station(vehicle, current_track)
             else:
                 print(f"WARNING: Vehículo {vehicle.vehicle_id} llegó al final sin estación")
             return
         
-        # Buscar el mejor track siguiente
-        next_track_id = self._choose_next_track(vehicle, possible_next_tracks)
+        # Usar nueva lógica simplificada
+        next_track_id = self._choose_next_track_simplified(vehicle, possible_next_tracks)
         
-        # VALIDACIÓN 2: Verificar que se encontró un track siguiente
         if not next_track_id:
             print(f"ERROR: No se pudo encontrar track siguiente para vehículo {vehicle.vehicle_id}")
             return
         
-        # VALIDACIÓN 3: Verificar que el track siguiente existe
         if next_track_id not in self.tracks:
             print(f"ERROR: Track siguiente {next_track_id} no encontrado en la red")
             return
@@ -114,28 +107,22 @@ class Network:
         next_track = self.tracks[next_track_id]
         
         try:
-            # Remover del track actual
             current_track.remove_vehicle(vehicle)
             
-            # Obtener posición y velocidad de salida para transición suave
             exit_position = current_track.get_exit_position()
             
-            # **CORRECCIÓN CRÍTICA**: Obtener la velocidad como magnitud escalar, no como Vector3
             if hasattr(current_track, 'get_exit_velocity'):
                 exit_velocity = current_track.get_exit_velocity(vehicle)
-                # Si es Vector3, obtener solo la magnitud
                 if hasattr(exit_velocity, 'length'):
                     exit_velocity_magnitude = exit_velocity.length()
                 else:
                     exit_velocity_magnitude = exit_velocity
             else:
-                exit_velocity_magnitude = 20.0  # Velocidad por defecto
+                exit_velocity_magnitude = 20.0
             
-            # Agregar al siguiente track con la posición y velocidad correctas
             next_track.add_vehicle(vehicle, exit_velocity_magnitude)
             vehicle.current_track = next_track
             
-            # Actualizar estado del vehículo según el tipo de track
             if isinstance(next_track, AccelerationTree):
                 if next_track.direction == "down":
                     vehicle.state = "accelerating_down"
@@ -151,56 +138,102 @@ class Network:
             import traceback
             traceback.print_exc()
 
-    def _choose_next_track(self, vehicle, possible_track_ids):
-        """
-        Elige el mejor track siguiente para un vehículo con validaciones
-        """
-        # DEBUG MEJORADO
-        print(f"🚗 NAVEGACIÓN VM{vehicle.vehicle_id}:")
-        print(f"   Destino: Estación {vehicle.destination_station}")
-        print(f"   Target Trees: {vehicle.target_acceleration_trees}")
-        print(f"   Opciones disponibles: {possible_track_ids}")
-        
-        # FILTRAR solo tracks que existen realmente
-        valid_track_ids = [track_id for track_id in possible_track_ids 
-                        if track_id in self.tracks]
-        
-        print(f"   Opciones válidas: {valid_track_ids}")
-        
-        if not valid_track_ids:
-            print(f"❌ ERROR: No hay tracks válidos desde la posición actual")
-            return None
-        
-        # VERIFICACIÓN CRÍTICA: Targets directos disponibles
-        direct_targets = [t for t in valid_track_ids if t in vehicle.target_acceleration_trees]
-        print(f"   Targets directos disponibles: {direct_targets}")
-        
-        # PRIORIDAD 1: Si el vehículo no tiene destino específico, tomar el primero
-        if not vehicle.target_acceleration_trees:
-            chosen = valid_track_ids[0]
-            print(f"🔄 SIN DESTINO: Tomando primer track {chosen}")
-            return chosen
-        
-        # PRIORIDAD 2: Targets directos (¡ESTA ES LA CLAVE!)
-        if direct_targets:
-            chosen = direct_targets[0]
-            print(f"🎯 TOMANDO TARGET DIRECTO: {chosen}")
-            return chosen
-        
-        # PRIORIDAD 3: Buscar tracks que lleven a los acceleration trees objetivo
-        for track_id in valid_track_ids:
-            if self._leads_to_target(track_id, vehicle.target_acceleration_trees):
-                print(f"🔄 TOMANDO RUTA AL TARGET: {track_id}")
-                return track_id
-        
-        # PRIORIDAD 4: Si no encuentra uno que lleve al objetivo, tomar el primero disponible
-        chosen = valid_track_ids[0]
-        print(f"⚠️  SIN RUTA AL TARGET: Tomando primer disponible {chosen}")
-        return chosen
+    # ========== LÓGICA DE NAVEGACIÓN REFACTORIZADA ==========
 
-    def _leads_to_target(self, track_id, target_trees, visited=None):
+    def _choose_next_track_simplified(self, vehicle, possible_track_ids):
         """
-        Verifica recursivamente si un track lleva a alguno de los trees objetivo
+        LÓGICA SIMPLIFICADA DE ELECCIÓN DE TRACKS
+        ✅ REEMPLAZA la función _choose_next_track original
+        
+        Args:
+            vehicle: Vehículo que necesita elegir track
+            possible_track_ids: Lista de tracks disponibles
+            
+        Returns:
+            track_id: ID del track seleccionado
+        """
+        valid_tracks = [self.tracks[tid] for tid in possible_track_ids if tid in self.tracks]
+        
+        if not valid_tracks:
+            print(f"ERROR: Navegacion VM{vehicle.vehicle_id}: No hay tracks válidos")
+            return None
+
+        # FILTRO 1: ¿Son árboles de subida hacia mi destino?
+        target_arrival_trees = self._get_target_arrival_trees(vehicle, valid_tracks)
+        if target_arrival_trees:
+            # ✅ DELEGAR al TreeSelector la selección del mejor árbol
+            best_tree = self.tree_selector.select_best_tree(
+                target_arrival_trees, 
+                vehicle, 
+                strategy='progressive_saturation'
+            )
+            
+            if best_tree:
+                print(f"🎯 NAVEGACIÓN VM{vehicle.vehicle_id}: Tomando árbol {best_tree.track_id}")
+                return best_tree.track_id
+            else:
+                print(f"🚨 NAVEGACIÓN VM{vehicle.vehicle_id}: Árboles saturados, continuando flujo")
+
+        # FILTRO 2: ¿Hay tracks que lleven a mi destino?
+        destination_tracks = self._get_tracks_to_destination(vehicle, valid_tracks)
+        if destination_tracks:
+            chosen_track = destination_tracks[0]  # Tomar el primero
+            print(f"🔄 NAVEGACIÓN VM{vehicle.vehicle_id}: Tomando ruta al destino {chosen_track.track_id}")
+            return chosen_track.track_id
+
+        # FILTRO 3: Flujo continuo - cualquier track disponible
+        chosen_track = valid_tracks[0]
+        print(f"🔄 NAVEGACIÓN VM{vehicle.vehicle_id}: Flujo continuo -> {chosen_track.track_id}")
+        return chosen_track.track_id
+
+    def _get_target_arrival_trees(self, vehicle, valid_tracks):
+        """
+        Filtra árboles de subida que son objetivos directos del vehículo
+        
+        Args:
+            vehicle: Vehículo con destino
+            valid_tracks: Lista de tracks disponibles
+            
+        Returns:
+            list: Árboles de subida que llevan al destino
+        """
+        if not vehicle.destination_station or not vehicle.target_acceleration_trees:
+            return []
+            
+        target_trees = []
+        for track in valid_tracks:
+            if (isinstance(track, AccelerationTree) and 
+                track.direction == "up" and
+                track.track_id in vehicle.target_acceleration_trees):
+                target_trees.append(track)
+                
+        return target_trees
+
+    def _get_tracks_to_destination(self, vehicle, valid_tracks):
+        """
+        Encuentra tracks que eventualmente lleven al destino del vehículo
+        
+        Args:
+            vehicle: Vehículo con destino
+            valid_tracks: Lista de tracks disponibles
+            
+        Returns:
+            list: Tracks que llevan al destino
+        """
+        if not vehicle.destination_station:
+            return []
+            
+        destination_tracks = []
+        for track in valid_tracks:
+            if self._leads_to_destination(track.track_id, vehicle.destination_station):
+                destination_tracks.append(track)
+                
+        return destination_tracks
+
+    def _leads_to_destination(self, track_id, destination_station_id, visited=None):
+        """
+        Verifica recursivamente si un track lleva a la estación destino
+        ✅ MANTENIDO de la versión original (funciona bien)
         """
         if visited is None:
             visited = set()
@@ -210,50 +243,89 @@ class Network:
         
         visited.add(track_id)
         
-        # Si este track es uno de los objetivos
-        if track_id in target_trees:
+        track = self.tracks.get(track_id)
+        if not track:
+            return False
+        
+        # Si es un árbol de subida y su estación es el destino
+        if (isinstance(track, AccelerationTree) and 
+            track.direction == "up" and 
+            track.station_id == destination_station_id):
             return True
         
-        # Verificar tracks siguientes
+        # Verificar tracks siguientes recursivamente
         for next_track_id in self.adjacency.get(track_id, []):
-            if self._leads_to_target(next_track_id, target_trees, visited):
+            if self._leads_to_destination(next_track_id, destination_station_id, visited):
                 return True
         
         return False
-    
+
+    # ========== MÉTODOS DE CONFIGURACIÓN Y MONITOREO ==========
+
+    def set_tree_selector(self, tree_selector):
+        """
+        Configura el TreeSelector (inyección de dependencias)
+        
+        Args:
+            tree_selector: Instancia de TreeSelector
+        """
+        self.tree_selector = tree_selector
+
+    def get_navigation_status(self):
+        """
+        Proporciona estado del sistema de navegación
+        
+        Returns:
+            dict: Información de estado
+        """
+        if not self.tree_selector:
+            return {"tree_selector": "No configurado"}
+            
+        # Obtener estado de todos los árboles de aceleración
+        acceleration_trees = [t for t in self.tracks.values() 
+                            if isinstance(t, AccelerationTree)]
+        
+        tree_status = self.tree_selector.get_trees_status(acceleration_trees)
+        
+        return {
+            "tree_selector": "Configurado",
+            "total_tracks": len(self.tracks),
+            "acceleration_trees": len(acceleration_trees),
+            "tree_occupancy": tree_status['overall_occupancy_rate'],
+            "available_arrival_trees": tree_status['available_trees']
+        }
+
+    # ========== MÉTODOS EXISTENTES (SIN CAMBIOS) ==========
+
     def _arrive_at_station(self, vehicle, arrival_tree):
-        """
-        Maneja la llegada de un vehículo a una estación
-        """
+        """Maneja llegada a estación (sin cambios)"""
         station_id = arrival_tree.get_station_id()
         
-        # Remover del track
         arrival_tree.remove_vehicle(vehicle)
         
-        # Actualizar estado del vehículo
         vehicle.state = "docked"
         vehicle.current_station = station_id
-        vehicle.destination_station = None  # Destino cumplido
+        vehicle.destination_station = None
         vehicle.target_acceleration_trees = []
         
-        # Aquí se conectaría con Brain para notificar llegada
         print(f"Vehículo {vehicle.vehicle_id} llegó a estación {station_id}")
-    
+
     def get_station_departure_trees(self, station_id):
-        """Obtiene los árboles de salida de una estación"""
+        """Obtiene árboles de salida (sin cambios)"""
         return [self.tracks[track_id] for track_id in self.entry_points.get(station_id, [])]
-    
+
     def get_station_arrival_trees(self, station_id):
-        """Obtiene los árboles de llegada de una estación"""
+        """Obtiene árboles de llegada (sin cambios)"""
         return [self.tracks[track_id] for track_id in self.exit_points.get(station_id, [])]
-    
+
     def get_network_status(self):
-        """Retorna el estado actual de la red"""
+        """Retorna estado de la red (mejorado con info de navegación)"""
         status = {
             "total_tracks": len(self.tracks),
             "total_connections": sum(len(conn) for conn in self.adjacency.values()),
             "vehicles_in_transit": sum(len(track.get_vehicles()) for track in self.tracks.values()),
             "entry_points": len(self.entry_points),
-            "exit_points": len(self.exit_points)
+            "exit_points": len(self.exit_points),
+            "navigation_system": self.get_navigation_status()
         }
         return status
