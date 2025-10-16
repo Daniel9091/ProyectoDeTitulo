@@ -46,31 +46,27 @@ class TreeSelector:
             AccelerationTree: El árbol seleccionado, o None si no hay disponibles
         """
         if not trees:
-            print("❌ TreeSelector: No hay árboles disponibles para seleccionar")
+            print("ERROR: TreeSelector: No hay árboles disponibles para seleccionar")
             return None
         
         # Validar que todos los árboles son de subida
         up_trees = [tree for tree in trees if tree.direction == "up"]
         if not up_trees:
-            print("❌ TreeSelector: No hay árboles de subida en la lista")
+            print("ERROR: TreeSelector: No hay árboles de subida en la lista")
             return None
         
         # Obtener la función de estrategia
         strategy_func = self.strategies.get(strategy)
         if not strategy_func:
-            print(f"⚠️  TreeSelector: Estrategia '{strategy}' no encontrada, usando 'progressive_saturation'")
+            print(f"ADVERTENCIA  TreeSelector: Estrategia '{strategy}' no encontrada, usando 'progressive_saturation'")
             strategy_func = self._progressive_saturation_strategy
         
         # Aplicar la estrategia
         selected_tree = strategy_func(up_trees, vehicle, station_id)
         
         # Log del resultado
-        if selected_tree:
-            occupancy = selected_tree.get_occupancy_info()
-            print(f"✅ TreeSelector: Árbol {selected_tree.track_id} seleccionado (Estrategia: {strategy})")
-            print(f"   Ocupación: {occupancy['vehicle_count']}/{occupancy['max_vehicles']} vehículos")
-        else:
-            print(f"❌ TreeSelector: No se pudo seleccionar árbol con estrategia '{strategy}'")
+        if not selected_tree:
+            print(f"ERROR: TreeSelector No se pudo seleccionar árbol con estrategia '{strategy}'")
             
         return selected_tree
     
@@ -96,16 +92,16 @@ class TreeSelector:
                             key=lambda tree: len(tree.vehicles), 
                             reverse=True)
         
-        print(f"   🎯 Estrategia progresiva: Evaluando {len(sorted_trees)} árboles")
+        # print(f"   🎯 Estrategia progresiva: Evaluando {len(sorted_trees)} árboles")
         
         # Intentar con el más usado primero (para saturar progresivamente)
         for tree in sorted_trees:
             if tree.can_accept_vehicle(vehicle):
-                print(f"   ✅ Árbol {tree.track_id} seleccionado (ocupación: {len(tree.vehicles)}/{tree.max_concurrent_vehicles})")
+                print(f"Árbol {tree.track_id} seleccionado (ocupación: {len(tree.vehicles)}/{tree.max_concurrent_vehicles})")
                 return tree
             else:
                 occupancy = tree.get_occupancy_info()
-                print(f"   ❌ Árbol {tree.track_id} rechazado (ocupación: {occupancy['vehicle_count']}/{occupancy['max_vehicles']})")
+                print(f"ERROR: Árbol {tree.track_id} rechazado (ocupación: {occupancy['vehicle_count']}/{occupancy['max_vehicles']})")
                 
         return None
     
@@ -129,7 +125,7 @@ class TreeSelector:
         
         for tree in trees:
             if tree.can_accept_vehicle(vehicle):
-                print(f"   ✅ Árbol {tree.track_id} aceptado en modo emergencia")
+                print(f"Árbol {tree.track_id} aceptado en modo emergencia")
                 return tree
                 
         return None
@@ -155,7 +151,7 @@ class TreeSelector:
             # Sin station_id, fallback a estrategia de emergencia
             return self._emergency_flow_strategy(trees, vehicle)
         
-        print(f"   🔄 Estrategia round-robin para estación {station_id}")
+        print(f"Estrategia round-robin para estación {station_id}")
         
         # Ordenar árboles por ID para consistencia
         sorted_trees = sorted(trees, key=lambda tree: tree.track_id)
@@ -170,7 +166,6 @@ class TreeSelector:
             
             if tree.can_accept_vehicle(vehicle):
                 self._last_used_trees[station_id] = next_index
-                print(f"   ✅ Árbol {tree.track_id} seleccionado (round-robin)")
                 return tree
                 
         return None

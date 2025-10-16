@@ -99,7 +99,7 @@ class AccelerationTree(Track):
         """
         # VERIFICACIÓN DE SEGURIDAD - NUEVO
         if not self.can_accept_vehicle(vehicle):
-            print(f"❌ Rechazado: Vehículo {vehicle.vehicle_id} no puede entrar a árbol {self.track_id} - Densidad insegura")
+            print(f"Rechazado: Vehículo {vehicle.vehicle_id} no puede entrar a árbol {self.track_id} - Densidad insegura")
             return False
             
         # CONTINUAR CON LÓGICA EXISTENTE (sin cambios)
@@ -117,9 +117,6 @@ class AccelerationTree(Track):
         vehicle.current_track = self
         vehicle.state = "accelerating_down" if self.direction == 'down' else "accelerating_up"
         
-        print(f"✅ Vehículo {vehicle.vehicle_id} entró a AccelerationTree {self.track_id}")
-        print(f"   Dirección: {self.direction}, Ángulo: {math.degrees(self.angle):.1f}°, Aceleración: {self.acceleration:.2f} m/s²")
-        print(f"   Vehículos en árbol: {len(self.vehicles)}/{self.max_concurrent_vehicles}")
         return True  # Éxito
 
     # ========== MÉTODOS EXISTENTES (SIN CAMBIOS SIGNIFICATIVOS) ==========
@@ -155,7 +152,6 @@ class AccelerationTree(Track):
         """Remueve un vehículo del AccelerationTree (existente)"""
         if vehicle.vehicle_id in self.vehicles:
             del self.vehicles[vehicle.vehicle_id]
-            print(f"Vehículo {vehicle.vehicle_id} salió de AccelerationTree {self.track_id}")
 
     def update_vehicles(self, dt):
         """Actualiza posición de vehículos usando MRUA (existente)"""

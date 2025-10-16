@@ -180,17 +180,16 @@ class Simulation:
             self.network.set_tree_selector(tree_selector)
             for station in self.stations:
                 station.set_tree_selector(tree_selector)
-            print("✅ Sistema de selección de árboles configurado e inyectado")
 
 
             # Validar que las estaciones tienen árboles configurados
             for station in self.stations:
                 if not station.arrival_trees:
-                    print(f"⚠️ ADVERTENCIA: {station.name} no tiene árboles de llegada")
+                    print(f"ADVERTENCIA: {station.name} no tiene árboles de llegada")
                 if not station.departure_trees:
-                    print(f"⚠️ ADVERTENCIA: {station.name} no tiene árboles de salida")
+                    print(f"ADVERTENCIA: {station.name} no tiene árboles de salida")
             
-            print("✅ Sistema de navegación completamente configurado")
+            print("Sistema de navegación completamente configurado")
 
             # 8. Validar
             builder.validate_network()
@@ -202,9 +201,6 @@ class Simulation:
             print(f"Tracks: {summary['tracks']}") 
             print(f"Vehículos: {summary['vehicles']}")
             print(f"Conexiones: {summary['connections']}")
-            print("\nCOMPORTAMIENTO ESPERADO:")
-            print("• VM1: Estación 1 → Estación 3 (se quedará DOCKED)")
-            print("• VM2: Bucle continuo en Estación 3 (sin destino)")
 
         except (ValueError, RuntimeError) as e:
             print(f"ERROR en configuración: {e}")

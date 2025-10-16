@@ -62,8 +62,7 @@ class SpawnPoint:
         # Actualizar contadores
         self.spawned_count += 1
         
-        print(f"✅ SPAWN: Vehículo {vehicle_id} generado en track {self.track_id}")
-        print(f"   - Estado: {new_vehicle.state}, Tiempo acumulado: {self.time_since_last_spawn:.2f}s")
+        # print(f"SPAWN: Vehículo {vehicle_id} generado en track {self.track_id}, Tiempo acumulado: {self.time_since_last_spawn:.2f}s")
         return new_vehicle
 
 class SpawnSystem:
@@ -73,7 +72,7 @@ class SpawnSystem:
     def add_spawn_point(self, spawn_id, track_id, **kwargs):
         """Agrega un nuevo spawn point"""
         self.spawn_points[spawn_id] = SpawnPoint(spawn_id, track_id, **kwargs)
-        print(f"➕ Spawn Point {spawn_id} agregado en track {track_id}")
+        print(f" Spawn Point {spawn_id} agregado en track {track_id}")
         
     def update(self, simulation, dt):
         """Actualiza todos los spawn points con el delta time"""

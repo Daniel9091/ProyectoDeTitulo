@@ -64,14 +64,14 @@ class Network:
                     for vehicle in finished_vehicles:
                         vehicles_to_transfer.append((vehicle, track_id))
                 except Exception as e:
-                    print(f"ERROR actualizando track {track_id}: {e}")
+                    print(f"ERROR: actualizando track {track_id}: {e}")
                     continue
             
             for vehicle, current_track_id in vehicles_to_transfer:
                 try:
                     self._transfer_vehicle(vehicle, current_track_id)
                 except Exception as e:
-                    print(f"ERROR transfiriendo vehículo {vehicle.vehicle_id}: {e}")
+                    print(f"ERROR: transfiriendo vehículo {vehicle.vehicle_id}: {e}")
                     continue
                     
         except Exception as e:
@@ -93,7 +93,7 @@ class Network:
                 print(f"WARNING: Vehículo {vehicle.vehicle_id} llegó al final sin estación")
             return
         
-        # ✅ MEJORADO: Usar nueva lógica simplificada
+        # Usar nueva lógica simplificada
         next_track_id = self._choose_next_track_simplified(vehicle, possible_next_tracks)
         
         if not next_track_id:
@@ -155,7 +155,7 @@ class Network:
         valid_tracks = [self.tracks[tid] for tid in possible_track_ids if tid in self.tracks]
         
         if not valid_tracks:
-            print(f"❌ NAVEGACIÓN VM{vehicle.vehicle_id}: No hay tracks válidos")
+            print(f"ERROR: Navegacion VM{vehicle.vehicle_id}: No hay tracks válidos")
             return None
 
         # FILTRO 1: ¿Son árboles de subida hacia mi destino?
@@ -270,7 +270,6 @@ class Network:
             tree_selector: Instancia de TreeSelector
         """
         self.tree_selector = tree_selector
-        print("✅ TreeSelector configurado en Network")
 
     def get_navigation_status(self):
         """

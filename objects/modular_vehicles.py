@@ -46,7 +46,7 @@ class ModularVehicle:
         # Traking
         self._last_progress = 0.0
         
-        print(f"Vehículo modular {vehicle_id} creado con capacidad {capacity}")
+        print(f"Vehículo modular {vehicle_id} creado, con estacion de destino {self.destination_station}")
 
     def update(self, dt):
         """
@@ -105,10 +105,8 @@ class ModularVehicle:
         
         if actual_boarded > 0:
             self.passengers += actual_boarded
-            print(f"Vehículo {self.vehicle_id}: {actual_boarded} pasajeros embarcados. Total: {self.passengers}/{self.capacity}")
             return True
         else:
-            print(f"Vehículo {self.vehicle_id}: Capacidad llena, no se pueden embarcar más pasajeros")
             return False
 
     def disembark_passengers(self):
@@ -120,7 +118,6 @@ class ModularVehicle:
         """
         disembarked = self.passengers
         if disembarked > 0:
-            print(f"Vehículo {self.vehicle_id}: {disembarked} pasajeros desembarcados")
             self.passengers = 0
         return disembarked
 
@@ -224,7 +221,6 @@ class ModularVehicle:
         if new_state in valid_states:
             old_state = self.state
             self.state = new_state
-            print(f"Vehículo {self.vehicle_id} cambió estado: {old_state} -> {new_state}")
         else:
             print(f"ERROR: Estado inválido para vehículo {self.vehicle_id}: {new_state}")
 

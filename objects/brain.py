@@ -51,12 +51,10 @@ class Brain:
     def add_vehicle(self, vehicle):
         """Agrega un vehículo al sistema (sin cambios)"""
         self.vehicles[vehicle.vehicle_id] = vehicle
-        print(f"🚗 Vehículo {vehicle.vehicle_id} agregado al sistema")
 
     def add_station(self, station):
         """Agrega una estación al sistema (mejorado)"""
         self.stations[station.station_id] = station
-        print(f"🏢 Estación {station.name} (ID: {station.station_id}) registrada en Brain")
 
     def assign_vehicle_to_route(self, vehicle, from_station, to_station):
         """
@@ -64,25 +62,23 @@ class Brain:
         MEJORADO: Usa TreeSelector para asignación óptima de árboles
         """
         if from_station.station_id not in self.stations:
-            print(f"❌ ERROR: Estación origen {from_station.station_id} no registrada")
+            print(f"ERROR: Estación origen {from_station.station_id} no registrada")
             return False
             
-        # ✅ MEJORADO: Verificar capacidad de la estación destino
+        # Verificar capacidad de la estación destino
         if not to_station.has_arrival_capacity():
-            print(f"❌ ERROR: Estación destino {to_station.name} no tiene capacidad")
+            print(f"ERROR: Estación destino {to_station.name} no tiene capacidad")
             return False
 
         # Asignar destino al vehículo
         vehicle.destination_station = to_station.station_id
         
-        # ✅ MEJORADO: Usar TreeSelector para encontrar árboles objetivo óptimos
+        # Usar TreeSelector para encontrar árboles objetivo óptimos
         target_trees = self._find_optimal_target_trees(to_station.station_id, vehicle)
         vehicle.target_acceleration_trees = target_trees
 
         # DEBUG: Imprimir información de ruta
-        print(f"🧭 ASIGNACIÓN DE RUTA: Vehículo {vehicle.vehicle_id}")
-        print(f"   Desde: {from_station.name} (ID: {from_station.station_id})")
-        print(f"   Hacia: {to_station.name} (ID: {to_station.station_id})")
+        print(f"🧭 ASIGNACIÓN DE RUTA: Vehículo {vehicle.vehicle_id} desde {from_station.name} a {to_station.name}")
         print(f"   Árboles objetivo: {target_trees}")
         
         # Posicionar vehículo en la estación de origen
@@ -92,8 +88,6 @@ class Brain:
         
         # ✅ NUEVO: Actualizar estadísticas
         self.stats['total_vehicle_assignments'] += 1
-        
-        print(f"✅ Ruta asignada exitosamente a VM {vehicle.vehicle_id}")
         return True
 
     def _find_optimal_target_trees(self, destination_station_id, vehicle):
@@ -119,7 +113,7 @@ class Brain:
     def request_vehicle_for_station(self, station_id, destination_station_id=None):
         """
         SOLICITA UN VM PARA UNA ESTACIÓN ESPECÍFICA
-        ✅ NUEVO: Sistema centralizado de gestión de solicitudes
+        Sistema centralizado de gestión de solicitudes
         
         Args:
             station_id: Estación que solicita el VM
@@ -130,10 +124,8 @@ class Brain:
         """
         station = self.stations.get(station_id)
         if not station:
-            print(f"❌ SOLICITUD: Estación {station_id} no encontrada")
+            print(f"ERROR: Solicitud de Estación {station_id} no encontrada")
             return None
-        
-        print(f"📞 SOLICITUD: Estación {station.name} solicita VM")
         
         # Agregar a la cola de solicitudes pendientes
         request = {
@@ -144,7 +136,6 @@ class Brain:
         }
         
         self.pending_requests.append(request)
-        print(f"   📋 Solicitud agregada a la cola. Pendientes: {len(self.pending_requests)}")
         
         # Procesar inmediatamente para respuesta rápida
         return self._process_single_request(request)
@@ -152,7 +143,7 @@ class Brain:
     def _process_single_request(self, request):
         """
         PROCESA UNA SOLA SOLICITUD DE VM
-        ✅ NUEVO: Lógica de procesamiento individual
+        Lógica de procesamiento individual
         """
         station = self.stations.get(request['station_id'])
         if not station:
@@ -163,10 +154,9 @@ class Brain:
         
         if vehicle_id:
             self.stats['successful_requests'] += 1
-            print(f"✅ SOLICITUD EXITOSA: VM {vehicle_id} asignado a {station.name}")
         else:
             self.stats['failed_requests'] += 1
-            print(f"❌ SOLICITUD FALLIDA: No hay VMs disponibles para {station.name}")
+            print(f"ERROR: Solicitud fallida no hay VMs disponibles para {station.name}")
         
         request['processed'] = True
         request['success'] = vehicle_id is not None
@@ -190,7 +180,6 @@ class Brain:
         if not self.pending_requests:
             return
         
-        print(f"🔄 PROCESANDO SOLICITUDES: {len(self.pending_requests)} pendientes")
         
         # Procesar solicitudes no procesadas
         unprocessed_requests = [req for req in self.pending_requests if not req['processed']]
@@ -228,7 +217,6 @@ class Brain:
         available_vehicles.sort(key=lambda x: x[1], reverse=True)
         
         best_vehicle, best_score = available_vehicles[0]
-        print(f"   🎯 VM {best_vehicle.vehicle_id} seleccionado (score: {best_score:.2f})")
         
         return best_vehicle
 
@@ -320,7 +308,7 @@ class Brain:
         # Delegar a la estación el procesamiento de sus operaciones
         station.update(self, 1/30.0)  # dt aproximado para estaciones
         
-        # ✅ NUEVO: Monitorear capacidad críticamente baja
+        # Monitorear capacidad críticamente baja
         capacity_info = station.get_arrival_capacity_info()
         if not capacity_info['available'] and station.station_id in [1, 2, 3]:  # Estaciones principales
             print(f"⚠️  ALERTA: Estación {station.name} sin capacidad de llegada")
@@ -329,20 +317,15 @@ class Brain:
         """
         MONITOREO MEJORADO - Incluye estado de árboles
         """
-        print("\n📊 INFORME DE SALUD DEL SISTEMA:")
-        print(f"   Tiempo de simulación: {self.simulation_time:.1f}s")
-        print(f"   Vehículos totales: {len(self.vehicles)}")
-        
         # Estado de vehículos por tipo de track
         on_acceleration_trees = sum(1 for v in self.vehicles.values() 
                                 if v.current_track and isinstance(v.current_track, AccelerationTree))
-        print(f"   Vehículos en árboles: {on_acceleration_trees}")
         
         # Estado de capacidad de estaciones
         for station in self.stations.values():
             capacity_info = station.get_arrival_capacity_info()
-            status = "✅" if capacity_info['available'] else "❌"
-            print(f"   {status} {station.name}: {capacity_info['available_trees']} árboles disponibles")
+            status = "Susses" if capacity_info['available'] else "ERROR"
+            
     
     # ========== MÉTODOS DE CONSULTA Y ESTADÍSTICAS ==========
 
@@ -452,7 +435,7 @@ class Brain:
     def emergency_reroute_vehicles(self, congested_station_id):
         """
         REASIGNACIÓN DE EMERGENCIA PARA ESTACIONES CONGESTIONADAS
-        ✅ NUEVO: Mecanismo de recuperación automática
+        Mecanismo de recuperación automática
         """
         print(f"🚨 INICIANDO REASIGNACIÓN DE EMERGENCIA PARA ESTACIÓN {congested_station_id}")
         
@@ -471,7 +454,6 @@ class Brain:
                     rerouted_count += 1
                     print(f"   🔀 VM {vehicle.vehicle_id} redirigido a {alternative_station.name}")
         
-        print(f"✅ Reasignación completada: {rerouted_count} vehículos redirigidos")
         return rerouted_count
 
     def _find_alternative_station(self, congested_station_id):
@@ -526,7 +508,6 @@ class Brain:
                 print(f"   - {issue}")
             return False
         else:
-            print("✅ Validación del sistema: OK")
             return True
 
     def get_detailed_vehicle_report(self, vehicle_id):
