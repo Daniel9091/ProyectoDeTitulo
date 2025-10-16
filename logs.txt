@@ -1,0 +1,282 @@
+
+  
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 80.8s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 90.1s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 90.4s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 90.8s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+🔍 NAVEGACIÓN VM6: 1 tracks disponibles
+   - 12: Conector (Vector3(1.0, 0.0, 0.0))
+🔄 VM6: Flujo continuo -> 12
+Vehículo 6 salió de StationConnector 11
+Vehículo 6 entró a StationConnector 12
+Vehículo 6 transferido de 11 a 12
+🔍 NAVEGACIÓN VM6: 2 tracks disponibles
+   - 7: Conector (Vector3(1.0, 0.0, 0.0))
+   - 1: Árbol (up)
+🔄 VM6: Flujo continuo -> 7
+Vehículo 6 salió de StationConnector 12
+Vehículo 6 entró a StationConnector 7
+Vehículo 6 transferido de 12 a 7
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 100.0s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 100.4s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 100.7s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 110.3s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 110.6s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 110.9s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 120.3s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 120.6s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 120.9s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 130.2s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 130.5s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 130.9s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+🔍 NAVEGACIÓN VM6: 1 tracks disponibles
+   - 8: Conector (Vector3(1.0, 0.0, 0.0))
+🔄 VM6: Flujo continuo -> 8
+Vehículo 6 salió de StationConnector 7
+Vehículo 6 entró a StationConnector 8
+Vehículo 6 transferido de 7 a 8
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 140.1s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 140.5s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 140.8s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+🔍 NAVEGACIÓN VM6: 4 tracks disponibles
+   - 9: Conector (Vector3(1.0, 0.0, 0.0))
+   - 3: Árbol (up)
+   - 16: Árbol (up)
+   - 18: Árbol (up)
+🔄 VM6: Flujo continuo -> 9
+Vehículo 6 salió de StationConnector 8
+Vehículo 6 entró a StationConnector 9
+Vehículo 6 transferido de 8 a 9
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 150.1s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 150.4s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 150.8s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 160.1s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 160.4s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 160.7s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 170.3s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 170.6s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 171.0s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 180.3s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 180.6s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+
+📊 INFORME DE SALUD DEL SISTEMA:
+   Tiempo de simulación: 180.9s
+   Vehículos totales: 1
+   Vehículos en árboles: 0
+   ✅ North Station: [{'track_id': 1, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ Central Station: [{'track_id': 3, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 16, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}, {'track_id': 18, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+   ✅ South Station: [{'track_id': 5, 'occupancy': {'vehicle_count': 0, 'max_vehicles': 3, 'occupancy_rate': 0.0, 'available': True}}] árboles disponibles
+daniel@daniel-Latitude-E7450:~/R Daniel 2024/10sem/MemoriaDelpiano/Sim$ 
