@@ -32,7 +32,6 @@ class SpawnPoint:
     
     def spawn_vehicle(self, simulation):
         """Genera un nuevo vehículo en el track asignado"""
-        # Verificar que el track existe
         if self.track_id not in simulation.network.tracks:
             print(f"ERROR: Track {self.track_id} no existe para spawn")
             return None
@@ -43,27 +42,61 @@ class SpawnPoint:
         vehicle_id = f"_{self.spawn_id}_{self.spawned_count + 1}"
         new_vehicle = ModularVehicle(vehicle_id, self.vehicle_capacity, track.start_pos)
         
-        # Configurar destino si se especificó
-        if self.destination_station_id:
-            new_vehicle.destination_station = self.destination_station_id
-            target_trees = simulation.brain._find_optimal_target_trees(self.destination_station_id, new_vehicle)
-            new_vehicle.target_acceleration_trees = target_trees
-
+        # ✅ CORREGIDO: Usar assign_vehicle_to_route como en la asignación manual
+        if self.destination_station_id is not None:
+            # Encontrar estación de inicio (puede ser complicado, usar una por defecto o lógica específica)
+            start_station = self._find_start_station(simulation, track)
+            
+            if start_station:
+                destination_station = simulation.brain.stations.get(self.destination_station_id)
+                if destination_station:
+                    # ✅ USAR EL MÉTODO COMPLETO COMO EN ASIGNACIÓN MANUAL
+                    success = simulation.brain.assign_vehicle_to_route(new_vehicle, start_station, destination_station)
+                    if success:
+                        print(f"🎯 VM {vehicle_id} asignado a Estación {self.destination_station_id}")
+                        print(f"   Target Trees: {new_vehicle.target_acceleration_trees}")
+                    else:
+                        print(f"❌ No se pudo asignar ruta a VM {vehicle_id}")
+                else:
+                    print(f"❌ Estación destino {self.destination_station_id} no encontrada")
+            else:
+                print(f"⚠️  No se pudo determinar estación de inicio para VM {vehicle_id}")
+        else:
+            print(f"⚠️  VM {vehicle_id} creado SIN DESTINO")
         
         # Incorporar a todos los sistemas
         simulation.vehicles.append(new_vehicle)
         simulation.brain.add_vehicle(new_vehicle)
         
-        # Agregar al track (DEJAR que el track asigne el estado automáticamente)
-        entry_velocity = 20.0  # Velocidad inicial para StationConnectors
+        # Agregar al track
+        entry_velocity = 20.0
         track.add_vehicle(new_vehicle, entry_velocity)
         new_vehicle.current_track = track
         
         # Actualizar contadores
         self.spawned_count += 1
         
-        # print(f"SPAWN: Vehículo {vehicle_id} generado en track {self.track_id}, Tiempo acumulado: {self.time_since_last_spawn:.2f}s")
+        print(f"✅ SPAWN: Vehículo {vehicle_id} generado en track {self.track_id}")
         return new_vehicle
+
+    def _find_start_station(self, simulation, track):
+        """
+        Encuentra la estación de inicio basada en el track
+        Esto puede necesitar ajustes según tu configuración específica
+        """
+        # Lógica para encontrar la estación asociada al track de spawn
+        # Por ejemplo, si el track 7 está cerca de North Station, etc.
+        
+        # Opción 1: Buscar por proximidad
+        for station in simulation.stations:
+            if track.start_pos.distance_to(station.position) < 100:  # Ajustar distancia
+                return station
+        
+        # Opción 2: Usar una estación por defecto
+        if simulation.stations:
+            return simulation.stations[0]  # Primera estación
+        
+        return None
 
 class SpawnSystem:
     def __init__(self):

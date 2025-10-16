@@ -102,8 +102,8 @@ class Brain:
         # Si la estación tiene TreeSelector, usarlo para selección óptima
         if hasattr(station, 'tree_selector') and station.tree_selector:
             optimal_tree = station.select_optimal_arrival_tree(vehicle)
-            if optimal_tree:
-                return [optimal_tree.track_id]
+           
+            return [tree.track_id for tree in station.arrival_trees]
         
         # Fallback: usar todos los árboles disponibles (comportamiento original)
         return [tree.track_id for tree in station.arrival_trees]

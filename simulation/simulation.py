@@ -165,8 +165,8 @@ class Simulation:
             self.spawn_system.add_spawn_point(
             spawn_id="S",
             track_id=7,  # Track Inicial (conector subterráneo)
-            spawn_interval=0.6,  # Cada x segundos sale un nuevo VM (ideal 0.075)
-            max_vehicles=5,     # Máximo 210 VMs 
+            spawn_interval=0.1,  # Cada x segundos sale un nuevo VM (ideal 0.075)
+            max_vehicles=100,     # Máximo 210 VMs 
             vehicle_capacity=2, # Capacidad de cada VM
             destination_station_id=2  # Sin destino fijo
         )
