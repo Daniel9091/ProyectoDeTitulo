@@ -42,7 +42,7 @@ class SpawnPoint:
         vehicle_id = f"_{self.spawn_id}_{self.spawned_count + 1}"
         new_vehicle = ModularVehicle(vehicle_id, self.vehicle_capacity, track.start_pos)
         
-        # ✅ CORREGIDO: Usar assign_vehicle_to_route como en la asignación manual
+        # Usar assign_vehicle_to_route como en la asignación manual
         if self.destination_station_id is not None:
             # Encontrar estación de inicio (puede ser complicado, usar una por defecto o lógica específica)
             start_station = self._find_start_station(simulation, track)
@@ -50,15 +50,15 @@ class SpawnPoint:
             if start_station:
                 destination_station = simulation.brain.stations.get(self.destination_station_id)
                 if destination_station:
-                    # ✅ USAR EL MÉTODO COMPLETO COMO EN ASIGNACIÓN MANUAL
+                    # MÉTODO COMPLETO COMO EN ASIGNACIÓN MANUAL
                     success = simulation.brain.assign_vehicle_to_route(new_vehicle, start_station, destination_station)
                     if success:
                         print(f"🎯 VM {vehicle_id} asignado a Estación {self.destination_station_id}")
                         print(f"   Target Trees: {new_vehicle.target_acceleration_trees}")
                     else:
-                        print(f"❌ No se pudo asignar ruta a VM {vehicle_id}")
+                        print(f"ERROR: No se pudo asignar ruta a VM {vehicle_id}")
                 else:
-                    print(f"❌ Estación destino {self.destination_station_id} no encontrada")
+                    print(f"ERROR: Estación destino {self.destination_station_id} no encontrada")
             else:
                 print(f"⚠️  No se pudo determinar estación de inicio para VM {vehicle_id}")
         else:
@@ -76,7 +76,7 @@ class SpawnPoint:
         # Actualizar contadores
         self.spawned_count += 1
         
-        print(f"✅ SPAWN: Vehículo {vehicle_id} generado en track {self.track_id}")
+        print(f"SPAWN: Vehículo {vehicle_id} generado en track {self.track_id}")
         return new_vehicle
 
     def _find_start_station(self, simulation, track):
