@@ -141,7 +141,7 @@ class Simulation:
             # builder.start_vehicle_on_track(2, 4)    # VM2 en árbol de salida Estación 3
 
 
-            # # Test demoran mismo tiempo en llegar a la estacion central (Cambiar ID en caso de ser nesesario)
+            # Test demoran mismo tiempo en llegar a la estacion central (Cambiar ID en caso de ser nesesario)
             # builder.add_vehicle(3, 20, 2)           
             # builder.start_vehicle_on_track(3, 3)
 
@@ -165,8 +165,8 @@ class Simulation:
             self.spawn_system.add_spawn_point(
             spawn_id="S",
             track_id=7,  # Track Inicial (conector subterráneo)
-            spawn_interval=0.1,  # Cada x segundos sale un nuevo VM (ideal 0.075)
-            max_vehicles=100,     # Máximo 210 VMs 
+            spawn_interval=0.3,  # Cada x segundos sale un nuevo VM (ideal 0.075)
+            max_vehicles=300,     # Máximo 210 VMs 
             vehicle_capacity=2, # Capacidad de cada VM
             destination_station_id=2  # Sin destino fijo
         )
