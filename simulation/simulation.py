@@ -166,7 +166,7 @@ class Simulation:
             spawn_id="S",
             track_id=7,  # Track Inicial (conector subterráneo)
             spawn_interval=0.3,  # Cada x segundos sale un nuevo VM (ideal 0.075)
-            max_vehicles=300,     # Máximo 210 VMs 
+            max_vehicles=50,     # Máximo 210 VMs 
             vehicle_capacity=2, # Capacidad de cada VM
             destination_station_id=2  # Sin destino fijo
         )

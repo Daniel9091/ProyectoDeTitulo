@@ -53,7 +53,13 @@ class AccelerationTree(Track):
         Returns:
             bool: True si puede aceptar el vehículo de forma segura
         """
-        # 1. Verificar límite máximo absoluto de vehículos
+
+        # 1. Los arboles de bajada ('down') siempre pueden aceptar vehículos
+        if self.direction == 'down':
+            return True
+
+
+        # 1. Verificar límite máximo absoluto de vehículos (solo para 'up')
         if len(self.vehicles) >= self.max_concurrent_vehicles:
             return False
             
