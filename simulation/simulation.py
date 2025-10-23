@@ -52,7 +52,7 @@ class Simulation:
         try:
             # 1. Estaciones
             builder.add_station(1, "North Station", Vector3(425, 0, 0), target_vehicles_per_minute=0)
-            builder.add_station(2, "Central Station", Vector3(1425, 0, 0), target_vehicles_per_minute=1) # 30 VMs/min
+            builder.add_station(2, "Central Station", Vector3(1425, 0, 0), target_vehicles_per_minute=10) # 30 VMs/min
             builder.add_station(3, "South Station", Vector3(2425, 0, 0), target_vehicles_per_minute=0)
             # (Estaciones cada 1km)
 

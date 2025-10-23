@@ -98,11 +98,11 @@ class TreeSelector:
         # Intentar con el más usado primero (para saturar progresivamente)
         for tree in sorted_trees:
             if tree.can_accept_vehicle(vehicle):
-                print(f"Árbol {tree.track_id} seleccionado (ocupación: {len(tree.vehicles)}/{tree.max_concurrent_vehicles})")
+                print(f"Árbol {tree.track_id} disponible (ocupación: {len(tree.vehicles)}/{tree.max_concurrent_vehicles}). Seleccionando.")
                 return tree
             else:
                 occupancy = tree.get_occupancy_info()
-                print(f"ERROR: Árbol {tree.track_id} rechazado (ocupación: {occupancy['vehicle_count']}/{occupancy['max_vehicles']})")
+                print(f"ADVERTENCIA: Árbol {tree.track_id} no disponible (ocupación: {occupancy['vehicle_count']}/{occupancy['max_vehicles']}).")
                 
         return None
     

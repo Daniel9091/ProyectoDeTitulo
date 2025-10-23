@@ -153,21 +153,18 @@ class Network:
             best_tree = self.tree_selector.select_best_tree(
                 target_arrival_trees, 
                 vehicle, 
-                strategy='progressive_saturation'
+                strategy='progressive_saturation', # Mantener saturación progresiva como deseado
+                station_id=vehicle.destination_station # Pasar station_id por si la estrategia lo necesita
             )
-            
+
             if best_tree:
                 print(f"🎯 NAVEGACIÓN VM{vehicle.vehicle_id}: Tomando árbol {best_tree.track_id}")
                 return best_tree.track_id
             else:
-                # Si no se pudo seleccionar un árbol óptimo, el vehículo no puede llegar a su destino por aquí.
-                # Limpiamos su destino para que esté disponible para una nueva asignación.
-                print(f"🚨 NAVEGACIÓN VM{vehicle.vehicle_id}: Árboles para Estación {vehicle.destination_station} saturados. Liberando VM.")
-                vehicle.clear_destination()
-                # ✅ MANEJO DE FALLO: Notificar al Brain que la asignación falló.
-                print(f"🚨 NAVEGACIÓN VM{vehicle.vehicle_id}: Árboles para Estación {vehicle.destination_station} saturados. Fallo de asignación.")
-                if self.brain:
-                    self.brain.reassign_failed_demand(vehicle.destination_station)
+                # Todos los árboles de llegada objetivo están saturados o no disponibles.
+                # Según el comportamiento deseado, el vehículo debe intentar buscar un StationConnector.
+                print(f"ADVERTENCIA: NAVEGACIÓN VM{vehicle.vehicle_id}: Todos los árboles de llegada a Estación {vehicle.destination_station} saturados. Buscando alternativa (StationConnector).")
+                # No se libera el VM ni se reasigna la demanda aquí, se deja que la lógica continúe a los siguientes filtros.
 
         # FILTRO 2: ¿Hay tracks que lleven a mi destino?
         destination_tracks = self._get_tracks_to_destination(vehicle, valid_tracks)
