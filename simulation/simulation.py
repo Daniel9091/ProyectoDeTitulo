@@ -52,7 +52,7 @@ class Simulation:
         try:
             # 1. Estaciones
             builder.add_station(1, "North Station", Vector3(425, 0, 0), target_vehicles_per_minute=0)
-            builder.add_station(2, "Central Station", Vector3(1425, 0, 0), target_vehicles_per_minute=10) # 30 VMs/min
+            builder.add_station(2, "Central Station", Vector3(1425, 0, 0), target_vehicles_per_minute=30) # 30 VMs/min
             builder.add_station(3, "South Station", Vector3(2425, 0, 0), target_vehicles_per_minute=0)
             # (Estaciones cada 1km)
 
@@ -138,7 +138,7 @@ class Simulation:
             spawn_id="S",
             track_id=12,  # ✅ CAMBIO: Iniciar en el track 12 (más lejos de Central Station)
             spawn_interval=0.3,  # Cada x segundos sale un nuevo VM (ideal 0.075)
-            max_vehicles=400,     # Máximo 210 VMs 
+            max_vehicles=100,     # Máximo 210 VMs 
             vehicle_capacity=2, # Capacidad de cada VM
             destination_station_id=None  # Sin destino fijo
         )

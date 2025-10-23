@@ -33,6 +33,11 @@ class ModularVehicle:
         self.destination_station = None  # ID de estación destino
         self.target_acceleration_trees = []  # Lista de track_ids objetivo para navegación
         
+        # ✅ NUEVO: Penalización por fallo de acceso a estación
+        self.penalty_station_id = None
+        self.penalty_timestamp = 0.0
+        self.penalty_duration = 15.0 # Segundos de penalización
+
         # Información operacional
         self.total_distance_traveled = 0.0
         self.operational_time = 0.0
@@ -93,6 +98,20 @@ class ModularVehicle:
         self.destination_station = None
         self.target_acceleration_trees = []
         print(f"Vehículo {self.vehicle_id} ha liberado su destino.")
+
+    def apply_penalty(self, station_id, current_time):
+        """
+        Aplica una penalización al vehículo, impidiéndole ser asignado a la misma estación por un tiempo.
+        """
+        self.penalty_station_id = station_id
+        self.penalty_timestamp = current_time
+        print(f"Penalización aplicada a VM {self.vehicle_id} para Estación {station_id} por {self.penalty_duration}s.")
+
+    def is_penalized_for_station(self, station_id, current_time):
+        """Verifica si el vehículo está actualmente penalizado para una estación."""
+        if self.penalty_station_id == station_id:
+            return current_time < self.penalty_timestamp + self.penalty_duration
+        return False
 
     def board_passengers(self, passenger_count):
         """

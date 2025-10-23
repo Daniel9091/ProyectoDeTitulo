@@ -282,6 +282,10 @@ class Brain:
         if vehicle.passengers > 0:
             return False
 
+        # ✅ NUEVO: No disponible si está penalizado para esa estación.
+        if vehicle.is_penalized_for_station(requesting_station_id, self.simulation_time):
+            return False
+
         # Disponible si está en movimiento sin destino
         if vehicle.state == "moving" and vehicle.destination_station is None:
             return True

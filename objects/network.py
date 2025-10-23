@@ -161,10 +161,22 @@ class Network:
                 print(f"🎯 NAVEGACIÓN VM{vehicle.vehicle_id}: Tomando árbol {best_tree.track_id}")
                 return best_tree.track_id
             else:
-                # Todos los árboles de llegada objetivo están saturados o no disponibles.
-                # Según el comportamiento deseado, el vehículo debe intentar buscar un StationConnector.
-                print(f"ADVERTENCIA: NAVEGACIÓN VM{vehicle.vehicle_id}: Todos los árboles de llegada a Estación {vehicle.destination_station} saturados. Buscando alternativa (StationConnector).")
-                # No se libera el VM ni se reasigna la demanda aquí, se deja que la lógica continúe a los siguientes filtros.
+                # Todos los árboles de llegada objetivo están saturados o no disponibles para este VM.
+                destination_station_id = vehicle.destination_station # Guardar el destino antes de potencialmente borrarlo
+                print(f"ADVERTENCIA: NAVEGACIÓN VM{vehicle.vehicle_id}: Todos los árboles de llegada a Estación {destination_station_id} saturados.")
+
+                # Si el VM está vacío, se libera su destino y se reasigna la demanda.
+                if vehicle.passengers == 0:
+                    print(f"VM{vehicle.vehicle_id} está vacío y no puede acceder a Estación {destination_station_id}. Liberando destino y reasignando demanda.")
+                    vehicle.clear_destination() # Borra el destino y los árboles objetivos del VM
+                    # ✅ APLICAR PENALIZACIÓN
+                    vehicle.apply_penalty(destination_station_id, self.brain.simulation_time)
+                    if self.brain:
+                        # Notificar al Brain que la demanda original para esta estación debe ser reasignada.
+                        self.brain.reassign_failed_demand(destination_station_id)
+                    # Después de liberar el destino, el vehículo ya no tiene un destino específico.
+                    # La lógica continuará a los filtros 2 y 3, pero ahora el vehículo se considerará "sin destino".
+                    # Esto hará que caiga en el FILTRO 3 (cualquier track disponible) para seguir moviéndose.
 
         # FILTRO 2: ¿Hay tracks que lleven a mi destino?
         destination_tracks = self._get_tracks_to_destination(vehicle, valid_tracks)
