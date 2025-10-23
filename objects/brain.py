@@ -121,18 +121,37 @@ class Brain:
         self.station_demand[station_id] += count
         # print(f"🧠 Demanda registrada: Estación {station_id} necesita {count} VMs. Total pendiente: {self.station_demand[station_id]}")
 
-    def fulfill_demand(self, station_id, count=1):
-        """Marca una demanda como satisfecha cuando un vehículo llega."""
+    def fulfill_demand(self, station_id, count=1, assigned_not_arrived=False):
+        """
+        Marca una demanda como satisfecha (vehículo llegó) o asignada (vehículo en ruta).
+        Si assigned_not_arrived es True, significa que un vehículo ha sido asignado,
+        pero aún no ha llegado, por lo que se reduce la demanda pendiente en el Brain.
+        """
         if station_id in self.station_demand:
             self.station_demand[station_id] = max(0, self.station_demand[station_id] - count)
+            if assigned_not_arrived:
+                print(f"🧠 Demanda para Estación {station_id} reducida por asignación. Restante: {self.station_demand[station_id]}")
             # print(f"🧠 Demanda satisfecha: Estación {station_id} recibió 1 VM. Restante: {self.station_demand[station_id]}")
 
     def reassign_failed_demand(self, station_id):
         """Vuelve a registrar la demanda para una asignación que falló."""
         print(f"🧠 Fallo de asignación para Estación {station_id}. Re-registrando demanda.")
         # No decrementamos la demanda actual, simplemente nos aseguramos de que se intente de nuevo.
-        # La lógica de `_process_station_demand` se encargará del resto.
-        self.register_demand(station_id, 1)
+        station = self.stations.get(station_id)
+        if not station:
+            print(f"ERROR: Estación {station_id} no encontrada para reasignación de demanda.")
+            return
+
+        # Intenta encontrar un vehículo disponible y asignarlo inmediatamente.
+        # Esto también considerará el vehículo que acaba de ser rechazado y liberó su destino.
+        vehicle_id = station.request_vehicle(self)
+        if vehicle_id:
+            print(f"🧠 Demanda para Estación {station_id} reasignada a VM {vehicle_id}.")
+            # La llamada a station.request_vehicle ya maneja el decremento de station_demand si es exitosa.
+        else:
+            print(f"🧠 No se encontró VM disponible para reasignar demanda a Estación {station_id}. Re-registrando demanda para el próximo ciclo.")
+            # Si no se pudo encontrar ningún vehículo, entonces re-registra la demanda para que se recoja más tarde.
+            self.register_demand(station_id, 1)
 
     # ========== GESTIÓN DE SOLICITUDES DE VEHÍCULOS ==========
 
@@ -335,21 +354,21 @@ class Brain:
 
     def _process_station_demand(self):
         """Intenta asignar vehículos sin destino a estaciones con demanda."""
-        # Itera sobre una copia para poder modificar el diccionario
+        # Itera sobre una copia para permitir la modificación del diccionario durante la iteración
         for station_id, needed in list(self.station_demand.items()):
             if needed <= 0:
                 continue
 
-            # Intenta satisfacer la demanda
-            for _ in range(needed):
-                station = self.stations.get(station_id)
-                if not station: continue
+            # Solo intenta satisfacer una unidad de demanda por estación por ciclo de chequeo.
+            # La lógica de station.request_vehicle (y su llamada a brain.fulfill_demand)
+            # se encargará de decrementar la station_demand si la asignación es exitosa.
+            station = self.stations.get(station_id)
+            if not station:
+                continue
 
-                # Llama a la lógica de la estación para encontrar y asignar un vehículo
-                # La estación ahora se encarga de la asignación flexible
-                vehicle_id = station.request_vehicle(self)
-                if not vehicle_id:
-                    break # No hay más vehículos disponibles por ahora
+            station.request_vehicle(self)
+            # Si vehicle_id es None, significa que no había vehículo disponible para la asignación
+            # en este ciclo, y la demanda permanece para el próximo ciclo.
 
     def _check_collisions(self):
         """

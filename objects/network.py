@@ -160,6 +160,10 @@ class Network:
                 print(f"🎯 NAVEGACIÓN VM{vehicle.vehicle_id}: Tomando árbol {best_tree.track_id}")
                 return best_tree.track_id
             else:
+                # Si no se pudo seleccionar un árbol óptimo, el vehículo no puede llegar a su destino por aquí.
+                # Limpiamos su destino para que esté disponible para una nueva asignación.
+                print(f"🚨 NAVEGACIÓN VM{vehicle.vehicle_id}: Árboles para Estación {vehicle.destination_station} saturados. Liberando VM.")
+                vehicle.clear_destination()
                 # ✅ MANEJO DE FALLO: Notificar al Brain que la asignación falló.
                 print(f"🚨 NAVEGACIÓN VM{vehicle.vehicle_id}: Árboles para Estación {vehicle.destination_station} saturados. Fallo de asignación.")
                 if self.brain:

@@ -102,6 +102,10 @@ class Station:
         vehicle.assign_destination(self.station_id, all_arrival_trees)
         
         print(f"✅ VM {vehicle.vehicle_id} asignado a {self.name}. Opciones de llegada: {all_arrival_trees}")
+
+        # ✅ NUEVO: Si la asignación es exitosa, decrementa la demanda pendiente en el Brain.
+        # Esto evita que el Brain intente asignar el mismo vehículo varias veces.
+        brain.fulfill_demand(self.station_id, count=1, assigned_not_arrived=True)
         
         return vehicle.vehicle_id
 

@@ -86,6 +86,14 @@ class ModularVehicle:
             
         print(f"Vehículo {self.vehicle_id} asignado a estación destino {destination_station_id}")
 
+    def clear_destination(self):
+        """
+        Limpia el destino actual del vehículo, haciéndolo disponible para nuevas asignaciones.
+        """
+        self.destination_station = None
+        self.target_acceleration_trees = []
+        print(f"Vehículo {self.vehicle_id} ha liberado su destino.")
+
     def board_passengers(self, passenger_count):
         """
         Simula el embarque de pasajeros (en primera etapa, solo contador)
