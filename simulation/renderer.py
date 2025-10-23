@@ -39,6 +39,8 @@ class Renderer:
                     self.draw_station_connector(track)
                 elif track_type == "AccelerationTree":
                     self.draw_acceleration_tree(track)
+                elif track_type == "BoardingLane":
+                    self.draw_boarding_lane(track)
     
     def draw_station_connector(self, connector):
         """Dibuja un StationConnector como una línea recta"""
@@ -50,17 +52,29 @@ class Renderer:
             color = (0, 200, 100) if connector.start_pos.z < -5 else (100, 200, 100)
             pygame.draw.line(self.screen, color, start_2d, end_2d, 3)
             
-            # Dibujar vehículos en el conector
-            for vehicle_data in connector.vehicles.values():
-                vehicle = vehicle_data['vehicle']
-                pos_2d = self.camera.project_3d_to_2d((
-                    vehicle.current_position.x,
-                    vehicle.current_position.y, 
-                    vehicle.current_position.z
-                ))
-                if pos_2d:
-                    pygame.draw.circle(self.screen, (255, 255, 0), pos_2d, 3)
-    
+    def draw_boarding_lane(self, lane):
+        """Dibuja un BoardingLane con un color distintivo."""
+        start_2d = self.camera.project_3d_to_2d((lane.start_pos.x, lane.start_pos.y, lane.start_pos.z))
+        end_2d = self.camera.project_3d_to_2d((lane.end_pos.x, lane.end_pos.y, lane.end_pos.z))
+        
+        if start_2d and end_2d:
+            # Color cian brillante para los andenes de embarque
+            color = (0, 255, 255)
+            pygame.draw.line(self.screen, color, start_2d, end_2d, 4) # Línea un poco más gruesa
+
+    def draw_acceleration_tree(self, tree):
+        """Dibuja un árbol de aceleración con colores según la dirección"""
+        # Calcular puntos a lo largo del árbol para una línea suave
+        points = []
+        num_segments = 20
+        
+        for i in range(num_segments + 1):
+            progress = i / num_segments
+            point_3d = tree.calculate_position_at_progress(progress)
+            point_2d = self.camera.project_3d_to_2d((point_3d.x, point_3d.y, point_3d.z))
+            if point_2d:
+                points.append(point_2d)
+        
     def draw_acceleration_tree(self, tree):
         """Dibuja un árbol de aceleración con colores según la dirección"""
         # Calcular puntos a lo largo del árbol para una línea suave
@@ -87,17 +101,6 @@ class Renderer:
             if points:
                 pygame.draw.circle(self.screen, color, points[0], 4)
                 pygame.draw.circle(self.screen, color, points[-1], 4)
-            
-            # Dibujar vehículos en el árbol
-            for vehicle_data in tree.vehicles.values():
-                vehicle = vehicle_data['vehicle']
-                pos_2d = self.camera.project_3d_to_2d((
-                    vehicle.current_position.x,
-                    vehicle.current_position.y, 
-                    vehicle.current_position.z
-                ))
-                if pos_2d:
-                    pygame.draw.circle(self.screen, (255, 255, 0), pos_2d, 4)
       
     def draw_station(self, station):
         """Dibuja una estación como prismas rectangulares de 3 pisos creciendo hacia arriba"""
@@ -170,7 +173,6 @@ class Renderer:
                     # Bordes de la cara inferior
                     pygame.draw.line(self.screen, color, vertices_2d[i+4], vertices_2d[next_i+4], 1)
         
-
     def draw_vehicle(self, vehicle):
         """Dibuja un vehículo modular con dimensiones 1m (largo) × 1m (ancho) × 1.5m (alto)"""
         # NUEVAS DIMENSIONES según especificaciones

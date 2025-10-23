@@ -3,6 +3,7 @@ from objects.modular_vehicles import ModularVehicle
 from objects.stations import Station
 from objects.station_connector import StationConnector
 from objects.acceleration_tree import AccelerationTree
+from objects.boarding_lane import BoardingLane
 from objects.network import Network
 from objects.brain import Brain
 from objects.base import Vector3
@@ -51,9 +52,9 @@ class Simulation:
   
         try:
             # 1. Estaciones
-            builder.add_station(1, "North Station", Vector3(425, 0, 0), target_vehicles_per_minute=0)
+            builder.add_station(1, "North Station", Vector3(425, 0, 0), target_vehicles_per_minute=5)
             builder.add_station(2, "Central Station", Vector3(1425, 0, 0), target_vehicles_per_minute=30) # 30 VMs/min
-            builder.add_station(3, "South Station", Vector3(2425, 0, 0), target_vehicles_per_minute=0)
+            builder.add_station(3, "South Station", Vector3(2425, 0, 0), target_vehicles_per_minute=10)
             # (Estaciones cada 1km)
 
             # 2. Árboles de Aceleración
@@ -86,12 +87,12 @@ class Simulation:
             builder.add_connector(12, Vector3(2850, 0, -20), Vector3(2900, 0, -20)) # Fin South
 
             # 4. Conectores en la estacion
-            builder.add_connector(13, Vector3(400, 0, 0), Vector3(450, 0, 0), speed=0.5)       # En North Station
-            builder.add_connector(14, Vector3(1400.15, 0, 0), Vector3(1449.85, 0, 0), speed=0.5)     # En Central Station
-            builder.add_connector(15, Vector3(2400, 0, 0), Vector3(2450, 0, 0), speed=0.5)     # En South Station
+            builder.add_boarding_lane(13, Vector3(400, 0, 0), Vector3(450, 0, 0), speed=2.0)       # En North Station
+            builder.add_boarding_lane(14, Vector3(1400.15, 0, 0), Vector3(1449.85, 0, 0), speed=2.0)     # En Central Station
+            builder.add_boarding_lane(15, Vector3(2400, 0, 0), Vector3(2450, 0, 0), speed=2.0)     # En South Station
             # Nuevos andenes en Central
-            builder.add_connector(20, Vector3(1400, 10, 0), Vector3(1450, 10, 0), speed=0.5)     # En Central Station 2
-            builder.add_connector(21, Vector3(1400, -10, 0), Vector3(1450, -10, 0), speed=0.5)     # En Central Station 3
+            builder.add_boarding_lane(20, Vector3(1400, 10, 0), Vector3(1450, 10, 0), speed=2.0)     # En Central Station 2
+            builder.add_boarding_lane(21, Vector3(1400, -10, 0), Vector3(1450, -10, 0), speed=2.0)     # En Central Station 3
 
             # 5. Conexiones de los conectores entre si
             builder.connect_tracks(7, 8)   
@@ -136,11 +137,11 @@ class Simulation:
             # Spawn System (Opcional)
             self.spawn_system.add_spawn_point(
             spawn_id="S",
-            track_id=12,  # ✅ CAMBIO: Iniciar en el track 12 (más lejos de Central Station)
-            spawn_interval=0.3,  # Cada x segundos sale un nuevo VM (ideal 0.075)
-            max_vehicles=500,     # Máximo 210 VMs 
-            vehicle_capacity=2, # Capacidad de cada VM
-            destination_station_id=None  # Sin destino fijo
+            track_id=7,             # Iniciar en el track 
+            spawn_interval=0.3,     # Cada x segundos sale un nuevo VM (ideal 0.075)
+            max_vehicles=300,       # Máximo 210 VMs 
+            vehicle_capacity=2,     # Capacidad de cada VM
+            destination_station_id=None  # Destino
         )
             
             # Incorporacion normal de vms
@@ -302,6 +303,15 @@ class SimulationBuilder:
         self.simulation.network.add_track(connector)
         return self
     
+    def add_boarding_lane(self, lane_id, start_pos, end_pos, speed=2.0):
+        """Agrega un andén de embarque (BoardingLane)"""
+        lane = BoardingLane(lane_id, start_pos, end_pos, speed)
+        self.tracks[lane_id] = lane
+        # Los andenes también son 'connectors' en un sentido amplio
+        self.simulation.connectors.append(lane)
+        self.simulation.network.add_track(lane)
+        return self
+
     def connect_tracks(self, from_track_id, to_track_id):
         """Conecta dos tracks en la red"""
         if from_track_id not in self.tracks or to_track_id not in self.tracks:

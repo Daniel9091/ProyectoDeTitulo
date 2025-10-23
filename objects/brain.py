@@ -1,4 +1,5 @@
 from objects.acceleration_tree import AccelerationTree
+from objects.boarding_lane import BoardingLane
 from objects.spatial_grid import SpatialGrid
 
 class Brain:
@@ -290,6 +291,10 @@ class Brain:
         if vehicle.is_penalized_for_station(requesting_station_id, self.simulation_time):
             return False
 
+        # ✅ NUEVO: No disponible si está en un andén de embarque (BoardingLane).
+        if vehicle.current_track and isinstance(vehicle.current_track, BoardingLane):
+            return False
+
         # Disponible si está en movimiento sin destino
         if vehicle.state == "moving" and vehicle.destination_station is None:
             return True
@@ -302,31 +307,55 @@ class Brain:
         CALCULA SCORE DE PROXIMIDAD DE UN VM A UNA ESTACIÓN
         ✅ MEJORADO: Prioriza vehículos en tracks que conectan a los árboles de la estación.
         """
-        score = 0.0
         target_station = self.stations.get(target_station_id)
         if not target_station or not vehicle.current_track:
             return 0.0
 
-        # 1. ✅ ASIGNACIÓN INTELIGENTE: Bonificación masiva si el vehículo está en un track
-        # que es un precursor directo a los árboles de llegada de la estación.
-        current_track_id = vehicle.current_track.track_id
-        possible_next_tracks = self.network.adjacency.get(current_track_id, [])
-        target_tree_ids = {tree.track_id for tree in target_station.arrival_trees}
+        # ✅ LÓGICA MEJORADA: Puntuación basada en distancia de red (saltos de track).
+        # Usamos una búsqueda en anchura (BFS) para encontrar la ruta más corta en términos de tracks.
+        network_dist = self._get_network_distance(vehicle.current_track.track_id, target_station_id)
 
-        is_precursor = any(next_track_id in target_tree_ids for next_track_id in possible_next_tracks)
+        if network_dist is None:
+            return 0.0 # No hay ruta posible desde este track.
 
-        if is_precursor:
-            # Puntuación muy alta para priorizar este vehículo.
-            # Se le resta el progreso para priorizar al que está más cerca del final del track.
-            score += 1000 - (vehicle.progress_on_track * 100)
-        else:
-            # 2. Puntuación de proximidad general (menos importante)
-            # Estimación simple basada en la distancia al centro de la estación.
-            dist = vehicle.current_position.distance_to(target_station.position)
-            # Más cerca es mejor, pero mucho menos influyente que ser un precursor.
-            score += max(0, 100 - dist / 100)
+        # La puntuación base es inversamente proporcional a la distancia de red.
+        # Un valor alto (ej. 10000) dividido por la distancia.
+        # A menor distancia (menos saltos), mayor puntuación.
+        score = 10000 / (network_dist + 1)
+
+        # Bonificación adicional por el progreso en el track actual.
+        # Un vehículo que está a punto de terminar su track está "más cerca" que uno que acaba de empezar.
+        score += vehicle.progress_on_track * 100
         
         return max(0, score)
+
+    def _get_network_distance(self, start_track_id, target_station_id):
+        """
+        Calcula la "distancia de red" (número de saltos de track) desde un track
+        hasta una estación usando Búsqueda en Anchura (BFS).
+        """
+        target_station = self.stations.get(target_station_id)
+        if not target_station:
+            return None
+
+        target_arrival_tree_ids = {tree.track_id for tree in target_station.arrival_trees}
+
+        queue = [(start_track_id, 0)]  # (track_id, distancia)
+        visited = {start_track_id}
+
+        while queue:
+            current_track_id, dist = queue.pop(0)
+
+            # Si el track actual es un árbol de llegada de la estación destino, hemos llegado.
+            if current_track_id in target_arrival_tree_ids:
+                return dist
+
+            for next_track_id in self.network.adjacency.get(current_track_id, []):
+                if next_track_id not in visited:
+                    visited.add(next_track_id)
+                    queue.append((next_track_id, dist + 1))
+        
+        return None # No se encontró una ruta
 
     # ========== ACTUALIZACIÓN PRINCIPAL Y COORDINACIÓN ==========
 

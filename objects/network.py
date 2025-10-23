@@ -88,6 +88,13 @@ class Network:
         current_track = self.tracks[current_track_id]
         possible_next_tracks = self.adjacency.get(current_track_id, [])
         
+        # ✅ CORRECCIÓN: Si el vehículo acaba de terminar un árbol de llegada ('up'),
+        # se considera que ha llegado a la estación, incluso si hay un track conectado después (como un andén).
+        # Esto asegura que el destino se limpie y la demanda se cumpla.
+        if isinstance(current_track, AccelerationTree) and current_track.direction == "up":
+            # El método _arrive_at_station se encargará de remover el vehículo del track actual.
+            self._arrive_at_station(vehicle, current_track)
+
         if not possible_next_tracks:
             if isinstance(current_track, AccelerationTree) and current_track.direction == "up":
                 self._arrive_at_station(vehicle, current_track) # Brain se pasa aquí

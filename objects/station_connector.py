@@ -36,8 +36,7 @@ class StationConnector(Track):
         # Actualizar estado del vehículo
         vehicle.current_track = self
         vehicle.state = "moving"
-        
-    
+          
     def remove_vehicle(self, vehicle):
         """Remueve un vehículo del StationConnector"""
         if vehicle.vehicle_id in self.vehicles:
