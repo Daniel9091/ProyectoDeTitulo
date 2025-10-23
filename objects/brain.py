@@ -34,6 +34,11 @@ class Brain:
         self.pending_requests = []  # Solicitudes de VMs pendientes
         self.request_cooldown = 2.0  # Segundos entre procesamiento de solicitudes
         self.last_request_process_time = 0.0
+
+        # ✅ NUEVO: Sistema de Demanda Persistente
+        self.station_demand = {}  # station_id -> número de vehículos solicitados
+        self._demand_fulfillment_cooldown = 1.0 # Frecuencia para intentar satisfacer la demanda
+        self._time_since_last_demand_check = 0.0
         
         # ✅ NUEVO: Estadísticas y monitoreo
         self.stats = {
@@ -107,6 +112,28 @@ class Brain:
         # Fallback: usar todos los árboles disponibles (comportamiento original)
         return [tree.track_id for tree in station.arrival_trees]
 
+    # ========== ✅ NUEVO: GESTIÓN DE DEMANDA PERSISTENTE ==========
+
+    def register_demand(self, station_id, count):
+        """Una estación registra su necesidad de 'count' vehículos."""
+        if station_id not in self.station_demand:
+            self.station_demand[station_id] = 0
+        self.station_demand[station_id] += count
+        # print(f"🧠 Demanda registrada: Estación {station_id} necesita {count} VMs. Total pendiente: {self.station_demand[station_id]}")
+
+    def fulfill_demand(self, station_id, count=1):
+        """Marca una demanda como satisfecha cuando un vehículo llega."""
+        if station_id in self.station_demand:
+            self.station_demand[station_id] = max(0, self.station_demand[station_id] - count)
+            # print(f"🧠 Demanda satisfecha: Estación {station_id} recibió 1 VM. Restante: {self.station_demand[station_id]}")
+
+    def reassign_failed_demand(self, station_id):
+        """Vuelve a registrar la demanda para una asignación que falló."""
+        print(f"🧠 Fallo de asignación para Estación {station_id}. Re-registrando demanda.")
+        # No decrementamos la demanda actual, simplemente nos aseguramos de que se intente de nuevo.
+        # La lógica de `_process_station_demand` se encargará del resto.
+        self.register_demand(station_id, 1)
+
     # ========== GESTIÓN DE SOLICITUDES DE VEHÍCULOS ==========
 
     def request_vehicle_for_station(self, station_id, destination_station_id=None):
@@ -154,8 +181,8 @@ class Brain:
         if vehicle_id:
             self.stats['successful_requests'] += 1
         else:
-            self.stats['failed_requests'] += 1
-            print(f"ERROR: Solicitud fallida no hay VMs disponibles para {station.name}")
+            self.stats['failed_requests'] += 1 # Log eliminado para reducir verbosidad
+            # print(f"ERROR: Solicitud fallida no hay VMs disponibles para {station.name}")
         
         request['processed'] = True
         request['success'] = vehicle_id is not None
@@ -228,10 +255,14 @@ class Brain:
         if not vehicle.is_operational():
             return False
         
-        # No disponible si ya tiene destino asignado
+        # ✅ REFINADO: No disponible si ya tiene destino O pasajeros.
         if vehicle.destination_station is not None:
             return False
         
+        # ✅ REFINADO: No disponible si lleva pasajeros.
+        if vehicle.passengers > 0:
+            return False
+
         # Disponible si está en movimiento sin destino
         if vehicle.state == "moving" and vehicle.destination_station is None:
             return True
@@ -242,30 +273,31 @@ class Brain:
     def _calculate_vehicle_proximity(self, vehicle, target_station_id):
         """
         CALCULA SCORE DE PROXIMIDAD DE UN VM A UNA ESTACIÓN
-        ✅ MEJORADO: Algoritmo más sofisticado
+        ✅ MEJORADO: Prioriza vehículos en tracks que conectan a los árboles de la estación.
         """
         score = 0.0
-        
-        # 1. Estado actual del vehículo
-        if vehicle.state == "moving":
-            score += 30  # Ya está en movimiento, puede redirigirse
-        elif "accelerating" in vehicle.state:
-            score += 10  # Más difícil redirigir durante aceleración
-        
-        # 2. Proximidad basada en posición actual (simplificado)
-        # En implementación real, usaríamos el grafo de rutas
-        if vehicle.current_station:
-            # Simular distancia basada en IDs (placeholder)
-            station_distance = abs(vehicle.current_station - target_station_id)
-            score += max(0, 50 - station_distance * 5)
-        
-        # 3. Eficiencia operacional
-        if vehicle.passengers == 0:
-            score += 15  # Preferir vehículos vacíos
-        
-        # 4. Tiempo operacional (preferir vehículos más descansados)
-        operational_penalty = min(vehicle.operational_time / 3600, 10)  # 1 punto por hora
-        score -= operational_penalty
+        target_station = self.stations.get(target_station_id)
+        if not target_station or not vehicle.current_track:
+            return 0.0
+
+        # 1. ✅ ASIGNACIÓN INTELIGENTE: Bonificación masiva si el vehículo está en un track
+        # que es un precursor directo a los árboles de llegada de la estación.
+        current_track_id = vehicle.current_track.track_id
+        possible_next_tracks = self.network.adjacency.get(current_track_id, [])
+        target_tree_ids = {tree.track_id for tree in target_station.arrival_trees}
+
+        is_precursor = any(next_track_id in target_tree_ids for next_track_id in possible_next_tracks)
+
+        if is_precursor:
+            # Puntuación muy alta para priorizar este vehículo.
+            # Se le resta el progreso para priorizar al que está más cerca del final del track.
+            score += 1000 - (vehicle.progress_on_track * 100)
+        else:
+            # 2. Puntuación de proximidad general (menos importante)
+            # Estimación simple basada en la distancia al centro de la estación.
+            dist = vehicle.current_position.distance_to(target_station.position)
+            # Más cerca es mejor, pero mucho menos influyente que ser un precursor.
+            score += max(0, 100 - dist / 100)
         
         return max(0, score)
 
@@ -288,15 +320,36 @@ class Brain:
         for station in self.stations.values():
             station.update(self, dt)
         
-        # ✅ NUEVO: 4. Procesar solicitudes pendientes de VMs
-        self.process_pending_requests(dt)
+        # ✅ REFACTORIZADO: 4. Gestionar demanda persistente
+        self._time_since_last_demand_check += dt
+        if self._time_since_last_demand_check >= self._demand_fulfillment_cooldown:
+            self._process_station_demand()
+            self._time_since_last_demand_check = 0.0
         
-        # 5. Detección de colisiones
+        # 5. Detección de colisiones (sin cambios)
         self._check_collisions()
         
         # 6. Monitoreo del sistema
         if int(self.simulation_time) % 10 == 0:  # Cada 10 segundos
             self._monitor_system_health()
+
+    def _process_station_demand(self):
+        """Intenta asignar vehículos sin destino a estaciones con demanda."""
+        # Itera sobre una copia para poder modificar el diccionario
+        for station_id, needed in list(self.station_demand.items()):
+            if needed <= 0:
+                continue
+
+            # Intenta satisfacer la demanda
+            for _ in range(needed):
+                station = self.stations.get(station_id)
+                if not station: continue
+
+                # Llama a la lógica de la estación para encontrar y asignar un vehículo
+                # La estación ahora se encarga de la asignación flexible
+                vehicle_id = station.request_vehicle(self)
+                if not vehicle_id:
+                    break # No hay más vehículos disponibles por ahora
 
     def _check_collisions(self):
         """

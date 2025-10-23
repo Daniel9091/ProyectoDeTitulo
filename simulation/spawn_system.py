@@ -62,7 +62,7 @@ class SpawnPoint:
             else:
                 print(f"⚠️  No se pudo determinar estación de inicio para VM {vehicle_id}")
         else:
-            print(f"⚠️  VM {vehicle_id} creado SIN DESTINO")
+            pass
         
         # Incorporar a todos los sistemas
         simulation.vehicles.append(new_vehicle)

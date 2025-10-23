@@ -24,7 +24,7 @@ class AccelerationTree(Track):
         self.station_id = station_id
         
         # CONFIGURACIÓN DE DENSIDAD - NUEVO
-        self.min_safe_distance = 20.0       # metros entre VMs
+        self.min_safe_distance = 40.0       # ✅ AUMENTADO: Mayor distancia para evitar colisiones en la estación
         self.max_concurrent_vehicles = 50    # máximo de VMs simultáneos
         
         # CALCULAR ÁNGULO DE INCLINACIÓN REAL (existente)

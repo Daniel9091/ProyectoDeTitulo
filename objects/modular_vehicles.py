@@ -143,7 +143,6 @@ class ModularVehicle:
         # Sincronizar inmediatamente la velocidad al transferir
         self._update_velocity_from_track()
         
-        print(f"Vehículo {self.vehicle_id} transferido a track {new_track.track_id}")
 
     def start_on_track(self, track, entry_velocity=None):
         """
@@ -161,9 +160,8 @@ class ModularVehicle:
         # Sincronizar inmediatamente la velocidad
         self._update_velocity_from_track()
         
-        print(f"Vehículo {self.vehicle_id} iniciado en track {track.track_id}")
 
-    def arrive_at_station(self, station_id):
+    def arrive_at_station(self, station_id, brain=None):
         """
         Procesa la llegada del vehículo a una estación
         
@@ -182,6 +180,10 @@ class ModularVehicle:
         if self.destination_station == station_id:
             self.destination_station = None
             self.target_acceleration_trees = []
+            # ✅ NUEVO: Notificar al Brain que la demanda ha sido satisfecha.
+            if brain:
+                brain.fulfill_demand(station_id)
+
             print(f"Vehículo {self.vehicle_id} llegó a su destino final: estación {station_id}")
         else:
             print(f"Vehículo {self.vehicle_id} llegó a estación {station_id} (en ruta)")

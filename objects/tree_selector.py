@@ -19,13 +19,14 @@ class TreeSelector:
     Implementa el patrón Strategy para diferentes algoritmos de selección
     """
     
-    def __init__(self):
+    def __init__(self, brain=None):
         # Configuración de estrategias disponibles
         self.strategies = {
             'progressive_saturation': self._progressive_saturation_strategy,
             'emergency_flow': self._emergency_flow_strategy,
             'round_robin': self._round_robin_strategy
         }
+        self.brain = brain # Referencia al Brain
         
         # Estado interno para estrategias que requieren memoria
         self._last_used_trees = {}  # station_id -> último árbol usado

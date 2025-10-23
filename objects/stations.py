@@ -34,6 +34,7 @@ class Station:
         self.target_vehicles_per_minute = target_vehicles_per_minute
         self._request_check_interval = 10.0  # Segundos, frecuencia de chequeo
         self._time_since_last_check = 0.0
+        self._demand_accumulator = 0.0 # ✅ NUEVO: Acumulador para demanda fraccional
         
 
     # ========== CONFIGURACIÓN Y INYECCIÓN DE DEPENDENCIAS ==========
@@ -82,39 +83,25 @@ class Station:
         Returns:
             str: ID del VM asignado, o None si no hay disponibles
         """
-        print(f"Estación {self.name} solicitando VM...")
+        # print(f"Estación {self.name} solicitando VM...") # Log reducido para no saturar consola
         
-        # 1. VERIFICAR CAPACIDAD DE LLEGADA
-        if not self.has_arrival_capacity():
-            print(f"ERROR: Estación {self.name} no tiene capacidad de llegada")
-            return None
-        
-        # 2. BUSCAR VM DISPONIBLE
+        # 1. BUSCAR VM DISPONIBLE (Se eliminó la comprobación de capacidad previa)
         vehicle = brain.find_nearest_available_vehicle(self.station_id)
         if not vehicle:
-            print(f"ERROR: No hay VMs disponibles para estación {self.name}")
+            # print(f"INFO: No hay VMs disponibles para estación {self.name} en este ciclo.") # Log desactivado para reducir ruido
             return None
         
         # 3. ASIGNAR DESTINO Y RUTA ÓPTIMA
-        vehicle.destination_station = self.station_id
-        
-        # Selección inteligente del árbol de llegada
-        optimal_arrival_tree = self.select_optimal_arrival_tree(vehicle)
-        if not optimal_arrival_tree:
-            print(f"ERROR: No hay árboles de llegada disponibles en {self.name}")
-            vehicle.destination_station = None  # Revertir asignación
+        # ✅ SOLUCIÓN PROBLEMA 1: Asignar TODOS los árboles de llegada posibles.
+        # El vehículo y la red decidirán cuál usar en tiempo real.
+        all_arrival_trees = [tree.track_id for tree in self.arrival_trees]
+        if not all_arrival_trees:
+            print(f"ERROR: {self.name} no tiene árboles de llegada configurados.")
             return None
-        
-        vehicle.target_acceleration_trees = [optimal_arrival_tree.track_id]
-        
 
-        print(f"   Árbol de llegada asignado: {optimal_arrival_tree.track_id}")
-        print(f"   Destino final: {'Estación ' + str(destination_station_id) if destination_station_id else 'Ninguno (solo recogida)'}")
+        vehicle.assign_destination(self.station_id, all_arrival_trees)
         
-        # 4. Si el vehículo no tiene destino, se le asigna esta estación.
-        # La lógica de movimiento de Network se encargará de enrutarlo.
-        if not vehicle.destination_station:
-            vehicle.assign_destination(self.station_id, [optimal_arrival_tree.track_id])
+        print(f"✅ VM {vehicle.vehicle_id} asignado a {self.name}. Opciones de llegada: {all_arrival_trees}")
         
         return vehicle.vehicle_id
 
@@ -272,16 +259,25 @@ class Station:
         if self.target_vehicles_per_minute <= 0:
             return
 
-        # 1. Calcular cuántos vehículos deberían llegar en el intervalo de chequeo.
-        vehicles_needed_per_interval = (self.target_vehicles_per_minute / 60.0) * self._request_check_interval
+        # 1. Calcular la "deuda" de vehículos acumulada en este intervalo.
+        # Esto permite que tasas muy bajas (e.g., 1 VM/min) se acumulen con el tiempo.
+        vehicles_needed_this_interval = (self.target_vehicles_per_minute / 60.0) * self._request_check_interval
+        self._demand_accumulator += vehicles_needed_this_interval
 
-        # 2. Consultar al cerebro cuántos vehículos ya vienen en camino.
+        # 2. Consultar al cerebro cuántos vehículos ya vienen en camino y cuánta demanda hay pendiente.
         vehicles_en_route = brain.get_vehicles_en_route_to(self.station_id)
+        pending_demand = brain.station_demand.get(self.station_id, 0)
 
-        # 3. Calcular el déficit de vehículos.
-        deficit = round(vehicles_needed_per_interval - len(vehicles_en_route))
+        # 3. El "déficit real" es lo que hemos acumulado menos lo que ya está gestionado (en ruta o en cola).
+        effective_demand = self._demand_accumulator - (len(vehicles_en_route) + pending_demand)
 
-        if deficit > 0:
-            print(f"📈 {self.name}: Demanda insatisfecha. Solicitando {deficit} VM(s). (En ruta: {len(vehicles_en_route)})")
-            for _ in range(deficit):
-                self.request_vehicle(brain)
+        # 4. Si el acumulador supera 1, es hora de solicitar al menos un vehículo.
+        if effective_demand >= 1.0:
+            vehicles_to_request = int(effective_demand)
+            print(f"📈 {self.name}: Demanda acumulada ({self._demand_accumulator:.2f}). Solicitando {vehicles_to_request} VM(s).")
+            
+            # Registrar la nueva demanda en el Brain
+            brain.register_demand(self.station_id, vehicles_to_request)
+            
+            # Restar del acumulador lo que acabamos de solicitar.
+            self._demand_accumulator -= vehicles_to_request

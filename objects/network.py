@@ -26,6 +26,7 @@ class Network:
         
         # ✅ NUEVO: TreeSelector inyectado (se configurará desde Simulation)
         self.tree_selector = None
+        self.brain = None # Referencia al Brain para notificaciones
 
     # ========== MÉTODOS EXISTENTES (SIN CAMBIOS) ==========
 
@@ -89,7 +90,7 @@ class Network:
         
         if not possible_next_tracks:
             if isinstance(current_track, AccelerationTree) and current_track.direction == "up":
-                self._arrive_at_station(vehicle, current_track)
+                self._arrive_at_station(vehicle, current_track) # Brain se pasa aquí
             else:
                 print(f"WARNING: Vehículo {vehicle.vehicle_id} llegó al final sin estación")
             return
@@ -119,8 +120,6 @@ class Network:
 
             # Usar el método centralizado que también actualiza la velocidad del VM
             vehicle.transfer_to_track(next_track, entry_velocity=exit_velocity_magnitude)
-                
-            print(f"Vehículo {vehicle.vehicle_id} transferido de {current_track_id} a {next_track_id}")
             
         except Exception as e:
             print(f"ERROR en transferencia de vehículo {vehicle.vehicle_id}: {e}")
@@ -161,7 +160,10 @@ class Network:
                 print(f"🎯 NAVEGACIÓN VM{vehicle.vehicle_id}: Tomando árbol {best_tree.track_id}")
                 return best_tree.track_id
             else:
-                print(f"🚨 NAVEGACIÓN VM{vehicle.vehicle_id}: Árboles saturados, continuando flujo")
+                # ✅ MANEJO DE FALLO: Notificar al Brain que la asignación falló.
+                print(f"🚨 NAVEGACIÓN VM{vehicle.vehicle_id}: Árboles para Estación {vehicle.destination_station} saturados. Fallo de asignación.")
+                if self.brain:
+                    self.brain.reassign_failed_demand(vehicle.destination_station)
 
         # FILTRO 2: ¿Hay tracks que lleven a mi destino?
         destination_tracks = self._get_tracks_to_destination(vehicle, valid_tracks)
@@ -171,7 +173,6 @@ class Network:
 
         # FILTRO 3: Flujo continuo - cualquier track disponible
         chosen_track = valid_tracks[0]
-        print(f"🔄 NAVEGACIÓN VM{vehicle.vehicle_id}: Flujo continuo -> {chosen_track.track_id}")
         return chosen_track.track_id
 
     def _get_target_arrival_trees(self, vehicle, valid_tracks):
@@ -258,6 +259,7 @@ class Network:
             tree_selector: Instancia de TreeSelector
         """
         self.tree_selector = tree_selector
+        self.brain = tree_selector.brain # Asumimos que el selector puede tener una ref al brain
 
     def get_navigation_status(self):
         """
@@ -292,10 +294,8 @@ class Network:
         # El vehículo ya no se detiene, solo actualiza su estado.
         # La transferencia al siguiente track se maneja en _transfer_vehicle.
         arrival_tree.remove_vehicle(vehicle)
-        
-        vehicle.arrive_at_station(station_id)
-        
-        print(f"Vehículo {vehicle.vehicle_id} llegó a estación {station_id}")
+        # ✅ Pasa la referencia del Brain para que el vehículo pueda notificar la llegada.
+        vehicle.arrive_at_station(station_id, self.brain)
 
     def get_station_departure_trees(self, station_id):
         """Obtiene árboles de salida (sin cambios)"""
