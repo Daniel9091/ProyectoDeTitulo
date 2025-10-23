@@ -16,21 +16,24 @@ class Station:
     - Toma de decisiones de routing complejas (lo hace Brain/Network)
     """
 
-    def __init__(self, station_id, name, position):
+    def __init__(self, station_id, name, position, target_vehicles_per_minute=0.0):
         self.station_id = station_id
         self.name = name
         self.position = position  # Vector3 - posición en superficie
         self.arrival_trees = []   # Lista de AccelerationTree (dirección 'up')
         self.departure_trees = [] # Lista de AccelerationTree (dirección 'down')
-        self.docked_vehicles = [] # Lista de ModularVehicle estacionados
-        self.capacity = 10  # Capacidad máxima de vehículos docked
-        
+
         # TreeSelector para gestión inteligente de árboles
         self.tree_selector = None
         
         # Preparación para sistema de andenes (futura implementación)
         self.lanes = []  # Se poblará cuando implementemos el sistema de lanes
         self.passenger_count = 0  # Simulado por ahora
+
+        # ✅ NUEVO: Gestión de demanda de vehículos
+        self.target_vehicles_per_minute = target_vehicles_per_minute
+        self._request_check_interval = 10.0  # Segundos, frecuencia de chequeo
+        self._time_since_last_check = 0.0
         
 
     # ========== CONFIGURACIÓN Y INYECCIÓN DE DEPENDENCIAS ==========
@@ -64,80 +67,6 @@ class Station:
             raise ValueError("Los árboles de salida deben tener dirección 'down'")
         
         self.departure_trees.append(acceleration_tree)
-
-    # ========== GESTIÓN DE VEHÍCULOS DOCKED ==========
-
-    def dock_vehicle(self, vehicle):
-        """
-        Estaciona un vehículo en la estación (llegada)
-        MEJORADO: Validaciones mejoradas y logs informativos
-        """
-        if len(self.docked_vehicles) >= self.capacity:
-            print(f"ERROR: Estación {self.name} está a capacidad máxima")
-            return False
-        
-        if vehicle in self.docked_vehicles:
-            print(f"ADVERTENCIA: Vehículo {vehicle.vehicle_id} ya está en estación {self.name}")
-            return False
-        
-        self.docked_vehicles.append(vehicle)
-        vehicle.current_station = self.station_id
-        vehicle.state = "docked"
-        vehicle.current_track = None
-        
-        # MEJORADO: Limpiar información de ruta al llegar
-        if vehicle.destination_station == self.station_id:
-            vehicle.destination_station = None  # Destino cumplido
-            vehicle.target_acceleration_trees = []  # Limpiar ruta
-            print(f"🎯 Vehículo {vehicle.vehicle_id} llegó a su DESTINO FINAL: {self.name}")
-        else:
-            print(f"🔄 Vehículo {vehicle.vehicle_id} llegó a estación {self.name} (en tránsito)")
-            
-        return True
-
-    def undock_vehicle(self, vehicle, destination_station_id):
-        """
-        Prepara un vehículo para salir de la estación con un destino
-        MEJORADO: Integración con TreeSelector para rutas óptimas
-        """
-        if vehicle not in self.docked_vehicles:
-            print(f"ERROR: Vehículo {vehicle.vehicle_id} no está en estación {self.name}")
-            return False
-        
-        if not self.departure_trees:
-            print(f"ERROR: Estación {self.name} no tiene árboles de salida")
-            return False
-        
-        # Asignar destino al vehículo
-        vehicle.destination_station = destination_station_id
-        
-        # ✅ NUEVO: Usar TreeSelector para encontrar árboles objetivo óptimos
-        if self.tree_selector:
-            target_station_trees = self._get_destination_arrival_trees(destination_station_id)
-            if target_station_trees:
-                # Seleccionar el mejor árbol usando TreeSelector
-                optimal_tree = self.tree_selector.select_best_tree(
-                    target_station_trees, 
-                    vehicle,
-                    strategy='progressive_saturation',
-                    station_id=destination_station_id
-                )
-                
-                if optimal_tree:
-                    vehicle.target_acceleration_trees = [optimal_tree.track_id]
-                    print(f"🎯 Ruta asignada: {self.name} -> Estación {destination_station_id} (Árbol {optimal_tree.track_id})")
-                else:
-                    # Fallback: usar todos los árboles disponibles
-                    vehicle.target_acceleration_trees = [tree.track_id for tree in target_station_trees]
-                    print(f"⚠️  No se pudo seleccionar árbol óptimo, usando todos los disponibles")
-            else:
-                vehicle.target_acceleration_trees = []
-                print(f"⚠️  No se encontraron árboles de llegada en la estación destino")
-        
-        vehicle.state = "ready_to_depart"
-        
-        print(f"🚀 Vehículo {vehicle.vehicle_id} preparado para salir de {self.name} hacia estacion {destination_station_id}")
-        return True
 
     # ========== SOLICITUD Y ASIGNACIÓN DE VEHÍCULOS ==========
 
@@ -182,14 +111,10 @@ class Station:
         print(f"   Árbol de llegada asignado: {optimal_arrival_tree.track_id}")
         print(f"   Destino final: {'Estación ' + str(destination_station_id) if destination_station_id else 'Ninguno (solo recogida)'}")
         
-        # 4. INICIAR VIAJE SI ESTÁ EN OTRA ESTACIÓN
-        if vehicle.state == "docked" and vehicle.current_station:
-            current_station = brain.stations.get(vehicle.current_station)
-            if current_station:
-                success = current_station.undock_vehicle(vehicle, self.station_id)
-                if not success:
-                    print(f"ERROR: No se pudo iniciar viaje desde estación {current_station.name}")
-                    return None
+        # 4. Si el vehículo no tiene destino, se le asigna esta estación.
+        # La lógica de movimiento de Network se encargará de enrutarlo.
+        if not vehicle.destination_station:
+            vehicle.assign_destination(self.station_id, [optimal_arrival_tree.track_id])
         
         return vehicle.vehicle_id
 
@@ -229,10 +154,6 @@ class Station:
         VERIFICA SI LA ESTACIÓN PUEDE ACEPTAR NUEVOS VEHÍCULOS
         ✅ NUEVO: Verifica tanto capacidad docked como árboles de llegada
         """
-        # Verificar capacidad de docking
-        if len(self.docked_vehicles) >= self.capacity:
-            return False
-            
         # Verificar que hay al menos un árbol de llegada disponible
         if not self.arrival_trees:
             return False
@@ -263,10 +184,7 @@ class Station:
         return {
             'available': len(available_trees) > 0,
             'available_trees': available_trees,
-            'total_trees': len(self.arrival_trees),
-            'docked_vehicles': len(self.docked_vehicles),
-            'docking_capacity': self.capacity,
-            'docking_available': len(self.docked_vehicles) < self.capacity
+            'total_trees': len(self.arrival_trees)
         }
 
     def _update_capacity_info(self):
@@ -295,78 +213,21 @@ class Station:
 
     # ========== PROCESAMIENTO DE OPERACIONES ==========
 
-    def process_departures(self, brain):
-        """
-        PROCESA VEHÍCULOS LISTOS PARA SALIR
-        MEJORADO: Más eficiente y con mejor logging
-        """
-        vehicles_to_depart = [
-            vehicle for vehicle in self.docked_vehicles 
-            if vehicle.state == "ready_to_depart" and vehicle.destination_station
-        ]
-        
-        if not vehicles_to_depart:
-            return
-            
-        print(f"🚀 Estación {self.name}: Procesando {len(vehicles_to_depart)} salidas")
-        
-        for vehicle in vehicles_to_depart:
-            success = self._depart_vehicle(vehicle, brain)
-            if not success:
-                print(f"ERROR: al procesar salida de VM {vehicle.vehicle_id}")
-
-    def _depart_vehicle(self, vehicle, brain):
-        """
-        ENVÍA UN VEHÍCULO DESDE LA ESTACIÓN
-        MEJORADO: Manejo de errores robusto
-        """
-        if not self.departure_trees:
-            return False
-            
-        # Seleccionar árbol de salida (estrategia simple por ahora)
-        departure_tree = self.departure_trees[0]
-        
-        try:
-            # Remover de la estación
-            self.docked_vehicles.remove(vehicle)
-            
-            # Agregar al árbol de salida
-            success = departure_tree.add_vehicle(vehicle)
-            if not success:
-                print(f"ERROR No se pudo agregar vehículo {vehicle.vehicle_id} al árbol de salida")
-                # Revertir - volver a agregar a docked
-                self.docked_vehicles.append(vehicle)
-                return False
-                
-            vehicle.current_track = departure_tree
-            vehicle.state = "accelerating_down"
-            
-   
-            return True
-            
-        except Exception as e:
-            print(f"ERROR: en salida de vehículo {vehicle.vehicle_id}: {e}")
-            return False
-
     def receive_vehicle(self, vehicle, arrival_tree):
         """
         RECIBE UN VEHÍCULO QUE LLEGA A TRAVÉS DE UN ÁRBOL DE LLEGADA
-        MEJORADO: Validaciones mejoradas
+        Ahora transfiere el vehículo directamente al siguiente track.
         """
         if arrival_tree not in self.arrival_trees:
             print(f"ERROR: Árbol {arrival_tree.track_id} no pertenece a estación {self.name}")
             return False
         
-        # Remover del árbol de llegada
-        arrival_tree.remove_vehicle(vehicle)
-        
-        # Dockear en la estación
-        success = self.dock_vehicle(vehicle)
-        
-        if not success:
-            print(f"ERROR: No se pudo recibir vehículo {vehicle.vehicle_id} en {self.name}")
-        
-        return success
+        # La lógica de transferencia ahora está centralizada en Network._transfer_vehicle
+        # Esta función es llamada por Network cuando un vehículo llega a un árbol de subida.
+        # Aquí solo actualizamos el estado del vehículo.
+        vehicle.arrive_at_station(self.station_id)
+        print(f"Vehículo {vehicle.vehicle_id} ha pasado por la estación {self.name}")
+        return True
 
     # ========== MÉTODOS DE CONSULTA E INFORMACIÓN ==========
 
@@ -381,12 +242,9 @@ class Station:
             "station_id": self.station_id,
             "name": self.name,
             "position": self.position.to_tuple(),
-            "docked_vehicles": len(self.docked_vehicles),
-            "capacity": self.capacity,
             "arrival_trees": [tree.track_id for tree in self.arrival_trees],
             "departure_trees": [tree.track_id for tree in self.departure_trees],
-            "vehicle_ids": [v.vehicle_id for v in self.docked_vehicles],
-            "status": "FULL" if len(self.docked_vehicles) >= self.capacity else "AVAILABLE",
+            "status": "OPERATIONAL",
             "tree_selector_configured": self.tree_selector is not None,
             "arrival_capacity": capacity_info
         }
@@ -398,52 +256,32 @@ class Station:
             
         return info
 
-    def get_docked_vehicles_info(self):
-        """
-        Retorna información detallada de los vehículos docked (sin cambios)
-        """
-        vehicles_info = []
-        for vehicle in self.docked_vehicles:
-            vehicle_info = {
-                "vehicle_id": vehicle.vehicle_id,
-                "state": vehicle.state,
-                "destination": vehicle.destination_station,
-                "passengers": vehicle.passengers,
-                "capacity": vehicle.capacity
-            }
-            vehicles_info.append(vehicle_info)
-        return vehicles_info
-
-    def find_vehicle_by_id(self, vehicle_id):
-        """
-        Busca un vehículo docked por su ID (sin cambios)
-        """
-        for vehicle in self.docked_vehicles:
-            if vehicle.vehicle_id == vehicle_id:
-                return vehicle
-        return None
-
     def update(self, brain, dt):
         """
         Actualiza el estado de la estación (para ser llamado cada frame)
-        MEJORADO: Incluye procesamiento de salidas
+        ✅ NUEVO: Gestiona la demanda de vehículos según la tasa configurada.
         """
-        self.process_departures(brain)
+        self._time_since_last_check += dt
 
-    # ========== MÉTODOS DE CONFIGURACIÓN ==========
+        if self._time_since_last_check >= self._request_check_interval:
+            self._manage_vehicle_demand(brain)
+            self._time_since_last_check = 0.0
 
-    def set_capacity(self, new_capacity):
-        """Cambia la capacidad de la estación (sin cambios)"""
-        old_capacity = self.capacity
-        self.capacity = new_capacity
+    def _manage_vehicle_demand(self, brain):
+        """Verifica y satisface la demanda de vehículos de la estación."""
+        if self.target_vehicles_per_minute <= 0:
+            return
 
-    def assign_destination_to_vehicle(self, vehicle_id, destination_station_id):
-        """
-        Asigna un destino a un vehículo específico en la estación (sin cambios)
-        """
-        vehicle = self.find_vehicle_by_id(vehicle_id)
-        if not vehicle:
-            print(f"ERROR: Vehículo {vehicle_id} no encontrado en estación {self.name}")
-            return False
-        
-        return self.undock_vehicle(vehicle, destination_station_id)
+        # 1. Calcular cuántos vehículos deberían llegar en el intervalo de chequeo.
+        vehicles_needed_per_interval = (self.target_vehicles_per_minute / 60.0) * self._request_check_interval
+
+        # 2. Consultar al cerebro cuántos vehículos ya vienen en camino.
+        vehicles_en_route = brain.get_vehicles_en_route_to(self.station_id)
+
+        # 3. Calcular el déficit de vehículos.
+        deficit = round(vehicles_needed_per_interval - len(vehicles_en_route))
+
+        if deficit > 0:
+            print(f"📈 {self.name}: Demanda insatisfecha. Solicitando {deficit} VM(s). (En ruta: {len(vehicles_en_route)})")
+            for _ in range(deficit):
+                self.request_vehicle(brain)

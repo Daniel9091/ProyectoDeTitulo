@@ -69,14 +69,12 @@ class SpawnPoint:
         simulation.brain.add_vehicle(new_vehicle)
         
         # Agregar al track
-        entry_velocity = 20.0
-        track.add_vehicle(new_vehicle, entry_velocity)
-        new_vehicle.current_track = track
+        # Usar el nuevo método para asegurar la sincronización de velocidad inmediata
+        new_vehicle.start_on_track(track, entry_velocity=20.0)
         
         # Actualizar contadores
         self.spawned_count += 1
         
-        print(f"SPAWN: Vehículo {vehicle_id} generado en track {self.track_id}")
         return new_vehicle
 
     def _find_start_station(self, simulation, track):

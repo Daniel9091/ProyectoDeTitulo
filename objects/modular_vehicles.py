@@ -28,7 +28,7 @@ class ModularVehicle:
         self.progress_on_track = 0.0  # Progreso normalizado en el track actual (0-1)
         
         # Estado del sistema y navegación
-        self.state = "docked"  # Estados: docked, moving, accelerating_up, accelerating_down, ready_to_depart
+        self.state = "moving"  # Estados: moving, accelerating_up, accelerating_down
         self.current_station = None  # ID de estación actual si está docked
         self.destination_station = None  # ID de estación destino
         self.target_acceleration_trees = []  # Lista de track_ids objetivo para navegación
@@ -37,6 +37,7 @@ class ModularVehicle:
         self.total_distance_traveled = 0.0
         self.operational_time = 0.0
         self.maintenance_required = False
+        self.is_colliding = False # Nuevo estado para detectar colisiones
         
         # Configuración de movimiento
         self.max_speed = 25.0  # m/s
@@ -46,7 +47,6 @@ class ModularVehicle:
         # Traking
         self._last_progress = 0.0
         
-        print(f"Vehículo modular {vehicle_id} creado, con estacion de destino {self.destination_station}")
 
     def update(self, dt):
         """
@@ -68,6 +68,9 @@ class ModularVehicle:
                 distance_this_frame = self.current_track.length * (self.progress_on_track - self._last_progress)
                 self.total_distance_traveled += abs(distance_this_frame)
                 self._last_progress = self.progress_on_track
+            
+            # Actualizar la velocidad del vehículo desde el track
+            self._update_velocity_from_track()
 
     def assign_destination(self, destination_station_id, target_trees=None):
         """
@@ -82,10 +85,6 @@ class ModularVehicle:
             self.target_acceleration_trees = target_trees
             
         print(f"Vehículo {self.vehicle_id} asignado a estación destino {destination_station_id}")
-        
-        # Si está en una estación, cambiar estado para preparar salida
-        if self.state == "docked" and self.current_station:
-            self.state = "ready_to_depart"
 
     def board_passengers(self, passenger_count):
         """
@@ -141,7 +140,28 @@ class ModularVehicle:
         self._last_progress = 0.0
         self.progress_on_track = 0.0
         
+        # Sincronizar inmediatamente la velocidad al transferir
+        self._update_velocity_from_track()
+        
         print(f"Vehículo {self.vehicle_id} transferido a track {new_track.track_id}")
+
+    def start_on_track(self, track, entry_velocity=None):
+        """
+        Coloca el vehículo en un track por primera vez (ej. al spawnear).
+        """
+        if self.current_track:
+            print(f"ADVERTENCIA: Vehículo {self.vehicle_id} ya está en un track. Use transfer_to_track.")
+            return
+
+        track.add_vehicle(self, entry_velocity)
+        self.current_track = track
+        self._last_progress = 0.0
+        self.progress_on_track = 0.0
+        
+        # Sincronizar inmediatamente la velocidad
+        self._update_velocity_from_track()
+        
+        print(f"Vehículo {self.vehicle_id} iniciado en track {track.track_id}")
 
     def arrive_at_station(self, station_id):
         """
@@ -151,7 +171,7 @@ class ModularVehicle:
             station_id: ID de la estación de llegada
         """
         self.current_station = station_id
-        self.state = "docked"
+        self.state = "moving" # Ya no se detiene
         self.current_track = None
         self.progress_on_track = 0.0
         
@@ -197,8 +217,8 @@ class ModularVehicle:
         """
         Retorna un resumen legible del estado del vehículo
         """
-        if self.state == "docked":
-            status = f"Docked en estación {self.current_station}"
+        if self.current_station and not self.current_track:
+            status = f"Pasando por estación {self.current_station}"
         elif self.state in ["moving", "accelerating_up", "accelerating_down"]:
             track_type = self.current_track.get_track_type() if self.current_track else "Unknown"
             status = f"{self.state} en {track_type} ({self.progress_on_track*100:.1f}%)"
@@ -216,7 +236,7 @@ class ModularVehicle:
         Args:
             new_state: Nuevo estado
         """
-        valid_states = ["docked", "moving", "accelerating_up", "accelerating_down", "ready_to_depart", "maintenance"]
+        valid_states = ["moving", "accelerating_up", "accelerating_down", "maintenance"]
         
         if new_state in valid_states:
             old_state = self.state
@@ -315,3 +335,22 @@ class ModularVehicle:
             bool: True si está operativo, False si necesita mantenimiento
         """
         return not self.maintenance_required and self.state != "maintenance"
+
+    def get_bounding_box(self):
+        """
+        Calcula la caja delimitadora (AABB) del vehículo para detección de colisiones.
+        Dimensiones: 1m (largo/x), 1m (ancho/y), 1.5m (alto/z).
+        La posición del vehículo es el centro de su base.
+        
+        Returns:
+            (Vector3, Vector3): Tupla con las esquinas min y max de la caja.
+        """
+        half_length = 0.5  # Eje X
+        half_width = 0.5   # Eje Y
+        height = 1.5       # Eje Z
+        
+        pos = self.current_position
+        min_corner = Vector3(pos.x - half_length, pos.y - half_width, pos.z)
+        max_corner = Vector3(pos.x + half_length, pos.y + half_width, pos.z + height)
+        
+        return (min_corner, max_corner)

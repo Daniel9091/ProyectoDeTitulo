@@ -170,16 +170,6 @@ class Renderer:
                     # Bordes de la cara inferior
                     pygame.draw.line(self.screen, color, vertices_2d[i+4], vertices_2d[next_i+4], 1)
         
-        # Dibujar vehículos docked en la estación (en el piso naranja - base)
-        for vehicle in station.docked_vehicles:
-            # Posición de dock en el piso naranja (base)
-            dock_pos_2d = self.camera.project_3d_to_2d((
-                station.position.x,
-                station.position.y + 10,
-                base_z + 2.5  # Mitad del piso naranja
-            ))
-            if dock_pos_2d:
-                pygame.draw.circle(self.screen, (255, 200, 0), dock_pos_2d, 5)
 
     def draw_vehicle(self, vehicle):
         """Dibuja un vehículo modular con dimensiones 1m (largo) × 1m (ancho) × 1.5m (alto)"""
@@ -220,8 +210,10 @@ class Renderer:
         # Dibujar el prisma si tenemos suficientes puntos
         if len(vertices_2d) >= 8:
             # Color según el estado del vehículo
-            if vehicle.state == "docked":
-                color = (255, 200, 0)  # Amarillo para docked
+            if vehicle.is_colliding:
+                color = (255, 0, 255) # Magenta brillante para colisión
+            elif vehicle.current_station and not vehicle.current_track:
+                color = (255, 200, 0)  # Amarillo para "pasando por estación"
             elif vehicle.state in ["accelerating_down", "accelerating_up"]:
                 color = (255, 100, 100)  # Rojo para aceleración
             elif vehicle.state == "moving":
@@ -284,14 +276,6 @@ class Renderer:
                 text = font.render(station_info, True, (0, 255, 0))
                 self.screen.blit(text, pos_2d)
                 used_positions.append((pos_2d[0], pos_2d[1], text.get_width(), text.get_height()))
-                
-                # Info adicional de la estación
-                docked_info = f"Docked: {len(station.docked_vehicles)}"
-                docked_pos_2d = (pos_2d[0], pos_2d[1] + 15)
-                if self._is_position_available(docked_pos_2d, used_positions, font.size(docked_info)):
-                    text2 = font.render(docked_info, True, (200, 200, 0))
-                    self.screen.blit(text2, docked_pos_2d)
-                    used_positions.append((docked_pos_2d[0], docked_pos_2d[1], text2.get_width(), text2.get_height()))
         
         # Mostrar información de vehículos
         for vehicle in simulation.vehicles:
@@ -306,51 +290,49 @@ class Renderer:
             else:
                 speed_color = (200, 200, 200)
             
-            # Líneas de información
-            info_lines = [
-                f"VM{vehicle.vehicle_id}",
-                f"Vel: {speed:.1f}m/s",
-                f"Estado: {vehicle.state}",
-                f"Track: {vehicle.current_track.track_id if vehicle.current_track else 'None'}"
-            ]
-            
-            if vehicle.destination_station:
-                info_lines.append(f"Dest: S{vehicle.destination_station}")
-            
-            # Dibujar cada línea
-            for i, line in enumerate(info_lines):
-                color = speed_color if "Vel:" in line else (200, 200, 200)
-                text = font.render(line, True, color)
-                pos_2d = self.camera.project_3d_to_2d((
-                    vehicle.current_position.x, 
-                    vehicle.current_position.y + 8 + i * 12, 
-                    vehicle.current_position.z
-                ))
-                
-                if pos_2d and self._is_position_available(pos_2d, used_positions, text.get_size()):
-                    self.screen.blit(text, pos_2d)
-                    used_positions.append((pos_2d[0], pos_2d[1], text.get_width(), text.get_height()))
+            # Información en una sola línea para mayor claridad
+            state_short = vehicle.state[:4] # "movi", "acce", etc.
+            track_info = f"T:{vehicle.current_track.track_id}" if vehicle.current_track else "NoTrack"
+            dest_info = f"->S{vehicle.destination_station}" if vehicle.destination_station else ""
+
+            collision_alert = "!!COLLISION!!" if vehicle.is_colliding else ""
+            info_line = f"VM{vehicle.vehicle_id} [{state_short}|{track_info}] V:{speed:.1f} {dest_info} {collision_alert}"
+
+            pos_2d = self.camera.project_3d_to_2d((
+                vehicle.current_position.x, 
+                vehicle.current_position.y + 8, 
+                vehicle.current_position.z
+            ))
+
+            if vehicle.is_colliding:
+                text_color = (255, 0, 255) # Magenta
+            elif vehicle.destination_station:
+                text_color = (180, 255, 180) # Verde claro si tiene destino
+            else:
+                text_color = (200, 200, 200) # Blanco si no
+
+            if pos_2d and self._is_position_available(pos_2d, used_positions, font.size(info_line)):
+                text = font.render(info_line, True, text_color)
+                self.screen.blit(text, pos_2d)
+                used_positions.append((pos_2d[0], pos_2d[1], text.get_width(), text.get_height()))
         
         # Mostrar información de tracks
         for track_id, track in simulation.network.tracks.items():
             if hasattr(track, 'get_track_type'):
-                track_type = track.get_track_type()
-                
-                if track_type == "AccelerationTree":
-                    tree_info = f"Tree{track_id}: {track.direction}"
-                    mid_point = track.calculate_position_at_progress(0.5)
-                    tree_pos_2d = self.camera.project_3d_to_2d((
+                mid_point = track.calculate_position_at_progress(0.5)
+                track_info = f"T:{track_id}"
+                pos_2d = self.camera.project_3d_to_2d((
                         mid_point.x, 
                         mid_point.y + 5, 
                         mid_point.z
                     ))
-                    
-                    if tree_pos_2d:
-                        color = (180, 180, 255) if track.direction == "up" else (255, 180, 180)
-                        text = font.render(tree_info, True, color)
-                        if self._is_position_available(tree_pos_2d, used_positions, text.get_size()):
-                            self.screen.blit(text, tree_pos_2d)
-                            used_positions.append((tree_pos_2d[0], tree_pos_2d[1], text.get_width(), text.get_height()))
+                
+                if pos_2d:
+                    color = (180, 180, 255) if hasattr(track, 'direction') and track.direction == "up" else (255, 180, 180)
+                    text = font.render(track_info, True, color)
+                    if self._is_position_available(pos_2d, used_positions, text.get_size()):
+                        self.screen.blit(text, pos_2d)
+                        used_positions.append((pos_2d[0], pos_2d[1], text.get_width(), text.get_height()))
 
     def _is_position_available(self, pos_2d, used_positions, text_size, margin=2):
         """Verifica si una posición está disponible para dibujar texto sin superponerse"""

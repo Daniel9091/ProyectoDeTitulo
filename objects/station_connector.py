@@ -37,13 +37,11 @@ class StationConnector(Track):
         vehicle.current_track = self
         vehicle.state = "moving"
         
-        print(f"Vehículo {vehicle.vehicle_id} entró a StationConnector {self.track_id}")
     
     def remove_vehicle(self, vehicle):
         """Remueve un vehículo del StationConnector"""
         if vehicle.vehicle_id in self.vehicles:
             del self.vehicles[vehicle.vehicle_id]
-            print(f"Vehículo {vehicle.vehicle_id} salió de StationConnector {self.track_id}")
     
     def update_vehicles(self, dt):
         """
@@ -97,6 +95,11 @@ class StationConnector(Track):
         """Velocidad de salida del vehículo (constante)"""
         return self.direction * self.speed
     
+    def get_vehicle_velocity(self, vehicle):
+        """Obtiene la velocidad del vehículo en este track (constante)."""
+        # Para un StationConnector, la velocidad es siempre la misma.
+        return self.speed
+
     def get_connector_info(self):
         """Información específica del StationConnector"""
         base_status = self.get_status()

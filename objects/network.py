@@ -78,7 +78,8 @@ class Network:
             print(f"ERROR crítico en Network.update_vehicles: {e}")
 
     def _transfer_vehicle(self, vehicle, current_track_id):
-        """Transfiere vehículo entre tracks (sin cambios)"""
+        """Transfiere vehículo entre tracks"""
+
         if current_track_id not in self.tracks:
             print(f"ERROR: Track actual {current_track_id} no encontrado en la red")
             return
@@ -107,29 +108,17 @@ class Network:
         next_track = self.tracks[next_track_id]
         
         try:
-            current_track.remove_vehicle(vehicle)
-            
-            exit_position = current_track.get_exit_position()
-            
+            # Obtener la velocidad de salida del track actual
             if hasattr(current_track, 'get_exit_velocity'):
                 exit_velocity = current_track.get_exit_velocity(vehicle)
-                if hasattr(exit_velocity, 'length'):
-                    exit_velocity_magnitude = exit_velocity.length()
-                else:
-                    exit_velocity_magnitude = exit_velocity
+                # Para StationConnectors, la velocidad ya es una magnitud.
+                # Para AccelerationTrees, get_exit_velocity devuelve un vector, necesitamos la magnitud.
+                exit_velocity_magnitude = exit_velocity.length() if hasattr(exit_velocity, 'length') else exit_velocity
             else:
                 exit_velocity_magnitude = 20.0
-            
-            next_track.add_vehicle(vehicle, exit_velocity_magnitude)
-            vehicle.current_track = next_track
-            
-            if isinstance(next_track, AccelerationTree):
-                if next_track.direction == "down":
-                    vehicle.state = "accelerating_down"
-                else:
-                    vehicle.state = "accelerating_up"
-            else:
-                vehicle.state = "moving"
+
+            # Usar el método centralizado que también actualiza la velocidad del VM
+            vehicle.transfer_to_track(next_track, entry_velocity=exit_velocity_magnitude)
                 
             print(f"Vehículo {vehicle.vehicle_id} transferido de {current_track_id} a {next_track_id}")
             
@@ -178,7 +167,6 @@ class Network:
         destination_tracks = self._get_tracks_to_destination(vehicle, valid_tracks)
         if destination_tracks:
             chosen_track = destination_tracks[0]  # Tomar el primero
-            print(f"🔄 NAVEGACIÓN VM{vehicle.vehicle_id}: Tomando ruta al destino {chosen_track.track_id}")
             return chosen_track.track_id
 
         # FILTRO 3: Flujo continuo - cualquier track disponible
@@ -301,12 +289,11 @@ class Network:
         """Maneja llegada a estación (sin cambios)"""
         station_id = arrival_tree.get_station_id()
         
+        # El vehículo ya no se detiene, solo actualiza su estado.
+        # La transferencia al siguiente track se maneja en _transfer_vehicle.
         arrival_tree.remove_vehicle(vehicle)
         
-        vehicle.state = "docked"
-        vehicle.current_station = station_id
-        vehicle.destination_station = None
-        vehicle.target_acceleration_trees = []
+        vehicle.arrive_at_station(station_id)
         
         print(f"Vehículo {vehicle.vehicle_id} llegó a estación {station_id}")
 

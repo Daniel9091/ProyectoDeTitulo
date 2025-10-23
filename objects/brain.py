@@ -83,8 +83,7 @@ class Brain:
         
         # Posicionar vehículo en la estación de origen
         vehicle.current_station = from_station.station_id
-        vehicle.state = "docked"
-        from_station.docked_vehicles.append(vehicle)
+        vehicle.state = "moving" # Los vehículos ya no se detienen
         
         # ✅ NUEVO: Actualizar estadísticas
         self.stats['total_vehicle_assignments'] += 1
@@ -233,11 +232,11 @@ class Brain:
         if vehicle.destination_station is not None:
             return False
         
-        # No disponible si ya está en la estación solicitante
-        if vehicle.current_station == requesting_station_id:
-            return False
-        
-        # Disponible si está docked en otra estación o en movimiento sin destino
+        # Disponible si está en movimiento sin destino
+        if vehicle.state == "moving" and vehicle.destination_station is None:
+            return True
+
+        # Por defecto, no está disponible
         return True
 
     def _calculate_vehicle_proximity(self, vehicle, target_station_id):
@@ -248,9 +247,7 @@ class Brain:
         score = 0.0
         
         # 1. Estado actual del vehículo
-        if vehicle.state == "docked":
-            score += 20  # Fácil de redirigir desde estación
-        elif vehicle.state == "moving":
+        if vehicle.state == "moving":
             score += 30  # Ya está en movimiento, puede redirigirse
         elif "accelerating" in vehicle.state:
             score += 10  # Más difícil redirigir durante aceleración
@@ -289,29 +286,49 @@ class Brain:
         
         # 3. Procesar operaciones en estaciones
         for station in self.stations.values():
-            self._process_station_operations(station)
+            station.update(self, dt)
         
         # ✅ NUEVO: 4. Procesar solicitudes pendientes de VMs
         self.process_pending_requests(dt)
         
-        # ✅ NUEVO: 5. Monitoreo del sistema
+        # 5. Detección de colisiones
+        self._check_collisions()
+        
+        # 6. Monitoreo del sistema
         if int(self.simulation_time) % 10 == 0:  # Cada 10 segundos
             self._monitor_system_health()
+
+    def _check_collisions(self):
+        """
+        Verifica si hay colisiones entre cualquier par de vehículos.
+        Usa una comprobación de cajas delimitadoras (AABB).
+        """
+        vehicles = list(self.vehicles.values())
+        
+        # Resetear estado de colisión de todos los vehículos
+        for v in vehicles:
+            v.is_colliding = False
+            
+        # Comprobar cada par de vehículos una sola vez
+        for i in range(len(vehicles)):
+            for j in range(i + 1, len(vehicles)):
+                v1 = vehicles[i]
+                v2 = vehicles[j]
+                
+                bb1_min, bb1_max = v1.get_bounding_box()
+                bb2_min, bb2_max = v2.get_bounding_box()
+                
+                # Comprobación de superposición AABB
+                if (bb1_min.x < bb2_max.x and bb1_max.x > bb2_min.x and
+                    bb1_min.y < bb2_max.y and bb1_max.y > bb2_min.y and
+                    bb1_min.z < bb2_max.z and bb1_max.z > bb2_min.z):
+                    v1.is_colliding = True
+                    v2.is_colliding = True
 
     def _handle_track_transitions(self):
         """Maneja las transiciones de vehículos entre tracks (sin cambios)"""
         # Esta lógica está principalmente en Network ahora
         pass
-
-    def _process_station_operations(self, station):
-        """Procesa operaciones en estaciones (mejorado)"""
-        # Delegar a la estación el procesamiento de sus operaciones
-        station.update(self, 1/30.0)  # dt aproximado para estaciones
-        
-        # Monitorear capacidad críticamente baja
-        capacity_info = station.get_arrival_capacity_info()
-        if not capacity_info['available'] and station.station_id in [1, 2, 3]:  # Estaciones principales
-            print(f"⚠️  ALERTA: Estación {station.name} sin capacidad de llegada")
 
     def _monitor_system_health(self):
         """
@@ -386,12 +403,23 @@ class Brain:
                 "name": station.name,
                 "has_capacity": capacity_info["available"],
                 "available_trees": len(capacity_info["available_trees"]),
-                "total_trees": capacity_info["total_trees"],
-                "docked_vehicles": len(station.docked_vehicles),
-                "docking_capacity": station.capacity
+                "total_trees": capacity_info["total_trees"]
             }
         
         return report
+
+    def get_vehicles_en_route_to(self, station_id):
+        """
+        Retorna una lista de vehículos que se dirigen a una estación específica.
+        
+        Args:
+            station_id: El ID de la estación de destino.
+            
+        Returns:
+            list: Una lista de objetos ModularVehicle en ruta a la estación.
+        """
+        return [v for v in self.vehicles.values() if v.destination_station == station_id]
+
 
     def get_vehicle_distribution(self):
         """
@@ -442,7 +470,7 @@ class Brain:
         rerouted_count = 0
         for vehicle in self.vehicles.values():
             if (vehicle.destination_station == congested_station_id and 
-                vehicle.state not in ["docked", "accelerating_up"]):
+                vehicle.state not in ["accelerating_up"]): # Ya no existe 'docked'
                 
                 # Encontrar estación alternativa
                 alternative_station = self._find_alternative_station(congested_station_id)
@@ -472,8 +500,7 @@ class Brain:
             capacity_info = station.get_arrival_capacity_info()
             if capacity_info["available"]:
                 # Score basado en capacidad disponible
-                capacity_score = (len(capacity_info["available_trees"]) * 10 + 
-                                (station.capacity - len(station.docked_vehicles)))
+                capacity_score = len(capacity_info["available_trees"]) * 10
                 
                 if capacity_score > best_capacity_score:
                     best_capacity_score = capacity_score
@@ -492,7 +519,7 @@ class Brain:
         
         # Verificar que todos los vehículos tienen estado válido
         for vehicle in self.vehicles.values():
-            if not vehicle.current_track and vehicle.state not in ["docked", "maintenance"]:
+            if not vehicle.current_track and vehicle.state not in ["maintenance"] and not vehicle.current_station:
                 issues.append(f"Vehículo {vehicle.vehicle_id} sin track pero estado {vehicle.state}")
         
         # Verificar que las estaciones tienen árboles

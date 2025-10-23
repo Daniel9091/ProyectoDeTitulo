@@ -51,9 +51,9 @@ class Simulation:
   
         try:
             # 1. Estaciones
-            builder.add_station(1, "North Station", Vector3(425, 0, 0))
-            builder.add_station(2, "Central Station", Vector3(1425, 0, 0))
-            builder.add_station(3, "South Station", Vector3(2425, 0, 0))
+            builder.add_station(1, "North Station", Vector3(425, 0, 0), target_vehicles_per_minute=0)
+            builder.add_station(2, "Central Station", Vector3(1425, 0, 0), target_vehicles_per_minute=30) # 30 VMs/min
+            builder.add_station(3, "South Station", Vector3(2425, 0, 0), target_vehicles_per_minute=0)
             # (Estaciones cada 1km)
 
             # 2. Árboles de Aceleración
@@ -86,12 +86,12 @@ class Simulation:
             builder.add_connector(12, Vector3(2850, 0, -20), Vector3(2900, 0, -20)) # Fin South
 
             # 4. Conectores en la estacion
-            builder.add_connector(13, Vector3(400, 0, 0), Vector3(450, 0, 0),1)       # En North Station
-            builder.add_connector(14, Vector3(1400.15, 0, 0), Vector3(1449.85, 0, 0),1)     # En Central Station
-            builder.add_connector(15, Vector3(2400, 0, 0), Vector3(2450, 0, 0),1)     # En South Station
+            builder.add_connector(13, Vector3(400, 0, 0), Vector3(450, 0, 0), speed=0.5)       # En North Station
+            builder.add_connector(14, Vector3(1400.15, 0, 0), Vector3(1449.85, 0, 0), speed=0.5)     # En Central Station
+            builder.add_connector(15, Vector3(2400, 0, 0), Vector3(2450, 0, 0), speed=0.5)     # En South Station
             # Nuevos andenes en Central
-            builder.add_connector(20, Vector3(1400, 10, 0), Vector3(1450, 10, 0),1)     # En Central Station 2
-            builder.add_connector(21, Vector3(1400, -10, 0), Vector3(1450, -10, 0),1)     # En Central Station 3
+            builder.add_connector(20, Vector3(1400, 10, 0), Vector3(1450, 10, 0), speed=0.5)     # En Central Station 2
+            builder.add_connector(21, Vector3(1400, -10, 0), Vector3(1450, -10, 0), speed=0.5)     # En Central Station 3
 
             # 5. Conexiones de los conectores entre si
             builder.connect_tracks(7, 8)   
@@ -132,35 +132,7 @@ class Simulation:
 
             
             # 6. Incorporacion de Vehiculos
-            ## Creacion del Vehiculo
-
-            # builder.add_vehicle(1, 20, 2,2)         # VM1: Estación 1 → Estación 2 (DESTINO FINAL)
-            # builder.start_vehicle_on_track(1, 2)    # VM1 en árbol de salida Estación 1
-
-            # builder.add_vehicle(2, 20, 2)           # VM2: Estación 2 → Sin destino (usará bucles)
-            # builder.start_vehicle_on_track(2, 4)    # VM2 en árbol de salida Estación 3
-
-
-            # Test demoran mismo tiempo en llegar a la estacion central (Cambiar ID en caso de ser nesesario)
-            # builder.add_vehicle(3, 20, 2)           
-            # builder.start_vehicle_on_track(3, 3)
-
-            # builder.add_vehicle(4, 20, 2)           
-            # builder.start_vehicle_on_track(4, 16)
-
-            # builder.add_vehicle(5, 20, 2)           
-            # builder.start_vehicle_on_track(5, 18)
-
-            # # Test demoran mismo tiempo en llegar nodo de via subterranea (Cambiar ID en caso de ser nesesario)
-            # builder.add_vehicle(6, 20, 2)           
-            # builder.start_vehicle_on_track(6, 4)
-
-            # builder.add_vehicle(7, 20, 2)           
-            # builder.start_vehicle_on_track(7, 17)
-
-            # builder.add_vehicle(8, 20, 2)           
-            # builder.start_vehicle_on_track(8, 19)
-
+            
             # Spawn System (Opcional)
             self.spawn_system.add_spawn_point(
             spawn_id="S",
@@ -171,7 +143,7 @@ class Simulation:
             destination_station_id=2  # Sin destino fijo
         )
             
-            # Test
+            # Incorporacion normal de vms
             # builder.add_vehicle(6, 20, 2, 2)           
             # builder.start_vehicle_on_track(6, 4)
             
@@ -297,9 +269,9 @@ class SimulationBuilder:
         self.stations = {}
         self.tracks = {}
         
-    def add_station(self, station_id, name, position):
+    def add_station(self, station_id, name, position, target_vehicles_per_minute=0.0):
         """Agrega una estación al sistema"""
-        station = Station(station_id, name, position)
+        station = Station(station_id, name, position, target_vehicles_per_minute)
         self.stations[station_id] = station
         self.simulation.stations.append(station)
         self.simulation.brain.add_station(station)
@@ -375,12 +347,6 @@ class SimulationBuilder:
             raise ValueError(f"Track {track_id} no encontrado")
             
         track = self.tracks[track_id]
-        
-        # Remover de estación si está docked
-        if vehicle.current_station and vehicle.state == "docked":
-            station = self.stations.get(vehicle.current_station)
-            if station and vehicle in station.docked_vehicles:
-                station.docked_vehicles.remove(vehicle)
         
         # Agregar al track
         track.add_vehicle(vehicle)

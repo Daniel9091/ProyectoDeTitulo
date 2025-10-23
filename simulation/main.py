@@ -24,12 +24,14 @@ def main():
         # Manejar eventos
         running = event_handler.handle_events()
         
-        # Actualizar simulación
+        # Obtener delta time para la actualización
         dt = clock.get_time() / 1000.0
-        simulation.update(dt)
         
-        # Renderizar
+        # Renderizar el estado actual ANTES de actualizarlo
         renderer.draw(simulation)
+        
+        # Actualizar simulación
+        simulation.update(dt)
         
         # Actualizar pantalla
         pygame.display.flip()
