@@ -42,7 +42,8 @@ class ModularVehicle:
         self.total_distance_traveled = 0.0
         self.operational_time = 0.0
         self.maintenance_required = False
-        self.is_colliding = False # Nuevo estado para detectar colisiones
+        self.is_colliding = False # Flag rápido para saber si hay colisión
+        self.colliding_with = set() # IDs de los vehículos con los que colisiona
         
         # Configuración de movimiento
         self.max_speed = 25.0  # m/s

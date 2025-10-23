@@ -295,8 +295,14 @@ class Renderer:
             track_info = f"T:{vehicle.current_track.track_id}" if vehicle.current_track else "NoTrack"
             dest_info = f"->S{vehicle.destination_station}" if vehicle.destination_station else ""
 
-            collision_alert = "!!COLLISION!!" if vehicle.is_colliding else ""
-            info_line = f"VM{vehicle.vehicle_id} [{state_short}|{track_info}] V:{speed:.1f} {dest_info} {collision_alert}"
+            # ✅ MEJORA: Mensaje de colisión más informativo y conciso
+            if vehicle.is_colliding:
+                # Extraer solo los números de los IDs para un mensaje más corto
+                colliding_ids = [vid.split('_')[-1] for vid in vehicle.colliding_with]
+                collision_alert = f"!!COL with {','.join(colliding_ids)}!!"
+            else:
+                collision_alert = ""
+            info_line = f"VM{vehicle.vehicle_id} [{state_short}|{track_info}] V:{speed:.1f} {dest_info} {collision_alert}".strip()
 
             pos_2d = self.camera.project_3d_to_2d((
                 vehicle.current_position.x, 

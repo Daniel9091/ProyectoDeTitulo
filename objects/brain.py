@@ -1,4 +1,5 @@
 from objects.acceleration_tree import AccelerationTree
+from objects.spatial_grid import SpatialGrid
 
 class Brain:
     """
@@ -40,6 +41,9 @@ class Brain:
         self._demand_fulfillment_cooldown = 1.0 # Frecuencia para intentar satisfacer la demanda
         self._time_since_last_demand_check = 0.0
         
+        # ✅ NUEVO: Sistema de optimización de colisiones
+        self.collision_grid = SpatialGrid(cell_size=50.0) # Celdas de 50x50x50 metros
+
         # ✅ NUEVO: Estadísticas y monitoreo
         self.stats = {
             'total_vehicle_assignments': 0,
@@ -376,21 +380,28 @@ class Brain:
 
     def _check_collisions(self):
         """
-        Verifica si hay colisiones entre cualquier par de vehículos.
-        Usa una comprobación de cajas delimitadoras (AABB).
+        Verifica colisiones usando una grilla espacial para optimizar.
         """
-        vehicles = list(self.vehicles.values())
-        
         # Resetear estado de colisión de todos los vehículos
-        for v in vehicles:
+        for v in self.vehicles.values():
             v.is_colliding = False
+            v.colliding_with.clear()
+
+        # 1. Poblar la grilla espacial con la posición actual de todos los vehículos
+        self.collision_grid.clear()
+        for vehicle in self.vehicles.values():
+            self.collision_grid.insert(vehicle)
+
+        # 2. Para cada vehículo, comprobar colisiones solo con sus vecinos cercanos
+        for v1 in self.vehicles.values():
+            # Obtener solo los vehículos en celdas adyacentes
+            nearby_vehicles = self.collision_grid.get_nearby(v1)
             
-        # Comprobar cada par de vehículos una sola vez
-        for i in range(len(vehicles)):
-            for j in range(i + 1, len(vehicles)):
-                v1 = vehicles[i]
-                v2 = vehicles[j]
-                
+            for v2 in nearby_vehicles:
+                # Evitar dobles comprobaciones y auto-comprobaciones (aunque get_nearby ya lo hace)
+                if v1.vehicle_id >= v2.vehicle_id:
+                    continue
+
                 bb1_min, bb1_max = v1.get_bounding_box()
                 bb2_min, bb2_max = v2.get_bounding_box()
                 
@@ -399,7 +410,9 @@ class Brain:
                     bb1_min.y < bb2_max.y and bb1_max.y > bb2_min.y and
                     bb1_min.z < bb2_max.z and bb1_max.z > bb2_min.z):
                     v1.is_colliding = True
+                    v1.colliding_with.add(v2.vehicle_id)
                     v2.is_colliding = True
+                    v2.colliding_with.add(v1.vehicle_id)
 
     def _handle_track_transitions(self):
         """Maneja las transiciones de vehículos entre tracks (sin cambios)"""
