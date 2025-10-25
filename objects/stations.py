@@ -1,4 +1,10 @@
 from objects.base import Vector3
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from objects.passenger import Passenger
+    from objects.boarding_lane import BoardingLane
+
 
 class Station:
     """
@@ -36,6 +42,10 @@ class Station:
         self._time_since_last_check = 0.0
         self._demand_accumulator = 0.0 # ✅ NUEVO: Acumulador para demanda fraccional
         
+        # Al final del __init__
+        self.passenger_entrance_queue: list['Passenger'] = [] # Pasajeros esperando ser asignados a un andén
+        self.boarding_lanes: list['BoardingLane'] = [] # Lista de andenes que pertenecen a esta estación
+        
 
     # ========== CONFIGURACIÓN Y INYECCIÓN DE DEPENDENCIAS ==========
 
@@ -68,6 +78,87 @@ class Station:
             raise ValueError("Los árboles de salida deben tener dirección 'down'")
         
         self.departure_trees.append(acceleration_tree)
+
+    def add_passenger_to_entrance_queue(self, passenger: 'Passenger'):
+        """
+        Recibe un nuevo pasajero del Brain y lo pone en la cola de entrada de la estación.
+        """
+        passenger.current_station = self
+        passenger.state = "WAITING_AT_ENTRANCE"
+        # La posición inicial del pasajero ya fue asignada por el Spawner
+        
+        self.passenger_entrance_queue.append(passenger)
+        print(f"Estación {self.name}: Pasajero {passenger.passenger_id} añadido a la cola de entrada (Destino: {passenger.destination_station_id}).")
+
+    def _select_best_lane(self) -> 'BoardingLane':
+        """
+        Encuentra el andén (BoardingLane) disponible con la cola de espera más corta.
+        """
+        if not self.boarding_lanes:
+            return None # No hay andenes configurados
+
+        best_lane = None
+        min_queue_len = float('inf')
+
+        for lane in self.boarding_lanes:
+            # Asumimos que BoardingLane tendrá un atributo 'passenger_wait_queue' (Fase 3)
+            if hasattr(lane, 'passenger_wait_queue'):
+                queue_len = len(lane.passenger_wait_queue)
+                if queue_len < min_queue_len:
+                    min_queue_len = queue_len
+                    best_lane = lane
+            else:
+                # Fallback si el atributo aún no existe (durante el desarrollo)
+                if best_lane is None:
+                    best_lane = lane
+                    
+        return best_lane
+
+    def _distribute_passengers_to_lanes(self):
+        """
+        Mueve pasajeros de la cola de entrada de la estación a la cola de un andén específico.
+        """
+        if not self.passenger_entrance_queue:
+            return # No hay pasajeros esperando
+
+        # 1. Seleccionar el mejor andén disponible
+        target_lane = self._select_best_lane()
+        if not target_lane:
+            # No hay andenes a los que asignar, esperar al próximo ciclo.
+            return
+            
+        # 2. Obtener la posición de espera de ese andén
+        if not hasattr(target_lane, 'get_queue_start_position'):
+            print(f"ADVERTENCIA: {target_lane.track_id} no tiene get_queue_start_position")
+            return
+
+        queue_position = target_lane.get_queue_start_position()
+            
+        # 3. Sacar al pasajero de la cola de entrada
+        passenger = self.passenger_entrance_queue.pop(0)
+
+        # 4. Asignar el pasajero al andén y añadirlo a su cola
+        target_lane.add_passenger_to_queue(passenger, queue_position)
+        
+        print(f"Estación {self.name}: Pasajero {passenger.passenger_id} asignado a Andén {target_lane.track_id}.")
+
+    def remove_passenger_from_system(self, passenger: 'Passenger'):
+        """
+        Limpia a un pasajero de las colas internas de la estación.
+        
+        Llamado por BoardingLane cuando el embarque es exitoso y el pasajero
+        ya está en 'IN_TRANSIT'.
+        """
+        # En nuestro diseño actual, el pasajero ya fue removido de 
+        # self.passenger_entrance_queue (en Fase 2) y de 
+        # lane.passenger_wait_queue (en Fase 3).
+        
+        # Este método existe para limpieza futura, por si añadimos
+        # otras listas de seguimiento (ej. 'pasajeros_en_movimiento_hacia_anden').
+        # Por ahora, solo confirmamos la acción con un log.
+        
+        # print(f"Estación {self.name}: Pasajero {passenger.passenger_id} ha embarcado (IN_TRANSIT).")
+        pass # Dejamos el pass para no saturar la consola.
 
     # ========== SOLICITUD Y ASIGNACIÓN DE VEHÍCULOS ==========
 
@@ -253,6 +344,7 @@ class Station:
         ✅ NUEVO: Gestiona la demanda de vehículos según la tasa configurada.
         """
         self._time_since_last_check += dt
+        self._distribute_passengers_to_lanes()
 
         if self._time_since_last_check >= self._request_check_interval:
             self._manage_vehicle_demand(brain)

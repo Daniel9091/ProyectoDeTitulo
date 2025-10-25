@@ -10,7 +10,13 @@ from objects.base import Vector3
 from simulation.camera import Camera
 from simulation.spawn_system import SpawnSystem
 from objects.tree_selector import TreeSelector
+
+from typing import TYPE_CHECKING
+from simulation.passenger_spawn_system import PassengerSpawnSystem
 import pygame
+if TYPE_CHECKING:
+    from objects.passenger import Passenger
+
 
 class Simulation:
     def __init__(self, width, height):                                                          # Inicializa la simulación / Configuracion inicial
@@ -25,6 +31,7 @@ class Simulation:
         self.stations = []
         self.vehicles = []
         self.connectors = []
+        self.passengers: dict[str, 'Passenger'] = {}
         
         self.rewinding = False
         self.rewind_duration = 0
@@ -47,35 +54,37 @@ class Simulation:
         self.brain.vehicles.clear()
         self.brain.stations.clear()
         
+        self.brain.passengers.clear()
+        self.passengers.clear()
         # Usar el Builder para configurar la simulación
         builder = SimulationBuilder(self)
   
         try:
             # 1. Estaciones
-            builder.add_station(1, "North Station", Vector3(425, 0, 0), target_vehicles_per_minute=5)
-            builder.add_station(2, "Central Station", Vector3(1425, 0, 0), target_vehicles_per_minute=30) # 30 VMs/min
-            builder.add_station(3, "South Station", Vector3(2425, 0, 0), target_vehicles_per_minute=10)
+            builder.add_station("1", "North Station", Vector3(425, 0, 0), target_vehicles_per_minute=5)
+            builder.add_station("2", "Central Station", Vector3(1425, 0, 0), target_vehicles_per_minute=30) # 30 VMs/min
+            builder.add_station("3", "South Station", Vector3(2425, 0, 0), target_vehicles_per_minute=10)
             # (Estaciones cada 1km)
 
             # 2. Árboles de Aceleración
             # North
-            builder.add_acceleration_tree(1, 1, Vector3(0, 0, -20), Vector3(400, 0, 0), "up")       # North UP
-            builder.add_acceleration_tree(2, 1, Vector3(450, 0, 0), Vector3(850, 0, -20), "down")   # North Down
+            builder.add_acceleration_tree(1, "1", Vector3(0, 0, -20), Vector3(400, 0, 0), "up")       # North UP
+            builder.add_acceleration_tree(2, "1", Vector3(450, 0, 0), Vector3(850, 0, -20), "down")   # North Down
 
             # Central
-            builder.add_acceleration_tree(3, 2, Vector3(1000.15, 0, -20), Vector3(1400.15, 0, 0), "up")   # Central UP
-            builder.add_acceleration_tree(4, 2, Vector3(1449.85, 0, 0), Vector3(1850, 0, -20), "down") # Central Down
+            builder.add_acceleration_tree(3, "2", Vector3(1000.15, 0, -20), Vector3(1400.15, 0, 0), "up")   # Central UP
+            builder.add_acceleration_tree(4, "2", Vector3(1449.85, 0, 0), Vector3(1850, 0, -20), "down") # Central Down
 
             ## Nuevos arboles de Aceleracion
-            builder.add_acceleration_tree(16, 2, Vector3(1000.15, 0, -20), Vector3(1400, 10, 0), "up")   # Central UP 2
-            builder.add_acceleration_tree(17, 2, Vector3(1450, 10, 0), Vector3(1850, 0, -20), "down") # Central Down 2
+            builder.add_acceleration_tree(16, "2", Vector3(1000.15, 0, -20), Vector3(1400, 10, 0), "up")   # Central UP 2
+            builder.add_acceleration_tree(17, "2", Vector3(1450, 10, 0), Vector3(1850, 0, -20), "down") # Central Down 2
 
-            builder.add_acceleration_tree(18, 2, Vector3(1000.15, 0, -20), Vector3(1400, -10, 0), "up")   # Central UP 3
-            builder.add_acceleration_tree(19, 2, Vector3(1450, -10, 0), Vector3(1850, 0, -20), "down") # Central Down 3
+            builder.add_acceleration_tree(18, "2", Vector3(1000.15, 0, -20), Vector3(1400, -10, 0), "up")   # Central UP 3
+            builder.add_acceleration_tree(19, "2", Vector3(1450, -10, 0), Vector3(1850, 0, -20), "down") # Central Down 3
 
             # South
-            builder.add_acceleration_tree(5, 3, Vector3(2000, 0, -20), Vector3(2400, 0, 0), "up")   # South UP
-            builder.add_acceleration_tree(6, 3, Vector3(2450, 0, 0), Vector3(2850, 0, -20), "down") # South Down
+            builder.add_acceleration_tree(5, "3", Vector3(2000, 0, -20), Vector3(2400, 0, 0), "up")   # South UP
+            builder.add_acceleration_tree(6, "3", Vector3(2450, 0, 0), Vector3(2850, 0, -20), "down") # South Down
 
             # 3. Conectores Subterráneos (Entre arboles y estaciones)
             builder.add_connector(7, Vector3(0, 0, -20), Vector3(850, 0, -20))      # Entre Arboles North
@@ -87,12 +96,12 @@ class Simulation:
             builder.add_connector(12, Vector3(2850, 0, -20), Vector3(2900, 0, -20)) # Fin South
 
             # 4. Conectores en la estacion
-            builder.add_boarding_lane(13, Vector3(400, 0, 0), Vector3(450, 0, 0), speed=2.0)       # En North Station
-            builder.add_boarding_lane(14, Vector3(1400.15, 0, 0), Vector3(1449.85, 0, 0), speed=2.0)     # En Central Station
-            builder.add_boarding_lane(15, Vector3(2400, 0, 0), Vector3(2450, 0, 0), speed=2.0)     # En South Station
-            # Nuevos andenes en Central
-            builder.add_boarding_lane(20, Vector3(1400, 10, 0), Vector3(1450, 10, 0), speed=2.0)     # En Central Station 2
-            builder.add_boarding_lane(21, Vector3(1400, -10, 0), Vector3(1450, -10, 0), speed=2.0)     # En Central Station 3
+            builder.add_boarding_lane(13, "1", Vector3(400, 0, 0), Vector3(450, 0, 0), speed=2.0)       # En North (ID: 1)
+            builder.add_boarding_lane(14, "2", Vector3(1400.15, 0, 0), Vector3(1449.85, 0, 0), speed=2.0)     # En Central (ID: 2)
+            builder.add_boarding_lane(15, "3", Vector3(2400, 0, 0), Vector3(2450, 0, 0), speed=2.0)     # En South (ID: 3)
+            # Nuevos andenes en Central (ID: 2)
+            builder.add_boarding_lane(20, "2", Vector3(1400, 10, 0), Vector3(1450, 10, 0), speed=2.0)     # En Central Station 2
+            builder.add_boarding_lane(21, "2", Vector3(1400, -10, 0), Vector3(1450, -10, 0), speed=2.0)     # En Central Station 3
 
             # 5. Conexiones de los conectores entre si
             builder.connect_tracks(7, 8)   
@@ -164,10 +173,44 @@ class Simulation:
             
             print("Sistema de navegación completamente configurado")
 
-            # 8. Validar
+
+            # 8. INICIALIZAR SISTEMA DE PASAJEROS (¡NUEVO!)
+            # Primero, instanciamos el sistema de spawn de pasajeros
+            self.passenger_spawn_system = PassengerSpawnSystem(self.brain)
+            
+            # --- Configuración de Generadores ---
+            
+            # # Generador 1: North Station (Estación 1)
+            # # Genera 1 pasajero cada 10 segundos (0.1/s)
+            # # 70% va a Central (2), 30% va a South (3)
+            # self.passenger_spawn_system.add_generator(
+            #     station_id="1",
+            #     spawn_rate_per_second=0.1,
+            #     destination_probabilities={"2": 0.7, "3": 0.3}
+            # )
+
+            # Generador 2: Central Station (Estación 2)
+            # Genera 1 pasajero cada 2 segundos (0.5/s)
+            # 50% va a North (1), 50% va a South (3)
+            self.passenger_spawn_system.add_generator(
+                station_id="2",
+                spawn_rate_per_second=0.5,
+                destination_probabilities={"1": 0.5, "3": 0.5}
+            )
+
+            # # Generador 3: South Station (Estación 3)
+            # # Genera 1 pasajero cada 5 segundos (0.2/s)
+            # # 90% va a Central (2), 10% va a North (1)
+            # self.passenger_spawn_system.add_generator(
+            #     station_id="3",
+            #     spawn_rate_per_second=0.2,
+            #     destination_probabilities={"1": 0.1, "2": 0.9}
+            # )
+            
+            # 9. Validar (movido)
             builder.validate_network()
 
-            # 9. Mostrar resumen
+            # 10. Mostrar resumen
             summary = builder.get_summary()
             print("=== CONFIGURACIÓN COMPLETADA ===")
             print(f"Estaciones: {summary['stations']}")
@@ -185,10 +228,16 @@ class Simulation:
 
     def update(self, dt):                                                                       # Acutaliza la simulacion basada en el tiempo real
         # Escalar delta time por la escala de tiempo
+        # Sincronizar la lista de pasajeros con el Brain
+        self.passengers = self.brain.passengers
+
         scaled_dt = dt * self.time_scale
 
         # Actualizar sistema de spawn antes de Brain
         self.spawn_system.update(self, scaled_dt)
+        
+        # Actualizar el sistema de spawn de pasajeros.
+        self.passenger_spawn_system.update(scaled_dt)
         
         # Usar Brain para actualizar todo el sistema
         if self.rewinding:
@@ -270,7 +319,7 @@ class SimulationBuilder:
         self.stations = {}
         self.tracks = {}
         
-    def add_station(self, station_id, name, position, target_vehicles_per_minute=0.0):
+    def add_station(self, station_id: str, name: str, position: Vector3, target_vehicles_per_minute=0.0):
         """Agrega una estación al sistema"""
         station = Station(station_id, name, position, target_vehicles_per_minute)
         self.stations[station_id] = station
@@ -278,7 +327,7 @@ class SimulationBuilder:
         self.simulation.brain.add_station(station)
         return self  # Para método fluido
     
-    def add_acceleration_tree(self, tree_id, station_id, start_pos, end_pos, direction):
+    def add_acceleration_tree(self, tree_id: int, station_id: str, start_pos: Vector3, end_pos: Vector3, direction: str):
         """Agrega un árbol de aceleración a una estación"""
         if station_id not in self.stations:
             raise ValueError(f"Estación {station_id} no existe")
@@ -303,11 +352,22 @@ class SimulationBuilder:
         self.simulation.network.add_track(connector)
         return self
     
-    def add_boarding_lane(self, lane_id, start_pos, end_pos, speed=2.0):
-        """Agrega un andén de embarque (BoardingLane)"""
+    def add_boarding_lane(self, lane_id: int, station_id: str, start_pos: Vector3, end_pos: Vector3, speed=2.0):
+        """Agrega un andén de embarque (BoardingLane) Y LO CONECTA A SU ESTACIÓN."""
+        
+        if station_id not in self.stations:
+            raise ValueError(f"Estación {station_id} no existe. No se puede crear el andén {lane_id}.")
+            
+        station = self.stations[station_id]
+        
         lane = BoardingLane(lane_id, start_pos, end_pos, speed)
+        
+        # --- LÓGICA DE CONEXIÓN BIDIRECCIONAL ---
+        lane.set_station(station)       # 1. Decirle al ANDÉN cuál es su ESTACIÓN
+        station.boarding_lanes.append(lane) # 2. Decirle a la ESTACIÓN cuál es su ANDÉN
+        # --- FIN LÓGICA DE CONEXIÓN ---
+
         self.tracks[lane_id] = lane
-        # Los andenes también son 'connectors' en un sentido amplio
         self.simulation.connectors.append(lane)
         self.simulation.network.add_track(lane)
         return self

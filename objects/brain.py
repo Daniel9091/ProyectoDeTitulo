@@ -1,6 +1,12 @@
 from objects.acceleration_tree import AccelerationTree
 from objects.boarding_lane import BoardingLane
 from objects.spatial_grid import SpatialGrid
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from objects.passenger import Passenger
+    from objects.stations import Station
+
 
 class Brain:
     """
@@ -31,6 +37,7 @@ class Brain:
         self.vehicles = {}  # vehicle_id -> ModularVehicle
         self.stations = {}  # station_id -> Station
         self.simulation_time = 0.0
+        self.passengers: dict[str, 'Passenger'] = {} # ID -> Objeto Passenger
         
         # ✅ NUEVO: Sistema de gestión de solicitudes
         self.pending_requests = []  # Solicitudes de VMs pendientes
@@ -65,6 +72,29 @@ class Brain:
     def add_station(self, station):
         """Agrega una estación al sistema (mejorado)"""
         self.stations[station.station_id] = station
+
+    def register_new_passenger(self, passenger: 'Passenger'):
+        """
+        Registra un nuevo pasajero en el sistema central y lo asigna a su estación de origen.
+        Llamado por el PassengerSpawnSystem.
+        """
+        if passenger.passenger_id in self.passengers:
+            print(f"ADVERTENCIA: Pasajero {passenger.passenger_id} ya está registrado.")
+            return
+
+        # 1. Registrar en el cerebro
+        self.passengers[passenger.passenger_id] = passenger
+        
+        # 2. Encontrar la estación de origen
+        origin_station = self.stations.get(passenger.origin_station_id)
+        
+        if not origin_station:
+            print(f"ERROR: No se encontró la estación de origen {passenger.origin_station_id} para el pasajero {passenger.passenger_id}")
+            passenger.state = "ARRIVED" # Marcar como inválido
+            return
+            
+        # 3. Entregar el pasajero a la estación para que lo gestione
+        origin_station.add_passenger_to_entrance_queue(passenger)
 
     def assign_vehicle_to_route(self, vehicle, from_station, to_station):
         """
@@ -388,6 +418,11 @@ class Brain:
         # 6. Monitoreo del sistema
         if int(self.simulation_time) % 10 == 0:  # Cada 10 segundos
             self._monitor_system_health()
+        
+        # 7. Actualizar pasajeros
+        for passenger in self.passengers.values():
+            if passenger.state != "ARRIVED":
+                passenger.update(dt)
 
     def _process_station_demand(self):
         """Intenta asignar vehículos sin destino a estaciones con demanda."""

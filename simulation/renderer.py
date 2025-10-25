@@ -2,6 +2,7 @@ import pygame
 from ui.info_panel import draw_info_panel
 import math
 from objects.base import Vector3
+from objects.passenger import Passenger # (Añade esto con las otras importaciones de 'objects')
 
 class Renderer:
     def __init__(self, screen, camera):
@@ -22,6 +23,11 @@ class Renderer:
         for vehicle in simulation.vehicles:
             self.draw_vehicle(vehicle)
 
+        # --- NUEVO BUCLE ---
+        # Dibujar pasajeros
+        for passenger in simulation.passengers.values():
+            self.draw_passenger(passenger)
+        # --- FIN NUEVO BUCLE ---
         # Dibujar información de depuración
         self.draw_debug_info(simulation)
         
@@ -324,6 +330,37 @@ class Renderer:
                 self.screen.blit(text, pos_2d)
                 used_positions.append((pos_2d[0], pos_2d[1], text.get_width(), text.get_height()))
         
+        # --- NUEVO BUCLE PARA PASAJEROS ---
+        for passenger in simulation.passengers.values():
+            if passenger.state == 'IN_TRANSIT' or passenger.state == 'ARRIVED':
+                continue # No dibujar info si está en un VM o ya llegó
+
+            # Información del pasajero
+            state_short = passenger.state[:7] # "WAITING", "MOVING_", "BOARDIN"
+            dest_info = f"->S{passenger.destination_station_id}"
+            pass_id_short = passenger.passenger_id.split('_')[-1][:4] # "P_abc1"
+            
+            info_line = f"P:{pass_id_short} [{state_short}] {dest_info}"
+            
+            # Posición (ligeramente por encima del pasajero)
+            pos_3d = passenger.current_position
+            pos_2d = self.camera.project_3d_to_2d((
+                pos_3d.x, 
+                pos_3d.y, 
+                pos_3d.z + 1.0 # 1 metro por encima del punto
+            ))
+
+            if passenger.state == 'BOARDING':
+                text_color = (0, 255, 255) # Cian
+            else:
+                text_color = (255, 255, 200) # Amarillo claro
+
+            if pos_2d and self._is_position_available(pos_2d, used_positions, font.size(info_line)):
+                text = font.render(info_line, True, text_color)
+                self.screen.blit(text, pos_2d)
+                used_positions.append((pos_2d[0], pos_2d[1], text.get_width(), text.get_height()))
+        # --- FIN NUEVO BUCLE PARA PASAJEROS ---
+        
         # Mostrar información de tracks
         for track_id, track in simulation.network.tracks.items():
             if hasattr(track, 'get_track_type'):
@@ -355,3 +392,27 @@ class Renderer:
                 new_rect[1] + new_rect[3] > used[1]):
                 return False
         return True
+
+    def draw_passenger(self, passenger: 'Passenger'):
+        """Dibuja un pasajero en su posición actual."""
+        # 1. No dibujar si está dentro de un vehículo o ya llegó
+        if passenger.state == 'IN_TRANSIT' or passenger.state == 'ARRIVED':
+            return
+            
+        # 2. Proyectar posición 3D a 2D
+        pos_3d = passenger.current_position
+        pos_2d = self.camera.project_3d_to_2d((pos_3d.x, pos_3d.y, pos_3d.z))
+        
+        if pos_2d:
+            # 3. Elegir color según el estado
+            if passenger.state == 'BOARDING':
+                color = (0, 255, 255) # Cian (para ver la sincronización)
+            elif passenger.state == 'WAITING_IN_LANE_QUEUE':
+                color = (255, 0, 0)   # Rojo (esperando en andén)
+            elif passenger.state == 'MOVING_TO_LANE':
+                color = (255, 165, 0) # Naranja (caminando)
+            else:
+                color = (255, 255, 0) # Amarillo (default)
+            
+            # 4. Dibujar el círculo (radio de 3 píxeles)
+            pygame.draw.circle(self.screen, color, pos_2d, 3)

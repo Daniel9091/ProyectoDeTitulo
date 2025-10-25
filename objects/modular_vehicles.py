@@ -132,6 +132,8 @@ class ModularVehicle:
         
         if actual_boarded > 0:
             self.passengers += actual_boarded
+            # --- NUEVO LOG ---
+            print(f"✅ VM {self.vehicle_id}: Pasajero embarcado. Ocupación actual: {self.passengers}/{self.capacity}")
             return True
         else:
             return False
