@@ -25,6 +25,7 @@ class ModularVehicle:
         self.current_position = initial_position if initial_position else Vector3(0, 0, 0)
         self.velocity = Vector3(0, 0, 0)
         self.current_track = None  # Track actual (StationConnector o AccelerationTree)
+        self.passengers_on_board: list['Passenger'] = [] # ✅ NUEVO: Lista de objetos Passenger a bordo
         self.progress_on_track = 0.0  # Progreso normalizado en el track actual (0-1)
         
         # Estado del sistema y navegación
@@ -114,29 +115,35 @@ class ModularVehicle:
             return current_time < self.penalty_timestamp + self.penalty_duration
         return False
 
-    def board_passengers(self, passenger_count):
+    def board_passengers(self, passenger: 'Passenger'):
         """
-        Simula el embarque de pasajeros (en primera etapa, solo contador)
+        Embarca un pasajero en el vehículo.
         
         Args:
-            passenger_count: Número de pasajeros a embarcar
+            passenger: Instancia del objeto Passenger a embarcar.
             
         Returns:
             bool: True si se pudo completar el embarque
         """
-        if passenger_count < 0:
+        if self.passengers >= self.capacity:
+            print(f"ADVERTENCIA: VM {self.vehicle_id} está lleno. No se pudo embarcar a P:{passenger.passenger_id}.")
             return False
             
-        available_capacity = self.capacity - self.passengers
-        actual_boarded = min(passenger_count, available_capacity)
-        
-        if actual_boarded > 0:
-            self.passengers += actual_boarded
+        # ✅ AÑADIR EL OBJETO PASAJERO A LA LISTA
+        self.passengers_on_board.append(passenger)
+        self.passengers += 1 # Actualizar el contador
+
+        # ✅ ACTUALIZAR EL DESTINO DEL VEHÍCULO SI ES EL PRIMER PASAJERO
+        # Esto asegura que el VM tenga un destino si no lo tenía antes.
+        # Si ya tiene un destino (ej. de otro pasajero), lo mantiene.
+        if not self.destination_station:
+            self.assign_destination(passenger.destination_station_id)
+
+        # --- NUEVO LOG ---
             # --- NUEVO LOG ---
             print(f"✅ VM {self.vehicle_id}: Pasajero embarcado. Ocupación actual: {self.passengers}/{self.capacity}")
             return True
-        else:
-            return False
+
 
     def disembark_passengers(self):
         """
@@ -145,10 +152,23 @@ class ModularVehicle:
         Returns:
             int: Número de pasajeros que desembarcaron
         """
-        disembarked = self.passengers
-        if disembarked > 0:
-            self.passengers = 0
-        return disembarked
+        
+        if not self.passengers_on_board:
+            return 0
+
+        disembarked_count = len(self.passengers_on_board)
+
+        # ✅ NOTIFICAR A CADA PASAJERO QUE HA DESEMBARCADO
+        for passenger in list(self.passengers_on_board): # Iterar sobre una copia para permitir modificación
+            if passenger.destination_station_id == self.current_station: # Solo desembarcar si es su destino
+                passenger.disembark()
+                self.passengers_on_board.remove(passenger) # Remover de la lista del VM
+                self.passengers -= 1 # Decrementar contador
+                print(f"✅ P:{passenger.passenger_id} ha desembarcado en Estación {self.current_station}.")
+            # Si el pasajero no ha llegado a su destino, se queda en el VM
+
+        return disembarked_count - len(self.passengers_on_board) # Retorna cuántos realmente desembarcaron
+
 
     def transfer_to_track(self, new_track, entry_velocity=None):
         """

@@ -61,9 +61,9 @@ class Simulation:
   
         try:
             # 1. Estaciones
-            builder.add_station("1", "North Station", Vector3(425, 0, 0), target_vehicles_per_minute=5)
-            builder.add_station("2", "Central Station", Vector3(1425, 0, 0), target_vehicles_per_minute=30) # 30 VMs/min
-            builder.add_station("3", "South Station", Vector3(2425, 0, 0), target_vehicles_per_minute=10)
+            builder.add_station("1", "North Station", Vector3(425, 0, 0), target_vehicles_per_second=5/60)
+            builder.add_station("2", "Central Station", Vector3(1425, 0, 0), target_vehicles_per_second=30/60) # 0.5 VMs/sec
+            builder.add_station("3", "South Station", Vector3(2425, 0, 0), target_vehicles_per_second=10/60)
             # (Estaciones cada 1km)
 
             # 2. Árboles de Aceleración
@@ -148,7 +148,7 @@ class Simulation:
             spawn_id="S",
             track_id=7,             # Iniciar en el track 
             spawn_interval=0.4,     # Cada x segundos sale un nuevo VM (ideal 0.075)
-            max_vehicles=300,       # Máximo 210 VMs 
+            max_vehicles=3,       # Máximo 210 VMs 
             vehicle_capacity=2,     # Capacidad de cada VM
             destination_station_id=None  # Destino
         )
@@ -194,8 +194,8 @@ class Simulation:
             # 50% va a North (1), 50% va a South (3)
             self.passenger_spawn_system.add_generator(
                 station_id="2",
-                spawn_rate_per_second=0.5,
-                destination_probabilities={"1": 0.5, "3": 0.5}
+                spawn_rate_per_second=0.1,
+                destination_probabilities={"1": 0.0, "3": 1.0}
             )
 
             # # Generador 3: South Station (Estación 3)
@@ -210,13 +210,8 @@ class Simulation:
             # 9. Validar (movido)
             builder.validate_network()
 
-            # 10. Mostrar resumen
-            summary = builder.get_summary()
-            print("=== CONFIGURACIÓN COMPLETADA ===")
-            print(f"Estaciones: {summary['stations']}")
-            print(f"Tracks: {summary['tracks']}") 
-            print(f"Vehículos: {summary['vehicles']}")
-            print(f"Conexiones: {summary['connections']}")
+            # 10. Mostrar resumen de configuración detallado
+            builder.print_configuration_summary()
 
         except (ValueError, RuntimeError) as e:
             print(f"ERROR en configuración: {e}")
@@ -319,9 +314,9 @@ class SimulationBuilder:
         self.stations = {}
         self.tracks = {}
         
-    def add_station(self, station_id: str, name: str, position: Vector3, target_vehicles_per_minute=0.0):
+    def add_station(self, station_id: str, name: str, position: Vector3, target_vehicles_per_second=0.0):
         """Agrega una estación al sistema"""
-        station = Station(station_id, name, position, target_vehicles_per_minute)
+        station = Station(station_id, name, position, target_vehicles_per_second)
         self.stations[station_id] = station
         self.simulation.stations.append(station)
         self.simulation.brain.add_station(station)
@@ -459,11 +454,71 @@ class SimulationBuilder:
             
         return self
     
-    def get_summary(self):
-        """Retorna un resumen de la configuración"""
-        return {
+    def print_configuration_summary(self):
+        """Imprime un resumen detallado de la configuración de la simulación, incluyendo la matriz O/D de pasajeros y la demanda de vehículos."""
+        print("\n" + "="*25 + " CONFIGURACIÓN COMPLETADA " + "="*25)
+        
+        # 1. Resumen general
+        print("\n--- Resumen General ---")
+        summary = {
             "stations": len(self.stations),
             "tracks": len(self.tracks),
             "vehicles": len(self.simulation.vehicles),
             "connections": sum(len(conn) for conn in self.simulation.network.adjacency.values())
         }
+        print(f"  - Estaciones: {summary['stations']}")
+        print(f"  - Tracks (Vías): {summary['tracks']}")
+        print(f"  - Vehículos iniciales: {summary['vehicles']}")
+        print(f"  - Conexiones en la red: {summary['connections']}")
+
+        # 2. Matriz de Origen/Destino de Pasajeros (Pasajeros / segundo)
+        print("\n--- Matriz Origen/Destino de Pasajeros (pasajeros/seg) ---")
+        station_names = [s.name for s in self.simulation.stations]
+        station_ids = [s.station_id for s in self.simulation.stations]
+        id_to_name = {s.station_id: s.name for s in self.simulation.stations}
+        
+        # Inicializar matriz y totales
+        matrix = {orig_id: {dest_id: 0.0 for dest_id in station_ids} for orig_id in station_ids}
+        row_totals = {orig_id: 0.0 for orig_id in station_ids}
+        col_totals = {dest_id: 0.0 for dest_id in station_ids}
+
+        # Poblar la matriz con los datos de los generadores
+        if hasattr(self.simulation, 'passenger_spawn_system'):
+            for generator in self.simulation.passenger_spawn_system.generators:
+                origin_id = generator.station_id
+                total_rate = generator.spawn_rate_per_second
+                row_totals[origin_id] += total_rate
+                for dest_id, probability in generator.destination_probabilities.items():
+                    rate = total_rate * probability
+                    matrix[origin_id][dest_id] += rate
+                    col_totals[dest_id] += rate
+
+        # Imprimir la tabla
+        header = f"{'ORIGEN':<18}" + "".join([f"{name:<12}" for name in station_names]) + "TOTAL"
+        print(header)
+        print("-" * len(header))
+        
+        for origin_id in station_ids:
+            row_str = f"{id_to_name[origin_id]:<18}"
+            for dest_id in station_ids:
+                row_str += f"{matrix[origin_id][dest_id]:<12.2f}"
+            row_str += f"{row_totals[origin_id]:.2f}"
+            print(row_str)
+        
+        print("-" * len(header))
+        total_str = f"{'TOTAL':<18}"
+        grand_total = 0
+        for dest_id in station_ids:
+            total_str += f"{col_totals[dest_id]:<12.2f}"
+            grand_total += col_totals[dest_id]
+        total_str += f"{grand_total:.2f}"
+        print(total_str)
+
+        # 3. Demanda de Vehículos por Estación
+        print("\n--- Demanda de Vehículos por Estación ---")
+        demand_header = f"{'Estación':<20} Demanda (VMs / segundo)"
+        print(demand_header)
+        print("-" * len(demand_header))
+        for station in self.simulation.stations:
+            print(f"{station.name:<20} {station.target_vehicles_per_second:.4f}")
+        print("="*74 + "\n")

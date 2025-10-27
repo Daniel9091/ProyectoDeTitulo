@@ -141,11 +141,22 @@ class BoardingLane(StationConnector):
         passenger.complete_boarding()
         
         # 2. Actualizar la cuenta de pasajeros del VM
-        vehicle.board_passengers(1)
+        vehicle.board_passengers(passenger) # ✅ PASAR EL OBJETO PASAJERO REAL
         
-        # 3. ¡ACCIÓN CLAVE! Asignar el destino del pasajero al VM
-        # (No pasamos 'target_trees', la Red lo resolverá con 'FILTRO 2')
-        vehicle.assign_destination(passenger.destination_station_id)
+        # 3. ¡ACCIÓN CLAVE! Asignar el destino del pasajero al VM, incluyendo los árboles objetivo.
+        brain = None
+        # Accedemos al Brain a través de la cadena de referencias: Lane -> Station -> TreeSelector -> Brain
+        if self.station and hasattr(self.station, 'tree_selector') and self.station.tree_selector:
+            brain = self.station.tree_selector.brain
+
+        if brain:
+            # Obtener los árboles de llegada óptimos para la estación de destino del pasajero
+            target_trees = brain._find_optimal_target_trees(passenger.destination_station_id, vehicle)
+            vehicle.assign_destination(passenger.destination_station_id, target_trees)
+        else:
+            # Fallback si no se puede acceder al Brain
+            print(f"ADVERTENCIA: No se pudo asignar target_trees al VM {vehicle.vehicle_id} porque Brain no está disponible.")
+            vehicle.assign_destination(passenger.destination_station_id) # Fallback sin árboles específicos
         
         # 4. Quitar al pasajero de la lista de embarque activo
         # (usamos .pop() para eliminarlo de forma segura)

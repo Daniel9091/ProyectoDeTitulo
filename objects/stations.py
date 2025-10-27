@@ -21,8 +21,7 @@ class Station:
     - Gestión de andenes/lanes (se agregará después)
     - Toma de decisiones de routing complejas (lo hace Brain/Network)
     """
-
-    def __init__(self, station_id, name, position, target_vehicles_per_minute=0.0):
+    def __init__(self, station_id, name, position, target_vehicles_per_second=0.0):
         self.station_id = station_id
         self.name = name
         self.position = position  # Vector3 - posición en superficie
@@ -37,7 +36,7 @@ class Station:
         self.passenger_count = 0  # Simulado por ahora
 
         # ✅ NUEVO: Gestión de demanda de vehículos
-        self.target_vehicles_per_minute = target_vehicles_per_minute
+        self.target_vehicles_per_second = target_vehicles_per_second
         self._request_check_interval = 10.0  # Segundos, frecuencia de chequeo
         self._time_since_last_check = 0.0
         self._demand_accumulator = 0.0 # ✅ NUEVO: Acumulador para demanda fraccional
@@ -352,12 +351,12 @@ class Station:
 
     def _manage_vehicle_demand(self, brain):
         """Verifica y satisface la demanda de vehículos de la estación."""
-        if self.target_vehicles_per_minute <= 0:
+        if self.target_vehicles_per_second <= 0:
             return
 
         # 1. Calcular la "deuda" de vehículos acumulada en este intervalo.
         # Esto permite que tasas muy bajas (e.g., 1 VM/min) se acumulen con el tiempo.
-        vehicles_needed_this_interval = (self.target_vehicles_per_minute / 60.0) * self._request_check_interval
+        vehicles_needed_this_interval = self.target_vehicles_per_second * self._request_check_interval
         self._demand_accumulator += vehicles_needed_this_interval
 
         # 2. Consultar al cerebro cuántos vehículos ya vienen en camino y cuánta demanda hay pendiente.
