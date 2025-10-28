@@ -69,9 +69,9 @@ class Simulation:
   
         try:
             # 1. Estaciones
-            builder.add_station("1", "North Station", Vector3(425, 0, 0), target_vehicles_per_second=0*5/60)
+            builder.add_station("1", "North Station", Vector3(425, 0, 0), target_vehicles_per_second=5/60)
             builder.add_station("2", "Central Station", Vector3(1425, 0, 0), target_vehicles_per_second=30/60) # 0.5 VMs/sec
-            builder.add_station("3", "South Station", Vector3(2425, 0, 0), target_vehicles_per_second=0*10/60)
+            builder.add_station("3", "South Station", Vector3(2425, 0, 0), target_vehicles_per_second=10/60)
             # (Estaciones cada 1km)
 
             # 2. Árboles de Aceleración
@@ -188,14 +188,14 @@ class Simulation:
             
             # --- Configuración de Generadores ---
             
-            # # Generador 1: North Station (Estación 1)
-            # # Genera 1 pasajero cada 10 segundos (0.1/s)
-            # # 70% va a Central (2), 30% va a South (3)
-            # self.passenger_spawn_system.add_generator(
-            #     station_id="1",
-            #     spawn_rate_per_second=0.1,
-            #     destination_probabilities={"2": 0.7, "3": 0.3}
-            # )
+            # Generador 1: North Station (Estación 1)
+            # Genera 1 pasajero cada 10 segundos (0.1/s)
+            # 70% va a Central (2), 30% va a South (3)
+            self.passenger_spawn_system.add_generator(
+                station_id="1",
+                spawn_rate_per_second=0.1,
+                destination_probabilities={"2": 0.7, "3": 0.3}
+            )
 
             # Generador 2: Central Station (Estación 2)
             # Genera 1 pasajero cada 0.1 segundos
