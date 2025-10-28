@@ -50,16 +50,16 @@ class StationConnector(Track):
             Lista de vehículos que completaron el track
         """
         completed_vehicles = []
-        finished_vehicles_data = []
         
         for vehicle_id, vehicle_data in list(self.vehicles.items()):
             vehicle = vehicle_data['vehicle']
-            progress = vehicle_data['progress']
             finished_data = self.update_single_vehicle(vehicle, dt)
             if finished_data:
-                finished_vehicles_data.append(finished_data)
+                # El vehículo ha terminado, pero la transferencia se gestiona en Network.
+                # update_single_vehicle ya actualizó la posición.
+                completed_vehicles.append(vehicle)
         
-        return finished_vehicles_data
+        return completed_vehicles
 
     def update_single_vehicle(self, vehicle, dt):
         """Actualiza un solo vehículo y devuelve datos si termina."""
@@ -79,37 +79,19 @@ class StationConnector(Track):
             distance_over = (new_progress - 1.0) * self.length
             time_over = distance_over / self.speed if self.speed > 0 else 0
             time_left = dt - (dt - time_over)
-
             new_progress = 1.0
+        else:
+            time_left = 0
             
-            # Calcular nuevo progreso (movimiento lineal)
-            distance_traveled = self.speed * dt
-            progress_increment = distance_traveled / self.length
-            new_progress = progress + progress_increment
-            
-            # Limitar a 1.0 (fin del track)
-            if new_progress >= 1.0:
-                new_progress = 1.0
-                completed_vehicles.append(vehicle)
-            
-            # Actualizar datos del vehículo
-            self.vehicles[vehicle_id]['progress'] = new_progress
-            self.vehicles[vehicle_id]['current_position'] = self.calculate_position_at_progress(new_progress)
-            
-            # Actualizar posición en el vehículo también
-            vehicle.current_position = self.vehicles[vehicle_id]['current_position']
-        
-        return completed_vehicles
         # Actualizar datos del vehículo
         vehicle_data['progress'] = new_progress
         vehicle_data['current_position'] = self.calculate_position_at_progress(new_progress)
         vehicle.current_position = vehicle_data['current_position']
 
         if new_progress >= 1.0:
-            return {
-                'vehicle': vehicle,
-                'time_left': time_left
-            }
+            # Devuelve True para indicar que el vehículo ha completado el track.
+            # El tiempo sobrante (time_left) no se está utilizando actualmente, pero se podría devolver si fuera necesario.
+            return True
         return None
     
     def get_vehicle_position(self, vehicle):

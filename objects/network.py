@@ -232,7 +232,7 @@ class Network:
                 
                 # (+) DEBUG: Calcular y mostrar la coordenada 3D del punto de peligro.
                 danger_position_3d = current_track.calculate_position_at_progress(progress_at_danger_point)
-                print(f"DEBUG: Punto de peligro para VM descendiente {descending_vehicle.vehicle_id} está en Track {current_track.track_id} en coords {danger_position_3d}")
+                # print(f"DEBUG: Punto de peligro para VM descendiente {descending_vehicle.vehicle_id} está en Track {current_track.track_id} en coords {danger_position_3d}")
 
                 # 8. Comprobar si hay algún vehículo cerca de ese punto de peligro.
                 collision_margin = 0.6 # Margen de 0.6 metros
