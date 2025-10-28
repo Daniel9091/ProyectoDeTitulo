@@ -78,7 +78,6 @@ class BoardingLane(StationConnector):
         # 5. Notificar al pasajero que está embarcando
         passenger.start_boarding(vehicle)
         
-        print(f"Andén {self.track_id}: Pasajero {passenger.passenger_id} iniciando embarque en VM {vehicle.vehicle_id}.")
 
     def remove_vehicle(self, vehicle: 'ModularVehicle'):
         """
@@ -135,7 +134,6 @@ class BoardingLane(StationConnector):
         """
         Finaliza el proceso de embarque de un pasajero en un vehículo.
         """
-        print(f"Andén {self.track_id}: Embarque completo para P:{passenger.passenger_id} en VM:{vehicle.vehicle_id}.")
         
         # 1. Notificar al pasajero que está 'IN_TRANSIT'
         passenger.complete_boarding()
@@ -151,7 +149,7 @@ class BoardingLane(StationConnector):
 
         if brain:
             # Obtener los árboles de llegada óptimos para la estación de destino del pasajero
-            target_trees = brain._find_optimal_target_trees(passenger.destination_station_id, vehicle)
+            target_trees = brain._find_optimal_target_trees(passenger.destination_station_id, vehicle) # type: ignore
             vehicle.assign_destination(passenger.destination_station_id, target_trees)
         else:
             # Fallback si no se puede acceder al Brain

@@ -116,4 +116,4 @@ class PassengerSpawnSystem:
 
         new_passenger = Passenger(passenger_id, origin_station_id, chosen_destination_id, initial_position)
         self.brain.register_new_passenger(new_passenger)
-        print(f"✅ Pasajero {new_passenger.passenger_id} generado en '{origin_station_id}' con destino '{chosen_destination_id}'.")
+        # print(f"✅ Pasajero {new_passenger.passenger_id} generado en '{origin_station_id}' con destino '{chosen_destination_id}'.")

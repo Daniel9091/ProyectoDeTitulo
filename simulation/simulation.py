@@ -40,6 +40,14 @@ class Simulation:
         self.last_time_scale = 1.0
         
         self.spawn_system = SpawnSystem()
+
+        # Puntos de depuración para visualizar coordenadas específicas
+        self.debug_points = [
+            # Zona de prueba para verificar la predicción de colisiones.
+            # Es el punto original desplazado 20 metros a la derecha (en X).
+            {'pos': Vector3(1060.5657745646513, 0.0, -20.0), 'color': (0, 255, 255), 'label': 'Test_Zone'}
+        ]
+
         self.init_simulation()
     
     def init_simulation(self):
@@ -61,9 +69,9 @@ class Simulation:
   
         try:
             # 1. Estaciones
-            builder.add_station("1", "North Station", Vector3(425, 0, 0), target_vehicles_per_second=5/60)
+            builder.add_station("1", "North Station", Vector3(425, 0, 0), target_vehicles_per_second=0*5/60)
             builder.add_station("2", "Central Station", Vector3(1425, 0, 0), target_vehicles_per_second=30/60) # 0.5 VMs/sec
-            builder.add_station("3", "South Station", Vector3(2425, 0, 0), target_vehicles_per_second=10/60)
+            builder.add_station("3", "South Station", Vector3(2425, 0, 0), target_vehicles_per_second=0*10/60)
             # (Estaciones cada 1km)
 
             # 2. Árboles de Aceleración
@@ -146,9 +154,9 @@ class Simulation:
             # Spawn System (Opcional)
             self.spawn_system.add_spawn_point(
             spawn_id="S",
-            track_id=7,             # Iniciar en el track 
-            spawn_interval=0.4,     # Cada x segundos sale un nuevo VM (ideal 0.075)
-            max_vehicles=3,       # Máximo 210 VMs 
+            track_id=8,             # Iniciar en el track 
+            spawn_interval=0.2,     # Cada x segundos sale un nuevo VM (ideal 0.075)
+            max_vehicles=500,       # Máximo x VMs 
             vehicle_capacity=2,     # Capacidad de cada VM
             destination_station_id=None  # Destino
         )
@@ -174,8 +182,8 @@ class Simulation:
             print("Sistema de navegación completamente configurado")
 
 
-            # 8. INICIALIZAR SISTEMA DE PASAJEROS (¡NUEVO!)
-            # Primero, instanciamos el sistema de spawn de pasajeros
+            # 8. INICIALIZAR SISTEMA DE PASAJEROS
+            # Inisicalisacion de PassengerSpawnSystem
             self.passenger_spawn_system = PassengerSpawnSystem(self.brain)
             
             # --- Configuración de Generadores ---
@@ -190,23 +198,26 @@ class Simulation:
             # )
 
             # Generador 2: Central Station (Estación 2)
-            # Genera 1 pasajero cada 2 segundos (0.5/s)
+            # Genera 1 pasajero cada 0.1 segundos
             # 50% va a North (1), 50% va a South (3)
             self.passenger_spawn_system.add_generator(
                 station_id="2",
                 spawn_rate_per_second=0.1,
-                destination_probabilities={"1": 0.0, "3": 1.0}
+                destination_probabilities={"1": 0.2, "3": 0.8}
             )
 
-            # # Generador 3: South Station (Estación 3)
-            # # Genera 1 pasajero cada 5 segundos (0.2/s)
-            # # 90% va a Central (2), 10% va a North (1)
-            # self.passenger_spawn_system.add_generator(
-            #     station_id="3",
-            #     spawn_rate_per_second=0.2,
-            #     destination_probabilities={"1": 0.1, "2": 0.9}
-            # )
+            # Generador 3: South Station (Estación 3)
+            # Genera 1 pasajero cada 0.05 segundos
+            # 90% va a Central (2), 10% va a North (1)
+            self.passenger_spawn_system.add_generator(
+                station_id="3",
+                spawn_rate_per_second=0.05,
+                destination_probabilities={"1": 0.1, "2": 0.9}
+            )
             
+            # 9. Construir mapa de predecesores para consultas rápidas
+            self.network.build_predecessor_map()
+
             # 9. Validar (movido)
             builder.validate_network()
 

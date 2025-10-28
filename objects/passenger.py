@@ -116,6 +116,7 @@ class Passenger:
         El pasajero desembarca del vehículo en su estación de destino.
         Cambia el estado a ARRIVED y limpia las referencias a la estación, andén y vehículo.
         """
+        print(f"🏁 PASAJERO {self.passenger_id} LLEGÓ A SU DESTINO: Estación {self.destination_station_id}")
         self.state = ARRIVED
         self.current_station = None
         self.current_lane = None

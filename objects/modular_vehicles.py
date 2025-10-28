@@ -90,8 +90,8 @@ class ModularVehicle:
         self.destination_station = destination_station_id
         if target_trees:
             self.target_acceleration_trees = target_trees
-            
-        print(f"Vehículo {self.vehicle_id} asignado a estación destino {destination_station_id}")
+        
+        # print(f"Vehículo {self.vehicle_id} asignado a estación destino {destination_station_id}")
 
     def clear_destination(self):
         """
@@ -99,7 +99,7 @@ class ModularVehicle:
         """
         self.destination_station = None
         self.target_acceleration_trees = []
-        print(f"Vehículo {self.vehicle_id} ha liberado su destino.")
+        # print(f"Vehículo {self.vehicle_id} ha liberado su destino.")
 
     def apply_penalty(self, station_id, current_time):
         """
@@ -107,7 +107,7 @@ class ModularVehicle:
         """
         self.penalty_station_id = station_id
         self.penalty_timestamp = current_time
-        print(f"Penalización aplicada a VM {self.vehicle_id} para Estación {station_id} por {self.penalty_duration}s.")
+        # print(f"Penalización aplicada a VM {self.vehicle_id} para Estación {station_id} por {self.penalty_duration}s.")
 
     def is_penalized_for_station(self, station_id, current_time):
         """Verifica si el vehículo está actualmente penalizado para una estación."""
@@ -141,8 +141,8 @@ class ModularVehicle:
 
         # --- NUEVO LOG ---
             # --- NUEVO LOG ---
-            print(f"✅ VM {self.vehicle_id}: Pasajero embarcado. Ocupación actual: {self.passengers}/{self.capacity}")
-            return True
+        # print(f"✅ VM {self.vehicle_id}: Pasajero embarcado. Ocupación actual: {self.passengers}/{self.capacity}")
+        return True
 
 
     def disembark_passengers(self):
@@ -164,7 +164,7 @@ class ModularVehicle:
                 passenger.disembark()
                 self.passengers_on_board.remove(passenger) # Remover de la lista del VM
                 self.passengers -= 1 # Decrementar contador
-                print(f"✅ P:{passenger.passenger_id} ha desembarcado en Estación {self.current_station}.")
+                # print(f"✅ P:{passenger.passenger_id} ha desembarcado en Estación {self.current_station}.")
             # Si el pasajero no ha llegado a su destino, se queda en el VM
 
         return disembarked_count - len(self.passengers_on_board) # Retorna cuántos realmente desembarcaron
@@ -234,9 +234,9 @@ class ModularVehicle:
             if brain:
                 brain.fulfill_demand(station_id)
 
-            print(f"Vehículo {self.vehicle_id} llegó a su destino final: estación {station_id}")
-        else:
-            print(f"Vehículo {self.vehicle_id} llegó a estación {station_id} (en ruta)")
+            # print(f"Vehículo {self.vehicle_id} llegó a su destino final: estación {station_id}")
+        # else:
+            # print(f"Vehículo {self.vehicle_id} llegó a estación {station_id} (en ruta)")
 
     def get_vehicle_info(self):
         """

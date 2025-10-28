@@ -87,7 +87,7 @@ class Station:
         # La posición inicial del pasajero ya fue asignada por el Spawner
         
         self.passenger_entrance_queue.append(passenger)
-        print(f"Estación {self.name}: Pasajero {passenger.passenger_id} añadido a la cola de entrada (Destino: {passenger.destination_station_id}).")
+        # print(f"Estación {self.name}: Pasajero {passenger.passenger_id} añadido a la cola de entrada (Destino: {passenger.destination_station_id}).")
 
     def _select_best_lane(self) -> 'BoardingLane':
         """
@@ -139,7 +139,7 @@ class Station:
         # 4. Asignar el pasajero al andén y añadirlo a su cola
         target_lane.add_passenger_to_queue(passenger, queue_position)
         
-        print(f"Estación {self.name}: Pasajero {passenger.passenger_id} asignado a Andén {target_lane.track_id}.")
+        # print(f"Estación {self.name}: Pasajero {passenger.passenger_id} asignado a Andén {target_lane.track_id}.")
 
     def remove_passenger_from_system(self, passenger: 'Passenger'):
         """
@@ -191,7 +191,7 @@ class Station:
 
         vehicle.assign_destination(self.station_id, all_arrival_trees)
         
-        print(f"✅ VM {vehicle.vehicle_id} asignado a {self.name}. Opciones de llegada: {all_arrival_trees}")
+        # print(f"✅ VM {vehicle.vehicle_id} asignado a {self.name}. Opciones de llegada: {all_arrival_trees}")
 
         # ✅ NUEVO: Si la asignación es exitosa, decrementa la demanda pendiente en el Brain.
         # Esto evita que el Brain intente asignar el mismo vehículo varias veces.
@@ -275,10 +275,10 @@ class Station:
         """
         # Por ahora solo logs, pero se puede extender para ajustes automáticos
         capacity_info = self.get_arrival_capacity_info()
-        if capacity_info['available']:
-            print(f"📊 {self.name}: {len(capacity_info['available_trees'])}/{capacity_info['total_trees']} árboles disponibles")
-        else:
-            print(f"⚠️  {self.name}: Sin capacidad de llegada disponible")
+        # if capacity_info['available']:
+        #     print(f"📊 {self.name}: {len(capacity_info['available_trees'])}/{capacity_info['total_trees']} árboles disponibles")
+        # else:
+        #     print(f"⚠️  {self.name}: Sin capacidad de llegada disponible")
 
     def _get_destination_arrival_trees(self, destination_station_id):
         """
@@ -287,28 +287,12 @@ class Station:
         """
         # Esta es una implementación simplificada
         # En una implementación real, esto lo proporcionaría Brain o Network
-        print(f"   🔍 Buscando árboles de llegada para estación {destination_station_id}")
+        # print(f"   🔍 Buscando árboles de llegada para estación {destination_station_id}")
         # Por ahora retornamos lista vacía - se implementará cuando tengamos
         # acceso al grafo completo de estaciones
         return []
 
     # ========== PROCESAMIENTO DE OPERACIONES ==========
-
-    def receive_vehicle(self, vehicle, arrival_tree):
-        """
-        RECIBE UN VEHÍCULO QUE LLEGA A TRAVÉS DE UN ÁRBOL DE LLEGADA
-        Ahora transfiere el vehículo directamente al siguiente track.
-        """
-        if arrival_tree not in self.arrival_trees:
-            print(f"ERROR: Árbol {arrival_tree.track_id} no pertenece a estación {self.name}")
-            return False
-        
-        # La lógica de transferencia ahora está centralizada en Network._transfer_vehicle
-        # Esta función es llamada por Network cuando un vehículo llega a un árbol de subida.
-        # Aquí solo actualizamos el estado del vehículo.
-        vehicle.arrive_at_station(self.station_id)
-        print(f"Vehículo {vehicle.vehicle_id} ha pasado por la estación {self.name}")
-        return True
 
     # ========== MÉTODOS DE CONSULTA E INFORMACIÓN ==========
 
@@ -369,7 +353,7 @@ class Station:
         # 4. Si el acumulador supera 1, es hora de solicitar al menos un vehículo.
         if effective_demand >= 1.0:
             vehicles_to_request = int(effective_demand)
-            print(f"📈 {self.name}: Demanda acumulada ({self._demand_accumulator:.2f}). Solicitando {vehicles_to_request} VM(s).")
+            # print(f"📈 {self.name}: Demanda acumulada ({self._demand_accumulator:.2f}). Solicitando {vehicles_to_request} VM(s).")
             
             # Registrar la nueva demanda en el Brain
             brain.register_demand(self.station_id, vehicles_to_request)

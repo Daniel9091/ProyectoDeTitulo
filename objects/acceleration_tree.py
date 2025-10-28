@@ -269,7 +269,20 @@ class AccelerationTree(Track):
         if discriminant < 0:
             return None
             
+        # Soluciones de la ecuación cuadrática para el tiempo
         t1 = (-v0 + math.sqrt(discriminant)) / a
         t2 = (-v0 - math.sqrt(discriminant)) / a
         
-        return max(t1, t2) if t1 > 0 and t2 > 0 else (t1 if t1 > 0 else t2)
+        # Filtrar solo las soluciones positivas (físicamente posibles)
+        positive_times = []
+        if t1 > 0:
+            positive_times.append(t1)
+        if t2 > 0:
+            positive_times.append(t2)
+
+        # Si hay soluciones positivas, devolver la más pequeña.
+        # La solución más pequeña es la primera vez que el objeto alcanza la posición.
+        if positive_times:
+            return min(positive_times)
+        
+        return None # No hay un tiempo de viaje positivo posible

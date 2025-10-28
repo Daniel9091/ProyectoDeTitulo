@@ -52,11 +52,11 @@ class SpawnPoint:
                 if destination_station:
                     # MÉTODO COMPLETO COMO EN ASIGNACIÓN MANUAL
                     success = simulation.brain.assign_vehicle_to_route(new_vehicle, start_station, destination_station)
-                    if success:
-                        print(f"🎯 VM {vehicle_id} asignado a Estación {self.destination_station_id}")
-                        print(f"   Target Trees: {new_vehicle.target_acceleration_trees}")
-                    else:
-                        print(f"ERROR: No se pudo asignar ruta a VM {vehicle_id}")
+                    # if success:
+                        # print(f"🎯 VM {vehicle_id} asignado a Estación {self.destination_station_id}")
+                        # print(f"   Target Trees: {new_vehicle.target_acceleration_trees}")
+                    # else:
+                        # print(f"ERROR: No se pudo asignar ruta a VM {vehicle_id}")
                 else:
                     print(f"ERROR: Estación destino {self.destination_station_id} no encontrada")
             else:

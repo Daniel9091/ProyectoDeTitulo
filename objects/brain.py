@@ -52,6 +52,9 @@ class Brain:
         # ✅ NUEVO: Sistema de optimización de colisiones
         self.collision_grid = SpatialGrid(cell_size=50.0) # Celdas de 50x50x50 metros
 
+        # ✅ NUEVO: Lista para predicción de colisiones sincronizada
+        self.pending_down_tree_entries = []
+
         # ✅ NUEVO: Estadísticas y monitoreo
         self.stats = {
             'total_vehicle_assignments': 0,
@@ -101,14 +104,14 @@ class Brain:
         Asigna una ruta completa a un vehículo
         MEJORADO: Usa TreeSelector para asignación óptima de árboles
         """
-        if from_station.station_id not in self.stations:
-            print(f"ERROR: Estación origen {from_station.station_id} no registrada")
-            return False
+        # if from_station.station_id not in self.stations:
+        #     print(f"ERROR: Estación origen {from_station.station_id} no registrada")
+        #     return False
             
         # Verificar capacidad de la estación destino
-        if not to_station.has_arrival_capacity():
-            print(f"ERROR: Estación destino {to_station.name} no tiene capacidad")
-            return False
+        # if not to_station.has_arrival_capacity():
+        #     print(f"ERROR: Estación destino {to_station.name} no tiene capacidad")
+        #     return False
 
         # Asignar destino al vehículo
         vehicle.destination_station = to_station.station_id
@@ -118,8 +121,8 @@ class Brain:
         vehicle.target_acceleration_trees = target_trees
 
         # DEBUG: Imprimir información de ruta
-        print(f"🧭 ASIGNACIÓN DE RUTA: Vehículo {vehicle.vehicle_id} desde {from_station.name} a {to_station.name}")
-        print(f"   Árboles objetivo: {target_trees}")
+        # print(f"🧭 ASIGNACIÓN DE RUTA: Vehículo {vehicle.vehicle_id} desde {from_station.name} a {to_station.name}")
+        # print(f"   Árboles objetivo: {target_trees}")
         
         # Posicionar vehículo en la estación de origen
         vehicle.current_station = from_station.station_id
@@ -165,12 +168,12 @@ class Brain:
         if station_id in self.station_demand:
             self.station_demand[station_id] = max(0, self.station_demand[station_id] - count)
             if assigned_not_arrived:
-                print(f"🧠 Demanda para Estación {station_id} reducida por asignación. Restante: {self.station_demand[station_id]}")
-            # print(f"🧠 Demanda satisfecha: Estación {station_id} recibió 1 VM. Restante: {self.station_demand[station_id]}")
+                # print(f"🧠 Demanda para Estación {station_id} reducida por asignación. Restante: {self.station_demand[station_id]}")
+                pass
 
     def reassign_failed_demand(self, station_id):
         """Vuelve a registrar la demanda para una asignación que falló."""
-        print(f"🧠 Fallo de asignación para Estación {station_id}. Re-registrando demanda.")
+        # print(f"🧠 Fallo de asignación para Estación {station_id}. Re-registrando demanda.")
         # No decrementamos la demanda actual, simplemente nos aseguramos de que se intente de nuevo.
         station = self.stations.get(station_id)
         if not station:
@@ -181,10 +184,9 @@ class Brain:
         # Esto también considerará el vehículo que acaba de ser rechazado y liberó su destino.
         vehicle_id = station.request_vehicle(self)
         if vehicle_id:
-            print(f"🧠 Demanda para Estación {station_id} reasignada a VM {vehicle_id}.")
+           pass
             # La llamada a station.request_vehicle ya maneja el decremento de station_demand si es exitosa.
         else:
-            print(f"🧠 No se encontró VM disponible para reasignar demanda a Estación {station_id}. Re-registrando demanda para el próximo ciclo.")
             # Si no se pudo encontrar ningún vehículo, entonces re-registra la demanda para que se recoja más tarde.
             self.register_demand(station_id, 1)
 
@@ -423,6 +425,10 @@ class Brain:
         for passenger in self.passengers.values():
             if passenger.state != "ARRIVED":
                 passenger.update(dt)
+        
+        # ✅ NUEVO: 8. Procesar predicciones de colisión de forma sincronizada
+        self._process_collision_predictions()
+
 
     def _process_station_demand(self):
         """Intenta asignar vehículos sin destino a estaciones con demanda."""
@@ -482,6 +488,13 @@ class Brain:
         """Maneja las transiciones de vehículos entre tracks (sin cambios)"""
         # Esta lógica está principalmente en Network ahora
         pass
+
+    def _process_collision_predictions(self):
+        """Ejecuta las predicciones de colisión después de que todas las posiciones se hayan actualizado."""
+        for event in self.pending_down_tree_entries:
+            self.network._check_for_future_collision_at_junction(event['vehicle'], event['from_track'], event['descending_tree'])
+        
+        self.pending_down_tree_entries.clear()
 
     def _monitor_system_health(self):
         """

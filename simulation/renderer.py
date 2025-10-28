@@ -29,11 +29,38 @@ class Renderer:
             self.draw_passenger(passenger)
         # --- FIN NUEVO BUCLE ---
         # Dibujar información de depuración
+        self.draw_debug_points(simulation)
         self.draw_debug_info(simulation)
         
         # Dibujar UI si está activado
         if simulation.show_info:
             draw_info_panel(self.screen, simulation, self.camera)
+
+    def draw_debug_points(self, simulation):
+        """Dibuja puntos de depuración específicos en el mundo."""
+        if not hasattr(simulation, 'debug_points'):
+            return
+
+        font = pygame.font.SysFont('Arial', 14, bold=True)
+
+        for point_data in simulation.debug_points:
+            pos_3d = point_data['pos']
+            color = point_data.get('color', (255, 100, 0)) # Naranja por defecto
+            label = point_data.get('label', '')
+
+            pos_2d = self.camera.project_3d_to_2d((pos_3d.x, pos_3d.y, pos_3d.z))
+
+            if pos_2d:
+                # --- MODIFICACIÓN: Dibujar una circunferencia con radio en metros del mundo ---
+                # El radio en píxeles es el radio en metros multiplicado por el zoom de la cámara.
+                world_radius = 0.6  # 0.6 metros, igual que el collision_margin
+                pixel_radius = int(world_radius * self.camera.zoom)
+
+                # Dibujar la circunferencia. Usamos max(2, ...) para que siempre sea visible.
+                pygame.draw.circle(self.screen, color, pos_2d, max(2, pixel_radius), 2)
+                if label:
+                    text = font.render(label, True, color)
+                    self.screen.blit(text, (pos_2d[0] + 10, pos_2d[1] - 10))
     
     def draw_network_tracks(self, network):
         """Dibuja todos los tracks de la red (StationConnectors y AccelerationTrees)"""
@@ -310,7 +337,8 @@ class Renderer:
                 collision_alert = f"!!COL with {','.join(colliding_ids)}!!"
             else:
                 collision_alert = ""
-            info_line = f"VM{vehicle.vehicle_id} [{state_short}|{track_info}] V:{speed:.1f} {dest_info} {collision_alert}".strip()
+            coord_x_info = f"X:{vehicle.current_position.x:.1f}"
+            info_line = f"VM{vehicle.vehicle_id} [{state_short}|{track_info}] V:{speed:.1f} {coord_x_info} {dest_info} {collision_alert}".strip()
 
             pos_2d = self.camera.project_3d_to_2d((
                 vehicle.current_position.x, 

@@ -1,4 +1,5 @@
 from objects.acceleration_tree import AccelerationTree
+from objects.station_connector import StationConnector
 
 class Network:
     """
@@ -20,6 +21,7 @@ class Network:
     def __init__(self):
         self.tracks = {}  # dict: track_id -> Track (StationConnector o AccelerationTree)
         self.adjacency = {}  # dict: track_id -> [next_possible_tracks]
+        self.predecessors = {} # ✅ NUEVO: dict: track_id -> [previous_tracks]
         self.entry_points = {}  # station_id -> [acceleration_trees_salida]
         self.exit_points = {}   # station_id -> [acceleration_trees_entrada]
         self.vehicles_in_transit = {}  # track_id -> [vehicles]
@@ -53,6 +55,21 @@ class Network:
             self.adjacency[from_track_id].append(to_track_id)
         else:
             self.adjacency[from_track_id] = [to_track_id]
+
+    def build_predecessor_map(self):
+        """
+        Construye un mapa de adyacencia inverso para consultas rápidas de predecesores.
+        Debe ser llamado una vez que la topología de la red esté completamente definida.
+        """
+        self.predecessors.clear()
+        for origin_track_id, destination_ids in self.adjacency.items():
+            for dest_id in destination_ids:
+                if dest_id not in self.predecessors:
+                    self.predecessors[dest_id] = []
+                if origin_track_id not in self.predecessors[dest_id]:
+                    self.predecessors[dest_id].append(origin_track_id)
+        
+        print("🗺️  Mapa de predecesores de la red construido.")
 
     def update_vehicles(self, dt):
         """Actualiza movimiento de vehículos (sin cambios)"""
@@ -115,6 +132,18 @@ class Network:
         
         next_track = self.tracks[next_track_id]
         
+        # --- ✅ NUEVO: PREDICCIÓN DE COLISIÓN EN UNIÓN ---
+        # Si el vehículo se va a transferir a un árbol de bajada, revisamos posibles colisiones en la unión.
+        if self.brain and isinstance(next_track, AccelerationTree) and next_track.direction == "down":
+            # En lugar de calcular aquí, registramos el evento en el Brain para un procesamiento sincronizado.
+            self.brain.pending_down_tree_entries.append({
+                'vehicle': vehicle, 'from_track': current_track, 'descending_tree': next_track
+            })
+
+        # --- FIN PREDICCIÓN ---
+
+
+
         try:
             # Obtener la velocidad de salida del track actual
             if hasattr(current_track, 'get_exit_velocity'):
@@ -132,6 +161,107 @@ class Network:
             print(f"ERROR en transferencia de vehículo {vehicle.vehicle_id}: {e}")
             import traceback
             traceback.print_exc()
+
+    def _check_for_future_collision_at_junction(self, descending_vehicle, from_track, descending_tree: AccelerationTree):
+        """
+        Predice colisiones usando el método de "distancia de peligro".
+        """
+        # 1. Calcular el tiempo 'T' que tardará el VM en bajar por el árbol.
+        # (!) CORRECCIÓN: Usar la velocidad del track anterior como velocidad inicial.
+        # from_track es el StationConnector del que viene el vehículo.
+        initial_velocity_for_tree = from_track.speed
+
+        time_to_junction = descending_tree.get_time_to_complete(initial_velocity=initial_velocity_for_tree)
+
+        if time_to_junction is None or time_to_junction <= 0:
+            return
+
+        # 2. Identificar el track que COMIENZA en el nodo de unión (al que se conecta el árbol).
+        junction_exit_track_ids = self.adjacency.get(descending_tree.track_id, [])
+        if not junction_exit_track_ids:
+            return
+        junction_exit_track_id = junction_exit_track_ids[0]
+
+        # 3. Usar el mapa de predecesores para encontrar los tracks que LLEGAN a la unión.
+        previous_track_ids = self.predecessors.get(junction_exit_track_id, [])
+
+        # 4. Iterar sobre los tracks en conflicto (los que no son el propio árbol descendente).
+        for track_id in previous_track_ids:
+            if track_id == descending_tree.track_id:
+                continue
+
+            conflicting_track = self.tracks.get(track_id)
+            if not (conflicting_track and isinstance(conflicting_track, StationConnector)):
+                continue
+
+            # 5. Lógica de búsqueda hacia atrás basada en TIEMPO, no en una distancia pre-calculada.
+            time_left = time_to_junction
+            current_track = conflicting_track
+
+            # 6. Retroceder por los tracks "gastando" el tiempo_a_la_union.
+            while True:
+                if current_track.speed <= 0: # No se puede viajar en este track
+                    current_track = None
+                    break
+                
+                time_to_cross_current_track = current_track.length / current_track.speed
+                
+                if time_left <= time_to_cross_current_track:
+                    # El punto de peligro está DENTRO de este track.
+                    break
+                
+                # El punto de peligro está más atrás. Restamos el tiempo y saltamos al track anterior.
+                time_left -= time_to_cross_current_track
+                preds = self.predecessors.get(current_track.track_id, [])
+                if not preds:
+                    current_track = None
+                    break
+                
+                current_track = self.tracks.get(preds[0])
+                if not (current_track and isinstance(current_track, StationConnector)):
+                    current_track = None
+                    break
+            
+            # 7. Si encontramos el track donde podría estar el vehículo en conflicto.
+            if current_track:
+                # Calculamos la distancia de peligro DENTRO de este track específico.
+                danger_distance_in_track = time_left * current_track.speed
+                
+                # El progreso se mide desde el inicio, pero la distancia de peligro se mide desde el final.
+                progress_at_danger_point = (current_track.length - danger_distance_in_track) / current_track.length
+                
+                # (+) DEBUG: Calcular y mostrar la coordenada 3D del punto de peligro.
+                danger_position_3d = current_track.calculate_position_at_progress(progress_at_danger_point)
+                print(f"DEBUG: Punto de peligro para VM descendiente {descending_vehicle.vehicle_id} está en Track {current_track.track_id} en coords {danger_position_3d}")
+
+                # 8. Comprobar si hay algún vehículo cerca de ese punto de peligro.
+                collision_margin = 0.6 # Margen de 0.6 metros
+                progress_margin = collision_margin / current_track.length
+
+                for other_vehicle_id, data in current_track.vehicles.items():
+                    other_vehicle = data['vehicle']
+                    progress = data['progress']
+
+                    # Comprobar si el progreso del vehículo está dentro del margen del punto de peligro.
+                    if abs(progress - progress_at_danger_point) < progress_margin:
+                        # ¡Riesgo de colisión detectado!
+
+                        # El cálculo de tiempo del otro vehículo ahora es más simple, ya que no necesitamos
+                        # el acumulador 'time_through_intermediate_tracks'. La lógica de búsqueda ya nos
+                        # ha posicionado en el track correcto.
+                        distance_to_junction_for_other = (1 - progress) * current_track.length
+                        time_to_junction_for_other = distance_to_junction_for_other / current_track.speed
+                        # (Nota: Este cálculo de tiempo para el otro vehículo aún asume que llegará a la unión sin pasar por más tracks, lo cual es una simplificación aceptable para la alerta).
+
+                        # Mostramos el panel informativo.
+                        print("\n" + "="*30)
+                        print(f"🚨 ALERTA DE COLISIÓN FUTURA 🚨")
+                        print(f"  - VM descendiendo: {descending_vehicle.vehicle_id} (en árbol {descending_tree.track_id})")
+                        print(f"    -> Tiempo a unión: {time_to_junction:.2f} s")
+                        print(f"  - VM en conflicto: {other_vehicle.vehicle_id} (en track {current_track.track_id})")
+                        print(f"    -> Tiempo a unión (corregido): {time_to_junction_for_other:.2f} s")
+                        print(f"  - Diferencia de tiempo estimada: {abs(time_to_junction - time_to_junction_for_other):.3f} s en la unión del track {junction_exit_track_id}")
+                        print("="*30 + "\n")
 
     # ========== LÓGICA DE NAVEGACIÓN REFACTORIZADA ==========
 
@@ -165,16 +295,16 @@ class Network:
             )
 
             if best_tree:
-                print(f"🎯 NAVEGACIÓN VM{vehicle.vehicle_id}: Tomando árbol {best_tree.track_id}")
+                # print(f"🎯 NAVEGACIÓN VM{vehicle.vehicle_id}: Tomando árbol {best_tree.track_id}")
                 return best_tree.track_id
             else:
                 # Todos los árboles de llegada objetivo están saturados o no disponibles para este VM.
                 destination_station_id = vehicle.destination_station # Guardar el destino antes de potencialmente borrarlo
-                print(f"ADVERTENCIA: NAVEGACIÓN VM{vehicle.vehicle_id}: Todos los árboles de llegada a Estación {destination_station_id} saturados.")
+                # print(f"ADVERTENCIA: NAVEGACIÓN VM{vehicle.vehicle_id}: Todos los árboles de llegada a Estación {destination_station_id} saturados.")
 
                 # Si el VM está vacío, se libera su destino y se reasigna la demanda.
                 if vehicle.passengers == 0:
-                    print(f"VM{vehicle.vehicle_id} está vacío y no puede acceder a Estación {destination_station_id}. Liberando destino y reasignando demanda.")
+                    # print(f"VM{vehicle.vehicle_id} está vacío y no puede acceder a Estación {destination_station_id}. Liberando destino y reasignando demanda.")
                     vehicle.clear_destination() # Borra el destino y los árboles objetivos del VM
                     # ✅ APLICAR PENALIZACIÓN
                     vehicle.apply_penalty(destination_station_id, self.brain.simulation_time)

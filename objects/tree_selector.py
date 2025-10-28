@@ -67,7 +67,9 @@ class TreeSelector:
         
         # Log del resultado
         if not selected_tree:
-            print(f"ERROR: TreeSelector No se pudo seleccionar árbol con estrategia '{strategy}'")
+            # Ninguno de los arboles de llegada pudo aceptar el vehículo
+            # print(f"ERROR: TreeSelector No se pudo seleccionar árbol con estrategia '{strategy}'")
+            pass
             
         return selected_tree
     
@@ -98,11 +100,10 @@ class TreeSelector:
         # Intentar con el más usado primero (para saturar progresivamente)
         for tree in sorted_trees:
             if tree.can_accept_vehicle(vehicle):
-                print(f"Árbol {tree.track_id} disponible (ocupación: {len(tree.vehicles)}/{tree.max_concurrent_vehicles}). Seleccionando.")
+                # print(f"Árbol {tree.track_id} disponible (ocupación: {len(tree.vehicles)}/{tree.max_concurrent_vehicles}). Seleccionando.")
                 return tree
             else:
                 occupancy = tree.get_occupancy_info()
-                print(f"ADVERTENCIA: Árbol {tree.track_id} no disponible (ocupación: {occupancy['vehicle_count']}/{occupancy['max_vehicles']}).")
                 
         return None
     
@@ -122,11 +123,11 @@ class TreeSelector:
         Returns:
             AccelerationTree: El primer árbol disponible
         """
-        print(f"   🚨 Estrategia emergencia: Buscando cualquier árbol disponible")
+        # print(f"   🚨 Estrategia emergencia: Buscando cualquier árbol disponible")
         
         for tree in trees:
             if tree.can_accept_vehicle(vehicle):
-                print(f"Árbol {tree.track_id} aceptado en modo emergencia")
+                # print(f"Árbol {tree.track_id} aceptado en modo emergencia")
                 return tree
                 
         return None
@@ -152,7 +153,7 @@ class TreeSelector:
             # Sin station_id, fallback a estrategia de emergencia
             return self._emergency_flow_strategy(trees, vehicle)
         
-        print(f"Estrategia round-robin para estación {station_id}")
+        # print(f"Estrategia round-robin para estación {station_id}")
         
         # Ordenar árboles por ID para consistencia
         sorted_trees = sorted(trees, key=lambda tree: tree.track_id)
