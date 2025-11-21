@@ -159,43 +159,61 @@ class AccelerationTree(Track):
         if vehicle.vehicle_id in self.vehicles:
             del self.vehicles[vehicle.vehicle_id]
 
-    def update_vehicles(self, dt):
+    def update_vehicles(self, dt, exclude_vehicles=None):
         """Actualiza posición de vehículos usando MRUA (existente)"""
         completed_vehicles = []
+        if exclude_vehicles is None:
+            exclude_vehicles = set()
         
         for vehicle_id, vehicle_data in list(self.vehicles.items()):
-            vehicle = vehicle_data['vehicle']
-            progress = vehicle_data['progress']
-            current_velocity = vehicle_data['velocity']
-            time_in_track = vehicle_data['time_in_track']
-            
-            # Física MRUA (existente)
-            new_velocity = current_velocity + self.acceleration * dt
-            
-            # Limitar velocidad mínima a 0
-            if self.direction == 'up' and new_velocity < 0:
-                new_velocity = 0
-            
-            distance_traveled = current_velocity * dt + 0.5 * self.acceleration * dt**2
-            progress_increment = distance_traveled / self.length
-            new_progress = progress + progress_increment
-            new_time = time_in_track + dt
-            
-            if new_progress >= 1.0:
-                new_progress = 1.0
-                completed_vehicles.append(vehicle)
-            
-            # Actualizar datos
-            self.vehicles[vehicle_id]['progress'] = new_progress
-            self.vehicles[vehicle_id]['velocity'] = new_velocity
-            self.vehicles[vehicle_id]['time_in_track'] = new_time
-            self.vehicles[vehicle_id]['current_position'] = self.calculate_position_at_progress(new_progress)
-            
-            # Actualizar vehículo
-            vehicle.current_position = self.vehicles[vehicle_id]['current_position']
-            vehicle.velocity = self.get_direction_vector() * new_velocity
+            if vehicle_id in exclude_vehicles:
+                continue
+            time_left = self.update_vehicle_progress(vehicle_data['vehicle'], dt)
+            if time_left > 0:
+                completed_vehicles.append((vehicle_data['vehicle'], time_left))
         
         return completed_vehicles
+
+    def update_vehicle_progress(self, vehicle, time_delta):
+        """Actualiza el progreso de un solo vehículo por un delta de tiempo."""
+        if vehicle.vehicle_id not in self.vehicles:
+            return 0.0
+
+        vehicle_data = self.vehicles[vehicle.vehicle_id]
+        progress = vehicle_data['progress']
+        
+        if progress >= 1.0:
+            return time_delta
+
+        current_velocity = vehicle_data['velocity']
+        
+        # Física MRUA
+        distance_traveled = current_velocity * time_delta + 0.5 * self.acceleration * time_delta**2
+        progress_increment = distance_traveled / self.length if self.length > 0 else 0
+        new_progress = progress + progress_increment
+        
+        time_left = 0.0
+        if new_progress >= 1.0:
+            time_to_end = self.get_time_to_complete(initial_velocity=current_velocity)
+            if time_to_end is not None and time_to_end < time_delta:
+                time_left = time_delta - time_to_end
+            new_progress = 1.0
+
+        # Actualizar velocidad y posición
+        new_velocity = current_velocity + self.acceleration * time_delta
+        if self.direction == 'up' and new_velocity < 0:
+            new_velocity = 0
+
+        vehicle_data['progress'] = new_progress
+        vehicle_data['velocity'] = new_velocity
+        vehicle_data['time_in_track'] += time_delta
+        vehicle_data['current_position'] = self.calculate_position_at_progress(new_progress)
+        
+        # Actualizar vehículo
+        vehicle.current_position = vehicle_data['current_position']
+        vehicle.velocity = self.get_direction_vector() * new_velocity
+
+        return max(0.0, time_left)
 
     # ========== MÉTODOS DE CONSULTA (existentes, sin cambios) ==========
 

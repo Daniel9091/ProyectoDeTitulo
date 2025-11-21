@@ -391,15 +391,17 @@ class Brain:
 
     # ========== ACTUALIZACIÓN PRINCIPAL Y COORDINACIÓN ==========
 
-    def update(self, dt):
+    def update(self, dt, exclude_vehicles=None):
         """
         Actualiza el estado del sistema por un paso de tiempo
         MEJORADO: Incluye procesamiento de solicitudes y monitoreo
         """
         self.simulation_time += dt
+        if exclude_vehicles is None:
+            exclude_vehicles = set()
         
         # 1. Actualizar movimiento en la red
-        self.network.update_vehicles(dt)
+        self.network.update_vehicles(dt, exclude_vehicles=exclude_vehicles)
         
         # 2. Procesar transiciones entre tracks
         self._handle_track_transitions()

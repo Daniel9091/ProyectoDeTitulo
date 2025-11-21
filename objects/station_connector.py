@@ -42,57 +42,62 @@ class StationConnector(Track):
         if vehicle.vehicle_id in self.vehicles:
             del self.vehicles[vehicle.vehicle_id]
     
-    def update_vehicles(self, dt):
+    def update_vehicles(self, dt, exclude_vehicles=None):
         """
         Actualiza la posición de todos los vehículos en el connector
         
         Returns:
-            Lista de vehículos que completaron el track
+            Lista de tuplas (vehículo, tiempo_sobrante) que completaron el track
         """
         completed_vehicles = []
+        if exclude_vehicles is None:
+            exclude_vehicles = set()
         
         for vehicle_id, vehicle_data in list(self.vehicles.items()):
+            if vehicle_id in exclude_vehicles:
+                continue
             vehicle = vehicle_data['vehicle']
-            finished_data = self.update_single_vehicle(vehicle, dt)
-            if finished_data:
-                # El vehículo ha terminado, pero la transferencia se gestiona en Network.
-                # update_single_vehicle ya actualizó la posición.
-                completed_vehicles.append(vehicle)
+            time_left = self.update_vehicle_progress(vehicle, dt)
+            
+            # Si time_left es mayor que 0, el vehículo ha completado el track.
+            if time_left > 0:
+                completed_vehicles.append((vehicle, time_left))
         
         return completed_vehicles
 
-    def update_single_vehicle(self, vehicle, dt):
-        """Actualiza un solo vehículo y devuelve datos si termina."""
+    def update_vehicle_progress(self, vehicle, time_delta):
+        """
+        Actualiza el progreso de un solo vehículo por un delta de tiempo.
+        Devuelve el tiempo sobrante si el vehículo completa el track.
+        """
         if vehicle.vehicle_id not in self.vehicles:
-            return None
+            return 0.0
 
         vehicle_data = self.vehicles[vehicle.vehicle_id]
         progress = vehicle_data['progress']
         
-        distance_to_travel = self.speed * dt
+        # Si ya está al final, no hacer nada.
+        if progress >= 1.0:
+            return time_delta
+
+        distance_to_travel = self.speed * time_delta
         progress_increment = distance_to_travel / self.length if self.length > 0 else 0
         new_progress = progress + progress_increment
         
-        time_left = 0
+        time_left = 0.0
         if new_progress >= 1.0:
             # Calcular el tiempo sobrante
-            distance_over = (new_progress - 1.0) * self.length
-            time_over = distance_over / self.speed if self.speed > 0 else 0
-            time_left = dt - (dt - time_over)
+            if self.speed > 0:
+                time_to_reach_end = ((1.0 - progress) * self.length) / self.speed
+                time_left = time_delta - time_to_reach_end
             new_progress = 1.0
-        else:
-            time_left = 0
             
         # Actualizar datos del vehículo
         vehicle_data['progress'] = new_progress
         vehicle_data['current_position'] = self.calculate_position_at_progress(new_progress)
         vehicle.current_position = vehicle_data['current_position']
 
-        if new_progress >= 1.0:
-            # Devuelve True para indicar que el vehículo ha completado el track.
-            # El tiempo sobrante (time_left) no se está utilizando actualmente, pero se podría devolver si fuera necesario.
-            return True
-        return None
+        return max(0.0, time_left)
     
     def get_vehicle_position(self, vehicle):
         """Obtiene la posición 3D actual del vehículo"""

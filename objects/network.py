@@ -71,23 +71,25 @@ class Network:
         
         print("🗺️  Mapa de predecesores de la red construido.")
 
-    def update_vehicles(self, dt):
+    def update_vehicles(self, dt, exclude_vehicles=None):
         """Actualiza movimiento de vehículos (sin cambios)"""
         vehicles_to_transfer = []
+        if exclude_vehicles is None:
+            exclude_vehicles = set()
         
         try:
             for track_id, track in list(self.tracks.items()):
                 try:
-                    finished_vehicles = track.update_vehicles(dt)
-                    for vehicle in finished_vehicles:
-                        vehicles_to_transfer.append((vehicle, track_id))
+                    finished_vehicles = track.update_vehicles(dt, exclude_vehicles=exclude_vehicles)
+                    for vehicle, time_left in finished_vehicles:
+                        vehicles_to_transfer.append((vehicle, track_id, time_left))
                 except Exception as e:
                     print(f"ERROR: actualizando track {track_id}: {e}")
                     continue
             
-            for vehicle, current_track_id in vehicles_to_transfer:
+            for vehicle, current_track_id, time_left in vehicles_to_transfer:
                 try:
-                    self._transfer_vehicle(vehicle, current_track_id)
+                    self._transfer_vehicle(vehicle, current_track_id, time_left)
                 except Exception as e:
                     print(f"ERROR: transfiriendo vehículo {vehicle.vehicle_id}: {e}")
                     continue
@@ -95,7 +97,7 @@ class Network:
         except Exception as e:
             print(f"ERROR crítico en Network.update_vehicles: {e}")
 
-    def _transfer_vehicle(self, vehicle, current_track_id):
+    def _transfer_vehicle(self, vehicle, current_track_id, time_left):
         """Transfiere vehículo entre tracks"""
 
         if current_track_id not in self.tracks:
@@ -156,6 +158,11 @@ class Network:
 
             # Usar el método centralizado que también actualiza la velocidad del VM
             vehicle.transfer_to_track(next_track, entry_velocity=exit_velocity_magnitude)
+
+            # --- ¡PASO 1 CLAVE! ---
+            # Aplicar el tiempo sobrante en el nuevo track.
+            if time_left > 0:
+                next_track.update_vehicle_progress(vehicle, time_left)
             
         except Exception as e:
             print(f"ERROR en transferencia de vehículo {vehicle.vehicle_id}: {e}")

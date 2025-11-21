@@ -55,6 +55,18 @@ class Track(ABC):
         pass
     
     @abstractmethod
+    def update_vehicle_progress(self, vehicle, time_delta):
+        """
+        Actualiza el progreso de un solo vehículo por un delta de tiempo específico.
+        Utilizado para aplicar el "tiempo sobrante" de un track anterior.
+
+        Args:
+            vehicle: La instancia del vehículo a mover.
+            time_delta: El pequeño intervalo de tiempo a simular.
+        """
+        pass
+
+    @abstractmethod
     def get_vehicle_position(self, vehicle):
         """
         Obtiene la posición 3D actual de un vehículo en el track

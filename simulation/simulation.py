@@ -48,6 +48,9 @@ class Simulation:
             {'pos': Vector3(1060.5657745646513, 0.0, -20.0), 'color': (0, 255, 255), 'label': 'Test_Zone'}
         ]
 
+        # NUEVO: Set para registrar colisiones y evitar logs repetidos
+        self.logged_collisions = set()
+
         self.init_simulation()
     
     def init_simulation(self):
@@ -64,14 +67,15 @@ class Simulation:
         
         self.brain.passengers.clear()
         self.passengers.clear()
+        self.logged_collisions.clear() # Limpiar el registro de colisiones
         # Usar el Builder para configurar la simulación
         builder = SimulationBuilder(self)
   
         try:
             # 1. Estaciones
-            builder.add_station("1", "North Station", Vector3(425, 0, 0), target_vehicles_per_second=5/60)
-            builder.add_station("2", "Central Station", Vector3(1425, 0, 0), target_vehicles_per_second=30/60) # 0.5 VMs/sec
-            builder.add_station("3", "South Station", Vector3(2425, 0, 0), target_vehicles_per_second=10/60)
+            builder.add_station("1", "North Station", Vector3(425, 0, 0), target_vehicles_per_second=0*5/60)
+            builder.add_station("2", "Central Station", Vector3(1425, 0, 0), target_vehicles_per_second=0*30/60) # 0.5 VMs/sec
+            builder.add_station("3", "South Station", Vector3(2425, 0, 0), target_vehicles_per_second=0*10/60)
             # (Estaciones cada 1km)
 
             # 2. Árboles de Aceleración
@@ -155,8 +159,8 @@ class Simulation:
             self.spawn_system.add_spawn_point(
             spawn_id="S",
             track_id=8,             # Iniciar en el track 
-            spawn_interval=0.2,     # Cada x segundos sale un nuevo VM (ideal 0.075)
-            max_vehicles=500,       # Máximo x VMs 
+            spawn_interval=0.07,     # Cada x segundos sale un nuevo VM (ideal 0.075)
+            max_vehicles=300,       # Máximo x VMs 
             vehicle_capacity=2,     # Capacidad de cada VM
             destination_station_id=None  # Destino
         )
@@ -237,10 +241,20 @@ class Simulation:
         # Sincronizar la lista de pasajeros con el Brain
         self.passengers = self.brain.passengers
 
+        # --- LÓGICA DE ACTUALIZACIÓN SINCRONIZADA ---
         scaled_dt = dt * self.time_scale
 
-        # Actualizar sistema de spawn antes de Brain
-        self.spawn_system.update(self, scaled_dt)
+        # 1. Determinar qué vehículos se deben crear en este frame y su tiempo de movimiento inicial.
+        newly_spawned_info = self.spawn_system.update(self, scaled_dt)
+        
+        # 2. Mover los vehículos recién creados por su tiempo inicial.
+        # Estos vehículos ya han sido "actualizados" para este frame.
+        newly_spawned_vehicles = set()
+        for vehicle, initial_time in newly_spawned_info:
+            if vehicle and vehicle.current_track and initial_time > 0:
+                vehicle.current_track.update_vehicle_progress(vehicle, initial_time)
+            if vehicle:
+                newly_spawned_vehicles.add(vehicle.vehicle_id)
         
         # Actualizar el sistema de spawn de pasajeros.
         self.passenger_spawn_system.update(scaled_dt)
@@ -257,7 +271,8 @@ class Simulation:
                 self.time_scale = self.pre_rewind_scale
         else:
             # Actualización normal usando Brain
-            self.brain.update(scaled_dt)
+            # Pasamos los vehículos recién creados para que no se actualicen dos veces.
+            self.brain.update(scaled_dt, exclude_vehicles=newly_spawned_vehicles)
 
     def handle_command(self, command):                                                          # Maneja comandos de entrada para controlar la simulación y la cámara       
         # Control de escala de tiempo

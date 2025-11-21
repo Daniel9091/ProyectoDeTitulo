@@ -19,16 +19,35 @@ class SpawnPoint:
     def update(self, simulation, dt):
         """Actualiza el spawn point y genera vehículos si es tiempo"""
         if not self.active or self.spawned_count >= self.max_vehicles:
-            return None
+            return []
+        
+        newly_spawned_with_time = []
         
         # ✅ CORRECCIÓN: Acumular tiempo desde último spawn
         self.time_since_last_spawn += dt
-        
-        if self.time_since_last_spawn >= self.spawn_interval:
+
+        # --- LÓGICA MEJORADA ---
+        # Usar un bucle 'while' para manejar casos donde dt es muy grande
+        # y se deben generar múltiples vehículos en un solo frame.
+        while self.time_since_last_spawn >= self.spawn_interval:
+            if self.spawned_count >= self.max_vehicles:
+                self.active = False
+                break # Salir del bucle si alcanzamos el máximo
+
+            # --- LÓGICA DE PRECISIÓN TEMPORAL ---
+            # 1. Calcular el tiempo que el reloj "se pasó" del intervalo.
+            # Este es el tiempo que el vehículo debería haberse movido desde su momento teórico de creación.
+            overshoot_time = self.time_since_last_spawn - self.spawn_interval
+            initial_movement_time = max(0, overshoot_time)
+
+            # 2. Crear el vehículo.
             vehicle = self.spawn_vehicle(simulation)
-            self.time_since_last_spawn = 0  # Resetear contador
-            return vehicle
-        return None
+
+            if vehicle:
+                newly_spawned_with_time.append((vehicle, initial_movement_time))
+
+            self.time_since_last_spawn -= self.spawn_interval  # Conservar el tiempo sobrante
+        return newly_spawned_with_time
     
     def spawn_vehicle(self, simulation):
         """Genera un nuevo vehículo en el track asignado"""
@@ -107,13 +126,10 @@ class SpawnSystem:
         
     def update(self, simulation, dt):
         """Actualiza todos los spawn points con el delta time"""
-        spawned_vehicles = []
+        all_newly_spawned = []
         for spawn_point in self.spawn_points.values():
-            vehicle = spawn_point.update(simulation, dt)
-            if vehicle:
-                spawned_vehicles.append(vehicle)
-                
-        return spawned_vehicles
+            all_newly_spawned.extend(spawn_point.update(simulation, dt))
+        return all_newly_spawned
     
     def get_status(self):
         """Retorna estado del sistema de spawn"""

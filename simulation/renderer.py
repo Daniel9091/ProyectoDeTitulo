@@ -4,6 +4,8 @@ import math
 from objects.base import Vector3
 from objects.passenger import Passenger # (Añade esto con las otras importaciones de 'objects')
 
+
+
 class Renderer:
     def __init__(self, screen, camera):
         self.screen = screen
@@ -21,7 +23,7 @@ class Renderer:
 
         # Dibujar vehículos
         for vehicle in simulation.vehicles:
-            self.draw_vehicle(vehicle)
+            self.draw_vehicle(vehicle, simulation)
 
         # --- NUEVO BUCLE ---
         # Dibujar pasajeros
@@ -206,7 +208,7 @@ class Renderer:
                     # Bordes de la cara inferior
                     pygame.draw.line(self.screen, color, vertices_2d[i+4], vertices_2d[next_i+4], 1)
         
-    def draw_vehicle(self, vehicle):
+    def draw_vehicle(self, vehicle,simulation):
         """Dibuja un vehículo modular con dimensiones 1m (largo) × 1m (ancho) × 1.5m (alto)"""
         # NUEVAS DIMENSIONES según especificaciones
         length = 1.0    # 1 metro de largo (eje X)
@@ -247,6 +249,33 @@ class Renderer:
             # Color según el estado del vehículo
             if vehicle.is_colliding:
                 color = (255, 0, 255) # Magenta brillante para colisión
+
+                # # --- NUEVO: LOGGING DE DIAGNÓSTICO DE COLISIÓN ---
+                # # Solo registrar la colisión una vez por cada par de vehículos
+                # collision_pair = tuple(sorted((vehicle.vehicle_id, *vehicle.colliding_with)))
+                # if collision_pair not in simulation.logged_collisions:
+                #     simulation.logged_collisions.add(collision_pair)
+                    
+                #     print("\n" + "="*30 + " 💥 COLISIÓN DETECTADA 💥 " + "="*30)
+                #     print(f"Tiempo de Simulación: {simulation.brain.simulation_time:.3f}s")
+                    
+                #     # Obtener las instancias de los vehículos que chocan
+                #     colliding_vehicles = [v for v in simulation.vehicles if v.vehicle_id in collision_pair]
+
+                #     for v in colliding_vehicles:
+                #         track_id = v.current_track.track_id if v.current_track else "N/A"
+                #         track_type = v.current_track.get_track_type() if v.current_track else "N/A"
+                #         progress = v.current_track.get_vehicle_progress(v) if v.current_track else -1.0
+                        
+                #         print(f"\n--- Vehículo Implicado: {v.vehicle_id} ---")
+                #         print(f"  - Estado: {v.state}")
+                #         print(f"  - Track Actual: ID {track_id} (Tipo: {track_type})")
+                #         print(f"  - Progreso en Track: {progress:.4f}")
+                #         print(f"  - Velocidad: {v.velocity.length():.2f} m/s")
+                #         print(f"  - Posición: {v.current_position}")
+                #     print("="*80 + "\n")
+                # # --- FIN LOGGING ---
+
             elif vehicle.current_station and not vehicle.current_track:
                 color = (255, 200, 0)  # Amarillo para "pasando por estación"
             elif vehicle.state in ["accelerating_down", "accelerating_up"]:
