@@ -110,3 +110,96 @@ Cambios a Realizar:
 Modificar la clase simulation/spawn_system.py.
 En el método SpawnPoint.update, cambiar la línea self.time_since_last_spawn = 0 por self.time_since_last_spawn -= self.spawn_interval. Esto preserva el tiempo excedente ("overshoot") para el siguiente ciclo, asegurando un intervalo promedio exacto.
 Una vez completados estos dos "pasos intermedios", la base de la simulación será mucho más sólida, y podremos continuar con los Pasos 2 y 3 del plan original (robustecer la predicción de colisiones) con la confianza de que el movimiento y la generación de vehículos son precisos.
+
+
+
+
+####  Caso de prueba y
+
+Caso de Prueba: "La Unión en Y" para la Predicción de Colisiones
+Objetivo: Verificar que la refactorización del Paso 2 ("Robustecer la Búsqueda de la Predicción") funciona correctamente. Específicamente, este caso de prueba está diseñado para confirmar que el sistema de predicción de colisiones ya no sufre del problema del "Camino Único" (P3) y ahora es capaz de detectar vehículos en conflicto que se aproximan a una unión desde múltiples vías de entrada.
+
+1. Cómo Preparar el Entorno de Prueba
+Para ejecutar esta prueba, se debe modificar temporalmente el fichero simulation/simulation.py para crear una red simple y controlada.
+
+Acción: En el método init_simulation de la clase SimulationBuilder dentro de simulation/simulation.py, comenta la configuración de red y vehículos existente y reemplázala con la siguiente configuración de prueba.
+
+python
+ Show full code block 
+# DENTRO DE: SimulationBuilder.init_simulation() en simulation/simulation.py
+
+try:
+    # 1. Estaciones (se pueden mantener o comentar, no afectan la prueba)
+    builder.add_station("1", "North Station", Vector3(425, 0, 0))
+    # ... (resto de estaciones)
+
+    # =================================================================
+    # --- INICIO DE LA CONFIGURACIÓN DEL CASO DE PRUEBA ---
+    # =================================================================
+
+    # A. CREAR LA GEOMETRÍA DE LA "UNIÓN EN Y"
+    # Un árbol de descenso que apunta a la unión en (1000, 0, -20)
+    builder.add_acceleration_tree(100, "1", Vector3(1000, 20, 0), Vector3(1000, 0, -20), "down")
+    # La vía común que sale de la unión
+    builder.add_connector(101, Vector3(1000, 0, -20), Vector3(1200, 0, -20))
+    # Las dos ramas que se fusionan en la unión (Ruta A y Ruta B)
+    builder.add_connector(102, Vector3(800, 50, -20), Vector3(1000, 0, -20)) # Ruta A
+    builder.add_connector(103, Vector3(800, -50, -20), Vector3(1000, 0, -20)) # Ruta B
+    # Un track de preparación para el vehículo que va a descender
+    builder.add_connector(104, Vector3(950, 20, 0), Vector3(1000, 20, 0))
+
+    # B. CONECTAR LOS TRACKS DE LA "UNIÓN EN Y"
+    builder.connect_tracks(102, 101) # Ruta A se conecta a la Vía Común
+    builder.connect_tracks(103, 101) # Ruta B se conecta a la Vía Común
+    builder.connect_tracks(100, 101) # El Árbol de Descenso se conecta a la Vía Común
+    builder.connect_tracks(104, 100) # El track de preparación se conecta al Árbol de Descenso
+
+    # C. COMENTAR LA CONFIGURACIÓN ORIGINAL
+    # Comenta o elimina las secciones originales de "Conectores Subterráneos",
+    # "Conexiones de los conectores", "Conexiones de los arboles", etc.
+    # para que no interfieran con la prueba.
+
+    # D. AÑADIR Y POSICIONAR LOS VEHÍCULOS DE PRUEBA
+    # Comenta el SpawnSystem original
+    # self.spawn_system.add_spawn_point(...)
+
+    # Añadir los 3 vehículos necesarios para la prueba
+    builder.add_vehicle(1, 2, "1") # VM Descendiente
+    builder.add_vehicle(2, 2, "1") # VM Conflicto en Ruta A
+    builder.add_vehicle(3, 2, "1") # VM Conflicto en Ruta B
+
+    # Posicionar los vehículos en sus tracks de inicio
+    builder.start_vehicle_on_track(1, 104) # VM Descendiente, listo para bajar por el árbol 100.
+    builder.start_vehicle_on_track(2, 102) # VM Conflicto, en la Ruta A.
+    builder.start_vehicle_on_track(3, 103) # VM Conflicto, en la Ruta B.
+
+    # =================================================================
+    # --- FIN DE LA CONFIGURACIÓN DEL CASO DE PRUEBA ---
+    # =================================================================
+
+    # 7. Iniciar tree selector y demás configuraciones finales...
+    tree_selector = TreeSelector(self.brain)
+    # ... (el resto del código de configuración puede permanecer)
+
+2. Cómo Ejecutar las Pruebas
+Una vez que el entorno está preparado, la prueba se realiza en tres partes para verificar cada escenario de forma aislada y luego en conjunto.
+
+Prueba 1: Conflicto solo en Ruta A
+
+En el código de prueba anterior, comenta la línea que posiciona al vehículo de la Ruta B: # builder.start_vehicle_on_track(3, 103)
+Ejecuta la simulación: python3 -m simulation.main.
+Resultado Esperado: La consola debe mostrar una alerta 🚨 ALERTA DE COLISIÓN FUTURA 🚨 que mencione al VM descendiendo: _1_1 y al VM en conflicto: _1_2 (en el track 102).
+Prueba 2: Conflicto solo en Ruta B
+
+Comenta la línea del vehículo de la Ruta A y descomenta la de la Ruta B: # builder.start_vehicle_on_track(2, 102) builder.start_vehicle_on_track(3, 103)
+Ejecuta la simulación.
+Resultado Esperado: La consola debe mostrar una alerta de colisión que mencione al VM descendiendo: _1_1 y al VM en conflicto: _1_3 (en el track 103).
+Prueba 3: La Prueba Definitiva (Conflicto en ambas rutas)
+
+Asegúrate de que las líneas de posicionamiento de los tres vehículos estén activas.
+Ejecuta la simulación.
+Resultado Esperado: La consola debe mostrar DOS alertas de colisión distintas: una para el conflicto con el vehículo 2 y otra para el conflicto con el vehículo 3.
+3. Cómo Restaurar la Simulación
+Una vez completadas las pruebas, simplemente elimina o comenta todo el bloque de "CONFIGURACIÓN DEL CASO DE PRUEBA" y descomenta la configuración original de la red y del SpawnSystem en simulation.py para volver al funcionamiento normal.
+
+Con este documento, cuando decidas que es el momento, podremos realizar la prueba de forma rápida y eficiente.

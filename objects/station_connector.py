@@ -80,15 +80,19 @@ class StationConnector(Track):
         if progress >= 1.0:
             return time_delta
 
-        distance_to_travel = self.speed * time_delta
+        # --- ¡SOLUCIÓN! ---
+        # Usar la velocidad específica del vehículo, que puede ser diferente
+        # si acaba de entrar desde una rampa.
+        vehicle_speed = vehicle_data.get('velocity', self.speed)
+        distance_to_travel = vehicle_speed * time_delta
         progress_increment = distance_to_travel / self.length if self.length > 0 else 0
         new_progress = progress + progress_increment
         
         time_left = 0.0
         if new_progress >= 1.0:
             # Calcular el tiempo sobrante
-            if self.speed > 0:
-                time_to_reach_end = ((1.0 - progress) * self.length) / self.speed
+            if vehicle_speed > 0:
+                time_to_reach_end = ((1.0 - progress) * self.length) / vehicle_speed
                 time_left = time_delta - time_to_reach_end
             new_progress = 1.0
             

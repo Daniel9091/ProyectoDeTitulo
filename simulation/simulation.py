@@ -73,9 +73,9 @@ class Simulation:
   
         try:
             # 1. Estaciones
-            builder.add_station("1", "North Station", Vector3(425, 0, 0), target_vehicles_per_second=0*5/60)
-            builder.add_station("2", "Central Station", Vector3(1425, 0, 0), target_vehicles_per_second=0*30/60) # 0.5 VMs/sec
-            builder.add_station("3", "South Station", Vector3(2425, 0, 0), target_vehicles_per_second=0*10/60)
+            builder.add_station("1", "North Station", Vector3(425, 0, 0), target_vehicles_per_second=5/60)
+            builder.add_station("2", "Central Station", Vector3(1425, 0, 0), target_vehicles_per_second=30/60) # 0.5 VMs/sec
+            builder.add_station("3", "South Station", Vector3(2425, 0, 0), target_vehicles_per_second=10/60)
             # (Estaciones cada 1km)
 
             # 2. Árboles de Aceleración
@@ -160,7 +160,7 @@ class Simulation:
             spawn_id="S",
             track_id=8,             # Iniciar en el track 
             spawn_interval=0.07,     # Cada x segundos sale un nuevo VM (ideal 0.075)
-            max_vehicles=300,       # Máximo x VMs 
+            max_vehicles=100,       # Máximo x VMs 
             vehicle_capacity=2,     # Capacidad de cada VM
             destination_station_id=None  # Destino
         )

@@ -169,106 +169,98 @@ class Network:
             import traceback
             traceback.print_exc()
 
+    def _find_vehicles_in_danger_zone_recursive(self, time_to_check, current_track, visited_tracks):
+        """
+        Función recursiva para buscar vehículos en la "zona de peligro" hacia atrás,
+        explorando todas las ramas predecesoras.
+        """
+        if not current_track or not isinstance(current_track, StationConnector) or current_track.track_id in visited_tracks:
+            return
+
+        visited_tracks.add(current_track.track_id)
+
+        # Calcular el tiempo necesario para cruzar el track actual
+        time_to_cross_current_track = current_track.length / current_track.speed if current_track.speed > 0 else float('inf')
+
+        if time_to_check <= time_to_cross_current_track:
+            # El punto de peligro está DENTRO de este track.
+            # Calculamos la distancia de peligro DENTRO de este track específico.
+            danger_distance_in_track = time_to_check * current_track.speed
+            
+            # El progreso se mide desde el inicio, pero la distancia de peligro se mide desde el final.
+            progress_at_danger_point = (current_track.length - danger_distance_in_track) / current_track.length
+            
+            # Comprobar si hay algún vehículo cerca de ese punto de peligro.
+            collision_margin = 0.6 # Margen de 0.6 metros
+            progress_margin = collision_margin / current_track.length if current_track.length > 0 else 0
+
+            for other_vehicle_id, data in current_track.vehicles.items():
+                progress = data['progress']
+                if abs(progress - progress_at_danger_point) < progress_margin:
+                    # ¡Riesgo de colisión detectado! Devolvemos la información.
+                    distance_to_junction_for_other = (1 - progress) * current_track.length
+                    time_to_junction_for_other = distance_to_junction_for_other / current_track.speed if current_track.speed > 0 else float('inf')
+                    
+                    yield {
+                        'vehicle': data['vehicle'],
+                        'track': current_track,
+                        'time_to_junction': time_to_junction_for_other
+                    }
+        else:
+            # El punto de peligro está más atrás. Restamos el tiempo y saltamos a los tracks anteriores.
+            time_left_to_check = time_to_check - time_to_cross_current_track
+            
+            predecessor_ids = self.predecessors.get(current_track.track_id, [])
+            for pred_id in predecessor_ids:
+                predecessor_track = self.tracks.get(pred_id)
+                # La recursión continúa por cada rama predecesora.
+                yield from self._find_vehicles_in_danger_zone_recursive(time_left_to_check, predecessor_track, visited_tracks)
+
     def _check_for_future_collision_at_junction(self, descending_vehicle, from_track, descending_tree: AccelerationTree):
         """
-        Predice colisiones usando el método de "distancia de peligro".
+        Predice colisiones usando una búsqueda recursiva hacia atrás para encontrar vehículos en la "zona de peligro".
         """
         # 1. Calcular el tiempo 'T' que tardará el VM en bajar por el árbol.
-        # (!) CORRECCIÓN: Usar la velocidad del track anterior como velocidad inicial.
-        # from_track es el StationConnector del que viene el vehículo.
+        # --- ¡PASO 3 CLAVE! ---
+        # Obtener el progreso actual del vehículo en el árbol de descenso.
+        # Este progreso puede ser > 0 si el vehículo entró con "tiempo sobrante".
+        start_progress = descending_tree.get_vehicle_progress(descending_vehicle)
         initial_velocity_for_tree = from_track.speed
-
-        time_to_junction = descending_tree.get_time_to_complete(initial_velocity=initial_velocity_for_tree)
+        # Pasar el progreso inicial para un cálculo de tiempo exacto.
+        time_to_junction = descending_tree.get_time_to_complete(initial_velocity=initial_velocity_for_tree, start_progress=start_progress)
 
         if time_to_junction is None or time_to_junction <= 0:
             return
 
-        # 2. Identificar el track que COMIENZA en el nodo de unión (al que se conecta el árbol).
+        # 2. Identificar el track que COMIENZA en la unión (al que se conecta el árbol).
         junction_exit_track_ids = self.adjacency.get(descending_tree.track_id, [])
         if not junction_exit_track_ids:
             return
         junction_exit_track_id = junction_exit_track_ids[0]
 
-        # 3. Usar el mapa de predecesores para encontrar los tracks que LLEGAN a la unión.
+        # 3. Encontrar los tracks que LLEGAN a la unión.
         previous_track_ids = self.predecessors.get(junction_exit_track_id, [])
 
-        # 4. Iterar sobre los tracks en conflicto (los que no son el propio árbol descendente).
+        # 4. Para cada track que llega a la unión, iniciar la búsqueda recursiva.
         for track_id in previous_track_ids:
             if track_id == descending_tree.track_id:
                 continue
 
             conflicting_track = self.tracks.get(track_id)
-            if not (conflicting_track and isinstance(conflicting_track, StationConnector)):
-                continue
-
-            # 5. Lógica de búsqueda hacia atrás basada en TIEMPO, no en una distancia pre-calculada.
-            time_left = time_to_junction
-            current_track = conflicting_track
-
-            # 6. Retroceder por los tracks "gastando" el tiempo_a_la_union.
-            while True:
-                if current_track.speed <= 0: # No se puede viajar en este track
-                    current_track = None
-                    break
-                
-                time_to_cross_current_track = current_track.length / current_track.speed
-                
-                if time_left <= time_to_cross_current_track:
-                    # El punto de peligro está DENTRO de este track.
-                    break
-                
-                # El punto de peligro está más atrás. Restamos el tiempo y saltamos al track anterior.
-                time_left -= time_to_cross_current_track
-                preds = self.predecessors.get(current_track.track_id, [])
-                if not preds:
-                    current_track = None
-                    break
-                
-                current_track = self.tracks.get(preds[0])
-                if not (current_track and isinstance(current_track, StationConnector)):
-                    current_track = None
-                    break
             
-            # 7. Si encontramos el track donde podría estar el vehículo en conflicto.
-            if current_track:
-                # Calculamos la distancia de peligro DENTRO de este track específico.
-                danger_distance_in_track = time_left * current_track.speed
-                
-                # El progreso se mide desde el inicio, pero la distancia de peligro se mide desde el final.
-                progress_at_danger_point = (current_track.length - danger_distance_in_track) / current_track.length
-                
-                # (+) DEBUG: Calcular y mostrar la coordenada 3D del punto de peligro.
-                danger_position_3d = current_track.calculate_position_at_progress(progress_at_danger_point)
-                # print(f"DEBUG: Punto de peligro para VM descendiente {descending_vehicle.vehicle_id} está en Track {current_track.track_id} en coords {danger_position_3d}")
+            # Iniciar la búsqueda recursiva para esta rama conflictiva.
+            found_conflicts = self._find_vehicles_in_danger_zone_recursive(time_to_junction, conflicting_track, set())
 
-                # 8. Comprobar si hay algún vehículo cerca de ese punto de peligro.
-                collision_margin = 0.6 # Margen de 0.6 metros
-                progress_margin = collision_margin / current_track.length
-
-                for other_vehicle_id, data in current_track.vehicles.items():
-                    other_vehicle = data['vehicle']
-                    progress = data['progress']
-
-                    # Comprobar si el progreso del vehículo está dentro del margen del punto de peligro.
-                    if abs(progress - progress_at_danger_point) < progress_margin:
-                        # ¡Riesgo de colisión detectado!
-
-                        # El cálculo de tiempo del otro vehículo ahora es más simple, ya que no necesitamos
-                        # el acumulador 'time_through_intermediate_tracks'. La lógica de búsqueda ya nos
-                        # ha posicionado en el track correcto.
-                        distance_to_junction_for_other = (1 - progress) * current_track.length
-                        time_to_junction_for_other = distance_to_junction_for_other / current_track.speed
-                        # (Nota: Este cálculo de tiempo para el otro vehículo aún asume que llegará a la unión sin pasar por más tracks, lo cual es una simplificación aceptable para la alerta).
-
-                        # Mostramos el panel informativo.
-                        print("\n" + "="*30)
-                        print(f"🚨 ALERTA DE COLISIÓN FUTURA 🚨")
-                        print(f"  - VM descendiendo: {descending_vehicle.vehicle_id} (en árbol {descending_tree.track_id})")
-                        print(f"    -> Tiempo a unión: {time_to_junction:.2f} s")
-                        print(f"  - VM en conflicto: {other_vehicle.vehicle_id} (en track {current_track.track_id})")
-                        print(f"    -> Tiempo a unión (corregido): {time_to_junction_for_other:.2f} s")
-                        print(f"  - Diferencia de tiempo estimada: {abs(time_to_junction - time_to_junction_for_other):.3f} s en la unión del track {junction_exit_track_id}")
-                        print("="*30 + "\n")
+            for conflict in found_conflicts:
+                # Mostramos el panel informativo para cada conflicto encontrado.
+                print("\n" + "="*30)
+                print(f"🚨 ALERTA DE COLISIÓN FUTURA 🚨")
+                print(f"  - VM descendiendo: {descending_vehicle.vehicle_id} (en árbol {descending_tree.track_id})")
+                print(f"    -> Tiempo a unión: {time_to_junction:.2f} s")
+                print(f"  - VM en conflicto: {conflict['vehicle'].vehicle_id} (en track {conflict['track'].track_id})")
+                print(f"    -> Tiempo a unión (estimado): {conflict['time_to_junction']:.2f} s")
+                print(f"  - Diferencia de tiempo estimada: {abs(time_to_junction - conflict['time_to_junction']):.3f} s en la unión del track {junction_exit_track_id}")
+                print("="*30 + "\n")
 
     # ========== LÓGICA DE NAVEGACIÓN REFACTORIZADA ==========
 

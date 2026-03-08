@@ -194,7 +194,7 @@ class AccelerationTree(Track):
         
         time_left = 0.0
         if new_progress >= 1.0:
-            time_to_end = self.get_time_to_complete(initial_velocity=current_velocity)
+            time_to_end = self.get_time_to_complete(initial_velocity=current_velocity, start_progress=progress)
             if time_to_end is not None and time_to_end < time_delta:
                 time_left = time_delta - time_to_end
             new_progress = 1.0
@@ -278,29 +278,38 @@ class AccelerationTree(Track):
         })
         return base_status
     
-    def get_time_to_complete(self, initial_velocity=None):
-        """Calcula tiempo teórico para completar el árbol (existente)"""
+    def get_time_to_complete(self, initial_velocity=None, start_progress=0.0):
+        """
+        Calcula el tiempo teórico para completar el árbol desde un progreso inicial.
+        """
         v0 = initial_velocity if initial_velocity is not None else self.initial_velocity
         a = self.acceleration
-        discriminant = v0**2 + 2 * a * self.length
+
+        # Si ya está al final o más allá, el tiempo es 0.
+        if start_progress >= 1.0:
+            return 0.0
+
+        remaining_length = self.length * (1.0 - start_progress)
+
+        # Usamos la ecuación: d = v0*t + 0.5*a*t^2, que se convierte en una ecuación cuadrática para t:
+        # 0.5*a*t^2 + v0*t - d = 0
+        # donde d es la distancia restante.
+        
+        # Coeficientes para la fórmula cuadrática At^2 + Bt + C = 0
+        A = 0.5 * a
+        B = v0
+        C = -remaining_length
+
+        # Si no hay aceleración, el tiempo es simplemente distancia/velocidad.
+        if abs(A) < 1e-6:
+            return remaining_length / B if B > 0 else None
+
+        discriminant = B**2 - 4 * A * C
         
         if discriminant < 0:
             return None
             
-        # Soluciones de la ecuación cuadrática para el tiempo
-        t1 = (-v0 + math.sqrt(discriminant)) / a
-        t2 = (-v0 - math.sqrt(discriminant)) / a
+        # La solución físicamente correcta para el tiempo es la positiva.
+        t = (-B + math.sqrt(discriminant)) / (2 * A)
         
-        # Filtrar solo las soluciones positivas (físicamente posibles)
-        positive_times = []
-        if t1 > 0:
-            positive_times.append(t1)
-        if t2 > 0:
-            positive_times.append(t2)
-
-        # Si hay soluciones positivas, devolver la más pequeña.
-        # La solución más pequeña es la primera vez que el objeto alcanza la posición.
-        if positive_times:
-            return min(positive_times)
-        
-        return None # No hay un tiempo de viaje positivo posible
+        return t if t > 0 else None

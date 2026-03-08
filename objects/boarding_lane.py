@@ -98,7 +98,7 @@ class BoardingLane(StationConnector):
         # 2. Llamar al método de la clase padre para remover el vehículo
         super().remove_vehicle(vehicle)
 
-    def update_vehicles(self, dt: float, exclude_vehicles=None) -> list:
+    def update_vehicles(self, dt: float, exclude_vehicles=None) -> List[tuple]:
         """
         Sobrescribe el método de la clase padre para sincronizar las posiciones
         de los pasajeros durante el embarque en movimiento.
