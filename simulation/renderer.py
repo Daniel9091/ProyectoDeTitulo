@@ -2,66 +2,95 @@ import pygame
 from ui.info_panel import draw_info_panel
 import math
 from objects.base import Vector3
-from objects.passenger import Passenger # (Añade esto con las otras importaciones de 'objects')
+from objects.passenger import Passenger 
 
 
 
 class Renderer:
+    # ─────────────────────────────────────────────────────────────────
+    # CULL_MARGIN: margen de culling para vehículos y pasajeros.
+    #
+    #   = 0   → se dibuja exactamente lo que cabe en la ventana (normal)
+    #   > 0   → se dibuja un poco más allá del borde (por si algo se corta)
+    #   < 0   → se dibuja MENOS que la ventana completa (útil para demos:
+    #            verás un rectángulo amarillo que indica el área activa y
+    #            los VMs fuera de él desaparecerán)
+    #
+    # Ejemplo para el experimento: cambia a -200 y verás el efecto visual.
+    # Para producción déjalo en 0.
+    # ─────────────────────────────────────────────────────────────────
+    CULL_MARGIN = 0
+
     def __init__(self, screen, camera):
         self.screen = screen
         self.camera = camera
-    
+        # Cache de fuentes para evitar SysFont() en cada frame
+        self._font_debug = pygame.font.SysFont('Arial', 12)
+        self._font_label = pygame.font.SysFont('Arial', 14, bold=True)
+        # Estadísticas de rendering (actualizadas cada frame)
+        self._vehicles_drawn = 0
+        self._vehicles_total = 0
+
     def draw(self, simulation):
         self.screen.fill((20, 20, 30))
-        
-        # Dibujar todos los tracks de la red (conectores y árboles de aceleración)
+
+        # Tracks: siempre se dibujan (son ~20 y estáticos, costo mínimo)
         self.draw_network_tracks(simulation.network)
-        
-        # Dibujar estaciones
+
+        # Estaciones
         for station in simulation.stations:
             self.draw_station(station)
 
-        # Dibujar vehículos
+        # Vehículos — con culling
+        self._vehicles_total = len(simulation.vehicles)
+        self._vehicles_drawn = 0
         for vehicle in simulation.vehicles:
             self.draw_vehicle(vehicle, simulation)
 
-        # --- NUEVO BUCLE ---
-        # Dibujar pasajeros
+        # Pasajeros — con culling
         for passenger in simulation.passengers.values():
             self.draw_passenger(passenger)
-        # --- FIN NUEVO BUCLE ---
-        # Dibujar información de depuración
+
         self.draw_debug_points(simulation)
         self.draw_debug_info(simulation)
-        
-        # Dibujar UI si está activado
+
+        # Rectángulo amarillo que muestra el área de culling (solo cuando CULL_MARGIN < 0)
+        if self.CULL_MARGIN < 0:
+            self._draw_cull_boundary()
+
         if simulation.show_info:
             draw_info_panel(self.screen, simulation, self.camera)
+
+    def _draw_cull_boundary(self):
+        """Dibuja un rectángulo amarillo mostrando el área activa de culling."""
+        m = -self.CULL_MARGIN  # positivo: cuántos px se recorta por cada borde
+        w = self.camera.screen_width
+        h = self.camera.screen_height
+        rect = pygame.Rect(m, m, w - 2 * m, h - 2 * m)
+        pygame.draw.rect(self.screen, (255, 220, 0), rect, 2)
+        label = self._font_label.render(
+            f"ZONA DE CULLING  (CULL_MARGIN={self.CULL_MARGIN})", True, (255, 220, 0))
+        self.screen.blit(label, (m + 4, m + 4))
 
     def draw_debug_points(self, simulation):
         """Dibuja puntos de depuración específicos en el mundo."""
         if not hasattr(simulation, 'debug_points'):
             return
 
-        font = pygame.font.SysFont('Arial', 14, bold=True)
-
         for point_data in simulation.debug_points:
             pos_3d = point_data['pos']
-            color = point_data.get('color', (255, 100, 0)) # Naranja por defecto
+            color = point_data.get('color', (255, 100, 0))
             label = point_data.get('label', '')
 
-            pos_2d = self.camera.project_3d_to_2d((pos_3d.x, pos_3d.y, pos_3d.z))
+            # Culling: solo dibujar si el punto está en pantalla
+            pos_2d = self.camera.project_3d_to_2d((pos_3d.x, pos_3d.y, pos_3d.z), margin=0)
 
             if pos_2d:
-                # --- MODIFICACIÓN: Dibujar una circunferencia con radio en metros del mundo ---
-                # El radio en píxeles es el radio en metros multiplicado por el zoom de la cámara.
-                world_radius = 0.6  # 0.6 metros, igual que el collision_margin
+                world_radius = 0.6
                 pixel_radius = int(world_radius * self.camera.zoom)
-
-                # Dibujar la circunferencia. Usamos max(2, ...) para que siempre sea visible.
                 pygame.draw.circle(self.screen, color, pos_2d, max(2, pixel_radius), 2)
                 if label:
-                    text = font.render(label, True, color)
+                    text = self._font_label.render(label, True, color)
                     self.screen.blit(text, (pos_2d[0] + 10, pos_2d[1] - 10))
     
     def draw_network_tracks(self, network):
@@ -78,75 +107,53 @@ class Renderer:
                     self.draw_boarding_lane(track)
     
     def draw_station_connector(self, connector):
-        """Dibuja un StationConnector como una línea recta"""
-        start_2d = self.camera.project_3d_to_2d((connector.start_pos.x, connector.start_pos.y, connector.start_pos.z))
-        end_2d = self.camera.project_3d_to_2d((connector.end_pos.x, connector.end_pos.y, connector.end_pos.z))
-        
-        if start_2d and end_2d:
-            # Color verde para conectores subterráneos
-            color = (0, 200, 100) if connector.start_pos.z < -5 else (100, 200, 100)
-            pygame.draw.line(self.screen, color, start_2d, end_2d, 3)
-            
+        """Dibuja un StationConnector como una línea recta.
+        Sin culling: hay ~20 tracks y son estáticos; el costo es despreciable
+        comparado con no verlos cuando cruzan el borde de la pantalla."""
+        start_2d = self.camera.project_3d_to_2d(
+            (connector.start_pos.x, connector.start_pos.y, connector.start_pos.z))
+        end_2d = self.camera.project_3d_to_2d(
+            (connector.end_pos.x, connector.end_pos.y, connector.end_pos.z))
+        color = (0, 200, 100) if connector.start_pos.z < -5 else (100, 200, 100)
+        pygame.draw.line(self.screen, color, start_2d, end_2d, 3)
+
     def draw_boarding_lane(self, lane):
         """Dibuja un BoardingLane con un color distintivo."""
-        start_2d = self.camera.project_3d_to_2d((lane.start_pos.x, lane.start_pos.y, lane.start_pos.z))
-        end_2d = self.camera.project_3d_to_2d((lane.end_pos.x, lane.end_pos.y, lane.end_pos.z))
-        
-        if start_2d and end_2d:
-            # Color cian brillante para los andenes de embarque
-            color = (0, 255, 255)
-            pygame.draw.line(self.screen, color, start_2d, end_2d, 4) # Línea un poco más gruesa
+        start_2d = self.camera.project_3d_to_2d(
+            (lane.start_pos.x, lane.start_pos.y, lane.start_pos.z))
+        end_2d = self.camera.project_3d_to_2d(
+            (lane.end_pos.x, lane.end_pos.y, lane.end_pos.z))
+        pygame.draw.line(self.screen, (0, 255, 255), start_2d, end_2d, 4)
 
     def draw_acceleration_tree(self, tree):
-        """Dibuja un árbol de aceleración con colores según la dirección"""
-        # Calcular puntos a lo largo del árbol para una línea suave
+        """Dibuja un árbol de aceleración con colores según la dirección.
+        Sin culling: hay pocos árboles y pueden cruzar el borde de cualquier forma."""
         points = []
         num_segments = 20
-        
         for i in range(num_segments + 1):
             progress = i / num_segments
             point_3d = tree.calculate_position_at_progress(progress)
-            point_2d = self.camera.project_3d_to_2d((point_3d.x, point_3d.y, point_3d.z))
-            if point_2d:
-                points.append(point_2d)
-        
-    def draw_acceleration_tree(self, tree):
-        """Dibuja un árbol de aceleración con colores según la dirección"""
-        # Calcular puntos a lo largo del árbol para una línea suave
-        points = []
-        num_segments = 20
-        
-        for i in range(num_segments + 1):
-            progress = i / num_segments
-            point_3d = tree.calculate_position_at_progress(progress)
-            point_2d = self.camera.project_3d_to_2d((point_3d.x, point_3d.y, point_3d.z))
-            if point_2d:
-                points.append(point_2d)
-        
-        # Dibujar línea con color según la dirección
+            points.append(self.camera.project_3d_to_2d((point_3d.x, point_3d.y, point_3d.z)))
+
         if len(points) > 1:
-            if tree.direction == "down":
-                color = (255, 100, 100)  # Rojo para bajada (aceleración)
-            else:  # "up"
-                color = (100, 100, 255)  # Azul para subida (desaceleración)
-            
+            color = (255, 100, 100) if tree.direction == "down" else (100, 100, 255)
             pygame.draw.lines(self.screen, color, False, points, 3)
-            
-            # Dibujar punto al inicio y final
-            if points:
-                pygame.draw.circle(self.screen, color, points[0], 4)
-                pygame.draw.circle(self.screen, color, points[-1], 4)
+            pygame.draw.circle(self.screen, color, points[0], 4)
+            pygame.draw.circle(self.screen, color, points[-1], 4)
       
     def draw_station(self, station):
         """Dibuja una estación como prismas rectangulares de 3 pisos creciendo hacia arriba"""
-        # NUEVAS DIMENSIONES según especificaciones
         width = 50      # metros en eje X (ancho)
         length = 60     # metros en eje Y (largo)
         floor_height = 4.9  # metros de alto por piso
         floor_spacing = 1.0 # metros entre pisos
 
-        # Posición de la estación - el punto de origen está en la BASE
         center_x, center_y, base_z = station.position.x, station.position.y, station.position.z
+
+        # Culling: margen generoso (300px) por el tamaño de la estación en pantalla
+        center_2d = self.camera.project_3d_to_2d((center_x, center_y, base_z), margin=300)
+        if not center_2d:
+            return
 
         # Dibujar cada uno de los 3 pisos, desde el más bajo (naranja) hasta el más alto (rojo)
         for floor_level in range(3):
@@ -208,19 +215,22 @@ class Renderer:
                     # Bordes de la cara inferior
                     pygame.draw.line(self.screen, color, vertices_2d[i+4], vertices_2d[next_i+4], 1)
         
-    def draw_vehicle(self, vehicle,simulation):
+    def draw_vehicle(self, vehicle, simulation):
         """Dibuja un vehículo modular con dimensiones 1m (largo) × 1m (ancho) × 1.5m (alto)"""
-        # NUEVAS DIMENSIONES según especificaciones
-        length = 1.0    # 1 metro de largo (eje X)
-        width = 1.0     # 1 metro de ancho (eje Y) 
-        height = 1.5    # 1.5 metros de alto (eje Z)
-        
+        length = 1.0
+        width = 1.0
+        height = 1.5
+
         half_length = length / 2
         half_width = width / 2
-        half_height = height / 2
 
-        # Usar la posición actual del vehículo (centro de la base)
         pos = vehicle.current_position
+
+        # Culling: saltar si el centro del vehículo está fuera del área activa
+        center_2d = self.camera.project_3d_to_2d((pos.x, pos.y, pos.z), margin=self.CULL_MARGIN)
+        if not center_2d:
+            return
+        self._vehicles_drawn += 1
         
         # Definir los 8 vértices del prisma rectangular
         vertices = [
@@ -324,17 +334,22 @@ class Renderer:
 
     def draw_debug_info(self, simulation):
         """Muestra información de depuración"""
-        font = pygame.font.SysFont('Arial', 12)
+        font = self._font_debug  # reusar font cacheado
         used_positions = []
-        
+
+        # ── Contador de culling: VMs dibujados vs total ──────────────
+        cull_text = f"VMs dibujados: {self._vehicles_drawn} / {self._vehicles_total}  (CULL_MARGIN={self.CULL_MARGIN})"
+        cull_surf = font.render(cull_text, True, (255, 220, 0))
+        self.screen.blit(cull_surf, (8, self.camera.screen_height - 20))
+
         # Mostrar información de estaciones
         for station in simulation.stations:
             station_info = f"S{station.station_id}: {station.name}"
             pos_2d = self.camera.project_3d_to_2d((
-                station.position.x, 
-                station.position.y + 20, 
+                station.position.x,
+                station.position.y + 20,
                 station.position.z
-            ))
+            ), margin=0)
             
             if pos_2d and self._is_position_available(pos_2d, used_positions, font.size(station_info)):
                 text = font.render(station_info, True, (0, 255, 0))
@@ -370,10 +385,10 @@ class Renderer:
             info_line = f"VM{vehicle.vehicle_id} [{state_short}|{track_info}] V:{speed:.1f} {coord_x_info} {dest_info} {collision_alert}".strip()
 
             pos_2d = self.camera.project_3d_to_2d((
-                vehicle.current_position.x, 
-                vehicle.current_position.y + 8, 
+                vehicle.current_position.x,
+                vehicle.current_position.y + 8,
                 vehicle.current_position.z
-            ))
+            ), margin=0)
 
             if vehicle.is_colliding:
                 text_color = (255, 0, 255) # Magenta
@@ -402,10 +417,10 @@ class Renderer:
             # Posición (ligeramente por encima del pasajero)
             pos_3d = passenger.current_position
             pos_2d = self.camera.project_3d_to_2d((
-                pos_3d.x, 
-                pos_3d.y, 
-                pos_3d.z + 1.0 # 1 metro por encima del punto
-            ))
+                pos_3d.x,
+                pos_3d.y,
+                pos_3d.z + 1.0
+            ), margin=0)
 
             if passenger.state == 'BOARDING':
                 text_color = (0, 255, 255) # Cian
@@ -424,10 +439,10 @@ class Renderer:
                 mid_point = track.calculate_position_at_progress(0.5)
                 track_info = f"T:{track_id}"
                 pos_2d = self.camera.project_3d_to_2d((
-                        mid_point.x, 
-                        mid_point.y + 5, 
-                        mid_point.z
-                    ))
+                    mid_point.x,
+                    mid_point.y + 5,
+                    mid_point.z
+                ), margin=0)
                 
                 if pos_2d:
                     color = (180, 180, 255) if hasattr(track, 'direction') and track.direction == "up" else (255, 180, 180)
@@ -456,9 +471,9 @@ class Renderer:
         if passenger.state == 'IN_TRANSIT' or passenger.state == 'ARRIVED':
             return
             
-        # 2. Proyectar posición 3D a 2D
+        # 2. Proyectar posición 3D a 2D — saltar si fuera del área activa
         pos_3d = passenger.current_position
-        pos_2d = self.camera.project_3d_to_2d((pos_3d.x, pos_3d.y, pos_3d.z))
+        pos_2d = self.camera.project_3d_to_2d((pos_3d.x, pos_3d.y, pos_3d.z), margin=self.CULL_MARGIN)
         
         if pos_2d:
             # 3. Elegir color según el estado

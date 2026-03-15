@@ -123,29 +123,44 @@ class Camera:
             'zoom_speed': self.zoom_speed
         }
     
-    def project_3d_to_2d(self, point_3d):
+    def project_3d_to_2d(self, point_3d, margin=None):
+        """Proyecta un punto 3D a coordenadas 2D de pantalla.
+
+        margin: si se especifica, retorna None cuando el punto proyectado
+                queda fuera del viewport por más de ese margen en píxeles.
+                None (por defecto) = sin culling, siempre retorna coordenadas.
+        """
         x, y, z = point_3d
-        
+
         # Aplicar rotaciones
         theta_rad = math.radians(self.theta)
         alpha_rad = math.radians(self.alpha)
-        
+
         # Primero: trasladar el punto según la posición de la cámara
         x_rel = x - self.x
         y_rel = y - self.y
         z_rel = z - self.z
-        
+
         # Rotación horizontal (theta) - alrededor del eje Z
         x_rot = x_rel * math.cos(theta_rad) - y_rel * math.sin(theta_rad)
         y_rot = x_rel * math.sin(theta_rad) + y_rel * math.cos(theta_rad)
-        z_rot = z_rel  # Z no se afecta por rotación horizontal
-        
+
         # Rotación vertical (alpha) - alrededor del eje X
-        y_final = y_rot * math.cos(alpha_rad) - z_rot * math.sin(alpha_rad)
-        z_final = y_rot * math.sin(alpha_rad) + z_rot * math.cos(alpha_rad)
-        
+        y_final = y_rot * math.cos(alpha_rad) - z_rel * math.sin(alpha_rad)
+
         # Aplicar zoom y centrar en pantalla
-        x_screen = (x_rot * self.zoom) + self.screen_width / 2
-        y_screen = (y_final * self.zoom) + self.screen_height / 2
-        
-        return (int(x_screen), int(y_screen))
+        x_screen = int((x_rot * self.zoom) + self.screen_width / 2)
+        y_screen = int((y_final * self.zoom) + self.screen_height / 2)
+
+        # Culling: retornar None si el punto queda fuera del viewport
+        if margin is not None:
+            if (x_screen < -margin or x_screen > self.screen_width + margin or
+                    y_screen < -margin or y_screen > self.screen_height + margin):
+                return None
+
+        return (x_screen, y_screen)
+
+    def is_in_viewport(self, x2d, y2d, margin=0):
+        """Verifica si unas coordenadas 2D están dentro del viewport."""
+        return (-margin <= x2d <= self.screen_width + margin and
+                -margin <= y2d <= self.screen_height + margin)

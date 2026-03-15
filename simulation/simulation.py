@@ -160,7 +160,7 @@ class Simulation:
             spawn_id="S",
             track_id=8,             # Iniciar en el track 
             spawn_interval=0.07,     # Cada x segundos sale un nuevo VM (ideal 0.075)
-            max_vehicles=100,       # Máximo x VMs 
+            max_vehicles=400,       # Máximo x VMs 
             vehicle_capacity=2,     # Capacidad de cada VM
             destination_station_id=None  # Destino
         )
