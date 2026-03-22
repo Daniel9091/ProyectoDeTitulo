@@ -12,7 +12,7 @@ class Renderer:
     #
     #   = 0   → se dibuja exactamente lo que cabe en la ventana (normal)
     #   > 0   → se dibuja un poco más allá del borde (por si algo se corta)
-    #   < 0   → se dibuja MENOS que la ventana completa (útil para demos:
+    #   < 0   → se dibuja MENOS que la los vms que pasan por el cariril inferior para que se muevan de amnera discreta y afiliados a una cola vale decir que todos los vms esten relacionados con un puto en el carril que se va a ir movieno en el tiempo de tal manera que cuando uno quiera saber la posicion de un vm  pregunte deonde esta la cola y despues pueda sumar sierta distancia a la cola y encontrarse con un espacio deonde degeria o no haber un vm. ventana completa (útil para demos:
     #            verás un rectángulo amarillo que indica el área activa y
     #            los VMs fuera de él desaparecerán)
     #
@@ -286,7 +286,7 @@ class Renderer:
                 #     print("="*80 + "\n")
                 # # --- FIN LOGGING ---
 
-            elif vehicle.current_station and not vehicle.current_track:
+            elif vehicle.current_station and not vehicle.current_track and not getattr(vehicle, '_in_train', False):
                 color = (255, 200, 0)  # Amarillo para "pasando por estación"
             elif vehicle.state in ["accelerating_down", "accelerating_up"]:
                 color = (255, 100, 100)  # Rojo para aceleración
@@ -371,7 +371,12 @@ class Renderer:
             
             # Información en una sola línea para mayor claridad
             state_short = vehicle.state[:4] # "movi", "acce", etc.
-            track_info = f"T:{vehicle.current_track.track_id}" if vehicle.current_track else "NoTrack"
+            if vehicle.current_track:
+                track_info = f"T:{vehicle.current_track.track_id}"
+            elif getattr(vehicle, '_in_train', False):
+                track_info = f"S:{getattr(vehicle, '_train_slot', '?')}"
+            else:
+                track_info = "NoTrack"
             dest_info = f"->S{vehicle.destination_station}" if vehicle.destination_station else ""
 
             # ✅ MEJORA: Mensaje de colisión más informativo y conciso

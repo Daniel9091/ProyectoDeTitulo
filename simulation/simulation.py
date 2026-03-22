@@ -10,6 +10,7 @@ from objects.base import Vector3
 from simulation.camera import Camera
 from simulation.spawn_system import SpawnSystem
 from objects.tree_selector import TreeSelector
+from objects.continuous_train import ContinuousTrain
 
 from typing import TYPE_CHECKING
 from simulation.passenger_spawn_system import PassengerSpawnSystem
@@ -153,21 +154,47 @@ class Simulation:
             builder.connect_tracks(21, 19)   # En Central Station 3 -> Track Central Down 3
 
             
-            # 6. Incorporacion de Vehiculos
-            
-            # Spawn System (Opcional)
-            self.spawn_system.add_spawn_point(
-            spawn_id="S",
-            track_id=8,             # Iniciar en el track 
-            spawn_interval=0.07,     # Cada x segundos sale un nuevo VM (ideal 0.075)
-            max_vehicles=400,       # Máximo x VMs 
-            vehicle_capacity=2,     # Capacidad de cada VM
-            destination_station_id=None  # Destino
-        )
-            
-            # Incorporacion normal de vms
-            # builder.add_vehicle(6, 20, 2, 2)           
-            # builder.start_vehicle_on_track(6, 4)
+            # 6. Crear Tren Continuo con los tracks del carril inferior en orden
+            lower_rail_tracks = [
+                self.network.tracks[7],   # (0, 0, -20) → (850, 0, -20)
+                self.network.tracks[8],   # (850, 0, -20) → (1000.15, 0, -20)
+                self.network.tracks[9],   # (1000.15, 0, -20) → (1850, 0, -20)
+                self.network.tracks[10],  # (1850, 0, -20) → (2000, 0, -20)
+                self.network.tracks[11],  # (2000, 0, -20) → (2850, 0, -20)
+                self.network.tracks[12],  # (2850, 0, -20) → (2900, 0, -20)
+            ]
+            self.continuous_train = ContinuousTrain(
+                track_order=lower_rail_tracks,
+                speed=20.0,
+                vm_length=1.0,
+                gap=1.0
+            )
+
+            # Inyectar referencia en Brain y Network
+            self.brain.continuous_train = self.continuous_train
+            self.network.continuous_train = self.continuous_train
+            self.network.lower_rail_track_ids = {t.track_id for t in lower_rail_tracks}
+
+            # 6b. Spawn de VMs directamente en el tren continuo
+            # Configuración: colocar un VM cada N slots
+            spawn_slot_interval = 1   # Un VM cada x slots (cada x*2 metros)
+            max_spawn_vehicles = 400
+            vehicle_capacity = 2
+            spawned_count = 0
+
+            slot_index = 0
+            while spawned_count < max_spawn_vehicles and slot_index < self.continuous_train.max_slots:
+                vehicle_id = f"_S_{spawned_count + 1}"
+                vm = ModularVehicle(vehicle_id, vehicle_capacity, Vector3(0, 0, -20))
+
+                self.vehicles.append(vm)
+                self.brain.add_vehicle(vm)
+                self.continuous_train.spawn_vm_in_slot(vm, slot_index)
+
+                spawned_count += 1
+                slot_index += spawn_slot_interval
+
+            print(f"🚂 Spawn completado: {spawned_count} VMs en tren continuo (cada {spawn_slot_interval} slots = cada {spawn_slot_interval * self.continuous_train.spacing}m)")
             
             # 7. Iniciar tree selector y asignar a red y estaciones
             tree_selector = TreeSelector(self.brain)
@@ -183,7 +210,24 @@ class Simulation:
                 if not station.departure_trees:
                     print(f"ADVERTENCIA: {station.name} no tiene árboles de salida")
             
+            # Calcular exit junctions del tren continuo (dónde los VMs pueden salir → up-tree)
+            exit_junctions = []
+            for track in lower_rail_tracks:
+                successors = self.network.adjacency.get(track.track_id, [])
+                up_tree_ids = []
+                for tid in successors:
+                    t = self.network.tracks.get(tid)
+                    if isinstance(t, AccelerationTree) and t.direction == "up":
+                        up_tree_ids.append(tid)
+                if up_tree_ids:
+                    exit_junctions.append({
+                        'belt_x': self.continuous_train.junction_end_belt_x[track.track_id],
+                        'up_tree_ids': up_tree_ids
+                    })
+            self.brain._train_exit_junctions = exit_junctions
+
             print("Sistema de navegación completamente configurado")
+            print(f"   Exit junctions del tren: {[(j['belt_x'], j['up_tree_ids']) for j in exit_junctions]}")
 
 
             # 8. INICIALIZAR SISTEMA DE PASAJEROS
@@ -244,21 +288,9 @@ class Simulation:
         # --- LÓGICA DE ACTUALIZACIÓN SINCRONIZADA ---
         scaled_dt = dt * self.time_scale
 
-        # 1. Determinar qué vehículos se deben crear en este frame y su tiempo de movimiento inicial.
-        newly_spawned_info = self.spawn_system.update(self, scaled_dt)
-        
-        # 2. Mover los vehículos recién creados por su tiempo inicial.
-        # Estos vehículos ya han sido "actualizados" para este frame.
-        newly_spawned_vehicles = set()
-        for vehicle, initial_time in newly_spawned_info:
-            if vehicle and vehicle.current_track and initial_time > 0:
-                vehicle.current_track.update_vehicle_progress(vehicle, initial_time)
-            if vehicle:
-                newly_spawned_vehicles.add(vehicle.vehicle_id)
-        
         # Actualizar el sistema de spawn de pasajeros.
         self.passenger_spawn_system.update(scaled_dt)
-        
+
         # Usar Brain para actualizar todo el sistema
         if self.rewinding:
             current_time = pygame.time.get_ticks() / 1000.0
@@ -271,8 +303,7 @@ class Simulation:
                 self.time_scale = self.pre_rewind_scale
         else:
             # Actualización normal usando Brain
-            # Pasamos los vehículos recién creados para que no se actualicen dos veces.
-            self.brain.update(scaled_dt, exclude_vehicles=newly_spawned_vehicles)
+            self.brain.update(scaled_dt)
 
     def handle_command(self, command):                                                          # Maneja comandos de entrada para controlar la simulación y la cámara       
         # Control de escala de tiempo

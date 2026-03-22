@@ -30,6 +30,10 @@ class Network:
         self.tree_selector = None
         self.brain = None # Referencia al Brain para notificaciones
 
+        # Tren Continuo: gestiona VMs del carril inferior
+        self.continuous_train = None
+        self.lower_rail_track_ids = set()  # IDs de StationConnectors del carril inferior
+
     # ========== MÉTODOS EXISTENTES (SIN CAMBIOS) ==========
 
     def add_track(self, track):
@@ -72,13 +76,17 @@ class Network:
         print("🗺️  Mapa de predecesores de la red construido.")
 
     def update_vehicles(self, dt, exclude_vehicles=None):
-        """Actualiza movimiento de vehículos (sin cambios)"""
+        """Actualiza movimiento de vehículos en tracks individuales.
+        Los StationConnectors del carril inferior se omiten (gestionados por ContinuousTrain)."""
         vehicles_to_transfer = []
         if exclude_vehicles is None:
             exclude_vehicles = set()
-        
+
         try:
             for track_id, track in list(self.tracks.items()):
+                # Omitir tracks del carril inferior: ContinuousTrain los gestiona
+                if track_id in self.lower_rail_track_ids:
+                    continue
                 try:
                     finished_vehicles = track.update_vehicles(dt, exclude_vehicles=exclude_vehicles)
                     for vehicle, time_left in finished_vehicles:
@@ -133,37 +141,37 @@ class Network:
             return
         
         next_track = self.tracks[next_track_id]
-        
-        # --- ✅ NUEVO: PREDICCIÓN DE COLISIÓN EN UNIÓN ---
-        # Si el vehículo se va a transferir a un árbol de bajada, revisamos posibles colisiones en la unión.
+
+        # --- INTERCEPCIÓN: Si destino es carril inferior → reincorporar al ContinuousTrain ---
+        if self.continuous_train and next_track_id in self.lower_rail_track_ids:
+            current_track.remove_vehicle(vehicle)
+            vehicle.current_track = None
+            vehicle._last_progress = 0.0
+            vehicle.progress_on_track = 0.0
+            junction_belt_x = self.continuous_train.junction_belt_x[next_track_id]
+            self.continuous_train.reincorporate_vm(vehicle, junction_belt_x)
+            return
+
+        # --- PREDICCIÓN DE COLISIÓN EN UNIÓN ---
+        # Si el vehículo se va a transferir a un árbol de bajada, registramos para predicción.
         if self.brain and isinstance(next_track, AccelerationTree) and next_track.direction == "down":
-            # En lugar de calcular aquí, registramos el evento en el Brain para un procesamiento sincronizado.
             self.brain.pending_down_tree_entries.append({
                 'vehicle': vehicle, 'from_track': current_track, 'descending_tree': next_track
             })
-
-        # --- FIN PREDICCIÓN ---
-
-
 
         try:
             # Obtener la velocidad de salida del track actual
             if hasattr(current_track, 'get_exit_velocity'):
                 exit_velocity = current_track.get_exit_velocity(vehicle)
-                # Para StationConnectors, la velocidad ya es una magnitud.
-                # Para AccelerationTrees, get_exit_velocity devuelve un vector, necesitamos la magnitud.
                 exit_velocity_magnitude = exit_velocity.length() if hasattr(exit_velocity, 'length') else exit_velocity
             else:
                 exit_velocity_magnitude = 20.0
 
-            # Usar el método centralizado que también actualiza la velocidad del VM
             vehicle.transfer_to_track(next_track, entry_velocity=exit_velocity_magnitude)
 
-            # --- ¡PASO 1 CLAVE! ---
-            # Aplicar el tiempo sobrante en el nuevo track.
             if time_left > 0:
                 next_track.update_vehicle_progress(vehicle, time_left)
-            
+
         except Exception as e:
             print(f"ERROR en transferencia de vehículo {vehicle.vehicle_id}: {e}")
             import traceback

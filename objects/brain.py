@@ -52,8 +52,12 @@ class Brain:
         # ✅ NUEVO: Sistema de optimización de colisiones
         self.collision_grid = SpatialGrid(cell_size=50.0) # Celdas de 50x50x50 metros
 
-        # ✅ NUEVO: Lista para predicción de colisiones sincronizada
+        # Lista para predicción de colisiones sincronizada
         self.pending_down_tree_entries = []
+
+        # Tren Continuo: se inyecta desde Simulation
+        self.continuous_train = None
+        self._train_exit_junctions = []  # [{belt_x, up_tree_ids}, ...]
 
         # ✅ NUEVO: Estadísticas y monitoreo
         self.stats = {
@@ -332,7 +336,7 @@ class Brain:
             return True
 
         # Por defecto, no está disponible
-        return True
+        return False
 
     def _calculate_vehicle_proximity(self, vehicle, target_station_id):
         """
@@ -391,44 +395,49 @@ class Brain:
 
     # ========== ACTUALIZACIÓN PRINCIPAL Y COORDINACIÓN ==========
 
-    def update(self, dt, exclude_vehicles=None):
+    def update(self, dt):
         """
-        Actualiza el estado del sistema por un paso de tiempo
-        MEJORADO: Incluye procesamiento de solicitudes y monitoreo
+        Actualiza el estado del sistema por un paso de tiempo.
+        Orden: tren continuo → salidas del tren → red (trees/lanes) → estaciones → colisiones → pasajeros
         """
         self.simulation_time += dt
-        if exclude_vehicles is None:
-            exclude_vehicles = set()
-        
-        # 1. Actualizar movimiento en la red
-        self.network.update_vehicles(dt, exclude_vehicles=exclude_vehicles)
-        
-        # 2. Procesar transiciones entre tracks
+
+        # 0. Avanzar el Tren Continuo (mueve TODOS los VMs del carril inferior)
+        if self.continuous_train:
+            self.continuous_train.advance(dt)
+
+        # 1. Procesar salidas del tren (VMs que toman un árbol de subida)
+        self._process_train_exits()
+
+        # 2. Actualizar movimiento en la red (árboles, boarding lanes, NO carril inferior)
+        self.network.update_vehicles(dt)
+
+        # 3. Procesar transiciones entre tracks
         self._handle_track_transitions()
-        
-        # 3. Procesar operaciones en estaciones
+
+        # 4. Procesar operaciones en estaciones
         for station in self.stations.values():
             station.update(self, dt)
-        
-        # ✅ REFACTORIZADO: 4. Gestionar demanda persistente
+
+        # 5. Gestionar demanda persistente
         self._time_since_last_demand_check += dt
         if self._time_since_last_demand_check >= self._demand_fulfillment_cooldown:
             self._process_station_demand()
             self._time_since_last_demand_check = 0.0
-        
-        # 5. Detección de colisiones (sin cambios)
+
+        # 6. Detección de colisiones
         self._check_collisions()
-        
-        # 6. Monitoreo del sistema
-        if int(self.simulation_time) % 10 == 0:  # Cada 10 segundos
+
+        # 7. Monitoreo del sistema
+        if int(self.simulation_time) % 10 == 0:
             self._monitor_system_health()
-        
-        # 7. Actualizar pasajeros
+
+        # 8. Actualizar pasajeros
         for passenger in self.passengers.values():
             if passenger.state != "ARRIVED":
                 passenger.update(dt)
-        
-        # ✅ NUEVO: 8. Procesar predicciones de colisión de forma sincronizada
+
+        # 9. Predicciones de colisión usando ContinuousTrain
         self._process_collision_predictions()
 
 
@@ -492,11 +501,104 @@ class Brain:
         pass
 
     def _process_collision_predictions(self):
-        """Ejecuta las predicciones de colisión después de que todas las posiciones se hayan actualizado."""
+        """
+        Predicción de colisión usando ContinuousTrain.
+        Cuando un VM entra a un árbol de bajada, calcula si habrá un VM del tren
+        en la junction cuando llegue abajo.
+
+        Fórmulas:
+        - Tiempo del VM en el árbol (MRUA): d = v₀t + ½at² → resolver para t
+        - Distancia del tren en ese tiempo (MRU): d = v * t
+        - Verificar si hay un VM del tren en la coordenada de la junction en t segundos
+        """
+        if not self.continuous_train:
+            self.pending_down_tree_entries.clear()
+            return
+
         for event in self.pending_down_tree_entries:
-            self.network._check_for_future_collision_at_junction(event['vehicle'], event['from_track'], event['descending_tree'])
-        
+            vehicle = event['vehicle']
+            from_track = event['from_track']
+            descending_tree = event['descending_tree']
+
+            # 1. Tiempo que tarda el VM en bajar por el árbol (MRUA)
+            start_progress = descending_tree.get_vehicle_progress(vehicle)
+            initial_velocity = from_track.speed if hasattr(from_track, 'speed') else 20.0
+            time_to_junction = descending_tree.get_time_to_complete(
+                initial_velocity=initial_velocity, start_progress=start_progress
+            )
+
+            if time_to_junction is None or time_to_junction <= 0:
+                continue
+
+            # 2. Encontrar el belt_x de la junction (donde el árbol conecta al carril inferior)
+            junction_exit_track_ids = self.network.adjacency.get(descending_tree.track_id, [])
+            junction_belt_x = None
+            for tid in junction_exit_track_ids:
+                if tid in self.network.lower_rail_track_ids:
+                    junction_belt_x = self.continuous_train.junction_belt_x[tid]
+                    break
+
+            if junction_belt_x is None:
+                continue
+
+            # 3. Predecir colisión (MRU del tren: misma fórmula x = x₀ + v*t)
+            collision = self.continuous_train.predict_collision_at_junction(
+                junction_belt_x, time_to_junction
+            )
+
+            if collision:
+                print(f"\n{'='*30}")
+                print(f"ALERTA DE COLISION FUTURA")
+                print(f"  VM descendiendo: {vehicle.vehicle_id} (arbol {descending_tree.track_id})")
+                print(f"  Tiempo a union: {time_to_junction:.2f}s")
+                print(f"  VM en conflicto: {collision['conflicting_vm'].vehicle_id} (slot {collision['slot_index']})")
+                print(f"  Junction belt_x: {junction_belt_x:.2f}m")
+                if 'note' in collision:
+                    print(f"  Nota: {collision['note']}")
+                print(f"{'='*30}\n")
+
         self.pending_down_tree_entries.clear()
+
+    def _process_train_exits(self):
+        """
+        Cada frame, verifica si algún VM del tren está en una junction de salida
+        y debería tomar un árbol de subida (basado en su destino).
+        """
+        if not self.continuous_train or not self._train_exit_junctions:
+            return
+
+        for junction in self._train_exit_junctions:
+            belt_x = junction['belt_x']
+            up_tree_ids = junction['up_tree_ids']
+
+            # Encontrar el slot más cercano a esta junction
+            slot_index = self.continuous_train.belt_x_to_slot_index(belt_x)
+            vm = self.continuous_train.get_vm_at_slot(slot_index)
+
+            if vm is None:
+                continue
+
+            # ¿El VM tiene un destino que requiere uno de estos árboles?
+            if not vm.target_acceleration_trees:
+                continue
+
+            matching_tree_ids = [tid for tid in up_tree_ids if tid in vm.target_acceleration_trees]
+            if not matching_tree_ids:
+                continue
+
+            # Usar TreeSelector para elegir el mejor árbol
+            valid_trees = [self.network.tracks[tid] for tid in matching_tree_ids if tid in self.network.tracks]
+            best_tree = self.network.tree_selector.select_best_tree(
+                valid_trees, vm,
+                strategy='progressive_saturation',
+                station_id=vm.destination_station
+            )
+
+            if best_tree and best_tree.can_accept_vehicle(vm):
+                # Sacar del tren
+                self.continuous_train.remove_vm(vm)
+                # Transferir al árbol de subida (velocidad de entrada = velocidad del tren)
+                vm.transfer_to_track(best_tree, entry_velocity=self.continuous_train.speed)
 
     def _monitor_system_health(self):
         """
