@@ -55,6 +55,11 @@ class Brain:
         # Lista para predicción de colisiones sincronizada
         self.pending_down_tree_entries = []
 
+        # Parámetros de gestión de slots en tren continuo (configurados desde Simulation)
+        self.slot_search_range = 10   # Slots a revisar antes/después ante colisión
+        self.accel_range_min = 0.2    # Aceleración mínima permitida en árbol de bajada (m/s²)
+        self.accel_range_max = 1.5    # Aceleración máxima permitida en árbol de bajada (m/s²)
+
         # Tren Continuo: se inyecta desde Simulation
         self.continuous_train = None
         self._train_exit_junctions = []  # [{belt_x, up_tree_ids}, ...]
@@ -502,60 +507,125 @@ class Brain:
 
     def _process_collision_predictions(self):
         """
-        Predicción de colisión usando ContinuousTrain.
-        Cuando un VM entra a un árbol de bajada, calcula si habrá un VM del tren
-        en la junction cuando llegue abajo.
+        Gestión preventiva de colisiones en el tren continuo.
 
-        Fórmulas:
-        - Tiempo del VM en el árbol (MRUA): d = v₀t + ½at² → resolver para t
-        - Distancia del tren en ese tiempo (MRU): d = v * t
-        - Verificar si hay un VM del tren en la coordenada de la junction en t segundos
+        Para cada VM que acaba de entrar a un árbol de bajada:
+        1. Calcula el tiempo de llegada a la junction con la aceleración natural (MRUA).
+        2. Determina qué slot del tren estará en la junction en ese momento (MRU).
+        3. Busca bidireccialmente el slot libre más cercano: centro → +1 → -1 → +2 → -2 ...
+        4. Reserva ese slot para que árboles paralelos no lo tomen.
+        5. Recalcula la aceleración del VM para que llegue exactamente cuando ese slot
+           pase por la junction (llegada fluida, sin esperas ni frenasos).
+        6. Si no hay slots libres en el rango configurado → colisión inevitable,
+           ajusta igualmente la aceleración para llegar fluido al slot ocupado.
         """
         if not self.continuous_train:
             self.pending_down_tree_entries.clear()
             return
+
+        train = self.continuous_train
 
         for event in self.pending_down_tree_entries:
             vehicle = event['vehicle']
             from_track = event['from_track']
             descending_tree = event['descending_tree']
 
-            # 1. Tiempo que tarda el VM en bajar por el árbol (MRUA)
+            # ── 1. Tiempo natural de bajada (MRUA con aceleración propia del árbol) ──
             start_progress = descending_tree.get_vehicle_progress(vehicle)
-            initial_velocity = from_track.speed if hasattr(from_track, 'speed') else 20.0
-            time_to_junction = descending_tree.get_time_to_complete(
-                initial_velocity=initial_velocity, start_progress=start_progress
+            v0 = from_track.speed if hasattr(from_track, 'speed') else 20.0
+            T_natural = descending_tree.get_time_to_complete(
+                initial_velocity=v0, start_progress=start_progress
             )
-
-            if time_to_junction is None or time_to_junction <= 0:
+            if T_natural is None or T_natural <= 0:
                 continue
 
-            # 2. Encontrar el belt_x de la junction (donde el árbol conecta al carril inferior)
-            junction_exit_track_ids = self.network.adjacency.get(descending_tree.track_id, [])
+            # ── 2. Encontrar la junction belt_x (donde el árbol desemboca al carril) ──
             junction_belt_x = None
-            for tid in junction_exit_track_ids:
+            for tid in self.network.adjacency.get(descending_tree.track_id, []):
                 if tid in self.network.lower_rail_track_ids:
-                    junction_belt_x = self.continuous_train.junction_belt_x[tid]
+                    junction_belt_x = train.junction_belt_x[tid]
                     break
-
             if junction_belt_x is None:
                 continue
 
-            # 3. Predecir colisión (MRU del tren: misma fórmula x = x₀ + v*t)
-            collision = self.continuous_train.predict_collision_at_junction(
-                junction_belt_x, time_to_junction
+            # ── 3. Calcular el slot "natural" (qué slot estará en junction en T_natural) ──
+            # Posición futura de la cola del tren: MRU → x = x₀ + v*t
+            future_tail_x = (train.tail_x + train.speed * T_natural) % train.total_length
+            delta = (junction_belt_x - future_tail_x) % train.total_length
+            natural_slot = round(delta / train.spacing)
+            if natural_slot >= train.max_slots:
+                natural_slot = 0
+
+            # ── 4. Liberar reserva previa del VM y buscar slot objetivo ──
+            # (puede haber una reserva de un descenso anterior si el VM volvió a bajar)
+            train.release_reservation(vehicle.vehicle_id)
+            target_slot, is_forced_collision = train.find_target_slot_bidirectional(
+                natural_slot, self.slot_search_range
             )
 
-            if collision:
-                print(f"\n{'='*30}")
-                print(f"ALERTA DE COLISION FUTURA")
-                print(f"  VM descendiendo: {vehicle.vehicle_id} (arbol {descending_tree.track_id})")
-                print(f"  Tiempo a union: {time_to_junction:.2f}s")
-                print(f"  VM en conflicto: {collision['conflicting_vm'].vehicle_id} (slot {collision['slot_index']})")
-                print(f"  Junction belt_x: {junction_belt_x:.2f}m")
-                if 'note' in collision:
-                    print(f"  Nota: {collision['note']}")
-                print(f"{'='*30}\n")
+            # ── 5. Calcular T_target: tiempo al que target_slot pasa por la junction ──
+            # Cada slot de diferencia equivale a spacing/speed segundos de desfase.
+            # Un slot con índice mayor está más adelante → pasa la junction ANTES (T menor).
+            # Un slot con índice menor está más atrás  → pasa la junction DESPUÉS (T mayor).
+            delta_slot = target_slot - natural_slot
+            # Corrección por wrap-around (si el salto es más de la mitad del tren)
+            if delta_slot > train.max_slots // 2:
+                delta_slot -= train.max_slots
+            elif delta_slot < -(train.max_slots // 2):
+                delta_slot += train.max_slots
+
+            T_target = T_natural - delta_slot * train.spacing / train.speed
+
+            # Garantizar que T_target sea positivo (wrap-around extremo, muy improbable)
+            cycle_time = train.total_length / train.speed
+            if T_target <= 0:
+                T_target += cycle_time
+
+            # ── 6. Calcular aceleración requerida: L = v0·T + ½·a·T² → a = 2(L-v0·T)/T² ──
+            L = descending_tree.length * (1.0 - start_progress)  # longitud restante
+            if T_target > 0:
+                a_required = 2.0 * (L - v0 * T_target) / (T_target ** 2)
+            else:
+                a_required = self.accel_range_max
+
+            # Acotar dentro del rango configurable para evitar aceleraciones disparatadas
+            a_clamped = max(self.accel_range_min, min(self.accel_range_max, a_required))
+
+            # ── 7. Reservar slot y aplicar aceleración modificada al VM ──
+            train.reserve_slot(target_slot, vehicle.vehicle_id)
+            descending_tree.set_vehicle_acceleration(vehicle, a_clamped)
+
+            # ── 8. Notificaciones en terminal ──
+            if is_forced_collision:
+                conflicting_vm = train.get_vm_at_slot(target_slot)
+                conflicting_id = conflicting_vm.vehicle_id if conflicting_vm else "desconocido"
+                print(f"\n{'='*45}")
+                print(f"[TREN] COLISION INEVITABLE — VM {vehicle.vehicle_id}")
+                print(f"  Arbol de bajada : {descending_tree.track_id}")
+                print(f"  Sin slots libres en rango ±{self.slot_search_range}")
+                print(f"  Colisionara con : VM {conflicting_id} en slot {target_slot}")
+                print(f"  T llegada       : {T_target:.2f}s  (natural: {T_natural:.2f}s)")
+                print(f"  Aceleracion     : {a_clamped:.4f} m/s²  "
+                      f"(requerida: {a_required:.4f}, natural: {descending_tree.acceleration:.4f})")
+                print(f"{'='*45}\n")
+            else:
+                # Calcular el offset real para el mensaje (con signo correcto post wrap-around)
+                if delta_slot == 0:
+                    print(f"[TREN] VM {vehicle.vehicle_id} → slot {target_slot} RESERVADO  "
+                          f"(arbol {descending_tree.track_id} | T={T_target:.2f}s | "
+                          f"a={a_clamped:.4f} m/s²)")
+                else:
+                    sign = "+" if delta_slot > 0 else ""
+                    print(f"\n{'='*45}")
+                    print(f"[TREN] COLISION PREVENIDA — VM {vehicle.vehicle_id}")
+                    print(f"  Arbol de bajada : {descending_tree.track_id}")
+                    print(f"  Slot natural {natural_slot} ocupado/reservado "
+                          f"→ slot alternativo {target_slot} (offset {sign}{delta_slot})")
+                    print(f"  T ajustado      : {T_target:.2f}s  "
+                          f"(natural: {T_natural:.2f}s, delta: {T_target - T_natural:+.2f}s)")
+                    print(f"  Aceleracion     : {a_clamped:.4f} m/s²  "
+                          f"(requerida: {a_required:.4f}, natural: {descending_tree.acceleration:.4f})")
+                    print(f"{'='*45}\n")
 
         self.pending_down_tree_entries.clear()
 

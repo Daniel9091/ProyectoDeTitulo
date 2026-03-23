@@ -116,7 +116,8 @@ class AccelerationTree(Track):
             'progress': 0.0,
             'velocity': initial_velocity,
             'current_position': self.start_pos,
-            'time_in_track': 0.0
+            'time_in_track': 0.0,
+            'target_acceleration': self.acceleration  # Puede ser modificado por Brain para ajuste de slot
         }
         
         # Actualizar estado del vehículo
@@ -124,6 +125,18 @@ class AccelerationTree(Track):
         vehicle.state = "accelerating_down" if self.direction == 'down' else "accelerating_up"
         
         return True  # Éxito
+
+    def set_vehicle_acceleration(self, vehicle, new_acceleration):
+        """
+        Modifica la aceleración efectiva de un VM específico dentro de este árbol.
+        Llamado por Brain para ajustar la llegada al slot reservado.
+
+        Args:
+            vehicle: ModularVehicle cuya aceleración se cambia.
+            new_acceleration: Nueva aceleración en m/s² (positiva = acelera cuesta abajo).
+        """
+        if vehicle.vehicle_id in self.vehicles:
+            self.vehicles[vehicle.vehicle_id]['target_acceleration'] = new_acceleration
 
     # ========== MÉTODOS EXISTENTES (SIN CAMBIOS SIGNIFICATIVOS) ==========
 
@@ -186,21 +199,28 @@ class AccelerationTree(Track):
             return time_delta
 
         current_velocity = vehicle_data['velocity']
-        
-        # Física MRUA
-        distance_traveled = current_velocity * time_delta + 0.5 * self.acceleration * time_delta**2
+
+        # Usar la aceleración específica del VM (puede haber sido modificada por Brain
+        # para ajustar la llegada a un slot reservado). Si no fue modificada, usa la natural.
+        a = vehicle_data.get('target_acceleration', self.acceleration)
+
+        # Física MRUA con aceleración por VM
+        distance_traveled = current_velocity * time_delta + 0.5 * a * time_delta**2
         progress_increment = distance_traveled / self.length if self.length > 0 else 0
         new_progress = progress + progress_increment
-        
+
         time_left = 0.0
         if new_progress >= 1.0:
-            time_to_end = self.get_time_to_complete(initial_velocity=current_velocity, start_progress=progress)
+            # Pasar la aceleración modificada para que el cálculo de tiempo sea consistente
+            time_to_end = self.get_time_to_complete(
+                initial_velocity=current_velocity, start_progress=progress, acceleration=a
+            )
             if time_to_end is not None and time_to_end < time_delta:
                 time_left = time_delta - time_to_end
             new_progress = 1.0
 
         # Actualizar velocidad y posición
-        new_velocity = current_velocity + self.acceleration * time_delta
+        new_velocity = current_velocity + a * time_delta
         if self.direction == 'up' and new_velocity < 0:
             new_velocity = 0
 
@@ -278,12 +298,16 @@ class AccelerationTree(Track):
         })
         return base_status
     
-    def get_time_to_complete(self, initial_velocity=None, start_progress=0.0):
+    def get_time_to_complete(self, initial_velocity=None, start_progress=0.0, acceleration=None):
         """
         Calcula el tiempo teórico para completar el árbol desde un progreso inicial.
+
+        Args:
+            acceleration: Si se proporciona, usa esta aceleración en vez de self.acceleration.
+                          Necesario cuando el VM tiene una target_acceleration modificada.
         """
         v0 = initial_velocity if initial_velocity is not None else self.initial_velocity
-        a = self.acceleration
+        a = acceleration if acceleration is not None else self.acceleration
 
         # Si ya está al final o más allá, el tiempo es 0.
         if start_progress >= 1.0:

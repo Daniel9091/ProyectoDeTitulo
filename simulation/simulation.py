@@ -69,6 +69,56 @@ class Simulation:
         self.brain.passengers.clear()
         self.passengers.clear()
         self.logged_collisions.clear() # Limpiar el registro de colisiones
+
+        # ╔══════════════════════════════════════════════════════════════════╗
+        # ║              CONFIGURACIÓN DE LA SIMULACIÓN                     ║
+        # ╠══════════════════════════════════════════════════════════════════╣
+        # ║  Tren continuo (carril inferior)                                 ║
+        TRAIN_SPEED      = 20.0   # Velocidad constante del tren (m/s)
+        TRAIN_VM_LENGTH  = 1.0    # Longitud de un VM en el tren (m)
+        TRAIN_GAP        = 1.0    # Espacio entre VMs consecutivos (m)
+        # ╠══════════════════════════════════════════════════════════════════╣
+        # ║  ESCENARIO DE PRUEBA  ←  CAMBIA ESTE NÚMERO PARA TESTEAR       ║
+        # ║                                                                  ║
+        # ║   1 → Entrada fluida      (tren escaso, slots libres)           ║
+        # ║         Terminal: "[TREN] VM xxx → slot N RESERVADO"            ║
+        # ║         Visual  : el VM baja y se une al tren sin pausar        ║
+        # ║                                                                  ║
+        # ║   2 → Colisión inevitable (tren LLENO, sin ningún slot libre)   ║
+        # ║         Terminal: "[TREN] COLISION INEVITABLE — VM xxx"         ║
+        # ║         Visual  : dos VMs se superponen en el mismo slot        ║
+        # ║                                                                  ║
+        # ║   3 → Colisión prevenida  (tren alterno, VM ajusta aceleración) ║
+        # ║         Terminal: "[TREN] COLISION PREVENIDA — VM xxx"          ║
+        # ║         Visual  : el VM baja ligeramente más rápido/lento       ║
+        # ║                   y ocupa el slot adyacente libre               ║
+        # ║                                                                  ║
+        # ║   0 → Configuración normal de producción                        ║
+        TEST_SCENARIO = 2         # ← CAMBIAR AQUÍ
+        # ╠══════════════════════════════════════════════════════════════════╣
+        if TEST_SCENARIO == 1:        # Entrada fluida
+            SLOT_SEARCH_RANGE = 5
+            ACCEL_RANGE_MIN   = 0.2
+            ACCEL_RANGE_MAX   = 1.5
+        elif TEST_SCENARIO == 2:      # Colisión inevitable (rango pequeño, da igual: todo lleno)
+            SLOT_SEARCH_RANGE = 3
+            ACCEL_RANGE_MIN   = 0.2
+            ACCEL_RANGE_MAX   = 1.5
+        elif TEST_SCENARIO == 3:      # Colisión prevenida
+            SLOT_SEARCH_RANGE = 5
+            ACCEL_RANGE_MIN   = 0.2
+            ACCEL_RANGE_MAX   = 1.5
+        else:                         # Normal
+            SLOT_SEARCH_RANGE = 10
+            ACCEL_RANGE_MIN   = 0.2
+            ACCEL_RANGE_MAX   = 1.5
+        # ╚══════════════════════════════════════════════════════════════════╝
+
+        # Aplicar configuración al Brain
+        self.brain.slot_search_range = SLOT_SEARCH_RANGE
+        self.brain.accel_range_min   = ACCEL_RANGE_MIN
+        self.brain.accel_range_max   = ACCEL_RANGE_MAX
+
         # Usar el Builder para configurar la simulación
         builder = SimulationBuilder(self)
   
@@ -165,9 +215,9 @@ class Simulation:
             ]
             self.continuous_train = ContinuousTrain(
                 track_order=lower_rail_tracks,
-                speed=20.0,
-                vm_length=1.0,
-                gap=1.0
+                speed=TRAIN_SPEED,
+                vm_length=TRAIN_VM_LENGTH,
+                gap=TRAIN_GAP
             )
 
             # Inyectar referencia en Brain y Network
@@ -176,9 +226,29 @@ class Simulation:
             self.network.lower_rail_track_ids = {t.track_id for t in lower_rail_tracks}
 
             # 6b. Spawn de VMs directamente en el tren continuo
-            # Configuración: colocar un VM cada N slots
-            spawn_slot_interval = 1   # Un VM cada x slots (cada x*2 metros)
-            max_spawn_vehicles = 400
+            # La densidad inicial del tren define qué escenario se observa.
+            if TEST_SCENARIO == 1:
+                # Escaso: 1 de cada 5 slots tiene un VM → mayoría de slots libres.
+                # La probabilidad de que el slot natural esté libre es alta → entrada fluida.
+                spawn_slot_interval = 5
+                max_spawn_vehicles  = 300
+            elif TEST_SCENARIO == 2:
+                # Lleno: TODOS los slots tienen un VM → colisión inevitable en cada bajada.
+                # Con search_range=3, los 7 slots alrededor del natural también estarán llenos.
+                spawn_slot_interval = 1
+                max_spawn_vehicles  = self.continuous_train.max_slots  # llenar el tren completo
+            elif TEST_SCENARIO == 3:
+                # Alterno: slots pares llenos, slots impares vacíos (o viceversa).
+                # Cuando el slot natural es par (lleno), el adyacente impar siempre está libre.
+                # search_range=5 encuentra ese adyacente → colisión prevenida.
+                # Cuando el slot natural es impar (vacío) → entrada fluida.
+                # Esperado: ~50% prevenidas, ~50% fluidas, 0% inevitables.
+                spawn_slot_interval = 2
+                max_spawn_vehicles  = 700
+            else:
+                # Normal: configuración de producción original
+                spawn_slot_interval = 1
+                max_spawn_vehicles  = 400
             vehicle_capacity = 2
             spawned_count = 0
 
@@ -194,7 +264,16 @@ class Simulation:
                 spawned_count += 1
                 slot_index += spawn_slot_interval
 
-            print(f"🚂 Spawn completado: {spawned_count} VMs en tren continuo (cada {spawn_slot_interval} slots = cada {spawn_slot_interval * self.continuous_train.spacing}m)")
+            _scenario_names = {
+                0: "Normal (produccion)",
+                1: "Escenario 1 — Entrada Fluida",
+                2: "Escenario 2 — Colision Inevitable",
+                3: "Escenario 3 — Colision Prevenida",
+            }
+            print(f"Spawn completado: {spawned_count} VMs | "
+                  f"{_scenario_names.get(TEST_SCENARIO, 'Desconocido')} | "
+                  f"Intervalo: {spawn_slot_interval} slots ({spawn_slot_interval * self.continuous_train.spacing}m) | "
+                  f"SlotSearchRange: {SLOT_SEARCH_RANGE}")
             
             # 7. Iniciar tree selector y asignar a red y estaciones
             tree_selector = TreeSelector(self.brain)

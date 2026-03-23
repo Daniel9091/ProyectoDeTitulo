@@ -51,6 +51,10 @@ class ContinuousTrain:
         # Usa listas para soportar doble ocupación sin perder VMs
         self.slots = {}
 
+        # Diccionario de slots reservados: {slot_index: vm_vehicle_id}
+        # Un VM que baja por un árbol reserva su slot destino para que nadie más lo tome.
+        self.reserved_slots = {}
+
         # Pre-calcular la tabla de segmentos para conversión belt_x → 3D
         # Cada entrada: (accumulated_start, accumulated_end, track)
         self._segment_table = []
@@ -330,10 +334,8 @@ class ContinuousTrain:
         """
         Reincorpora un VM al tren cuando baja de un árbol de aceleración.
 
-        Reglas:
-        - Busca el slot más cercano a la junction.
-        - Si está libre, lo ocupa.
-        - Si está ocupado, se permite doble ocupación (para demostrar el problema al profesor).
+        Si el VM tiene un slot reservado (calculado por Brain), lo usa directamente.
+        De lo contrario, cae al comportamiento original (slot más cercano a la junction).
 
         Args:
             vm: ModularVehicle que se reincorpora.
@@ -342,15 +344,29 @@ class ContinuousTrain:
         Returns:
             int: Slot index donde se insertó.
         """
-        slot_index = self.find_slot_at_junction(junction_belt_x)
+        # Buscar si el VM tiene un slot reservado
+        reserved_slot = None
+        for slot_index, vm_id in list(self.reserved_slots.items()):
+            if vm_id == vm.vehicle_id:
+                reserved_slot = slot_index
+                break
+
+        if reserved_slot is not None:
+            # Usar el slot reservado y liberar la reserva
+            slot_index = reserved_slot
+            self.release_reservation(vm.vehicle_id)
+        else:
+            # Fallback: slot más cercano a la junction (comportamiento original)
+            slot_index = self.find_slot_at_junction(junction_belt_x)
 
         if self.is_slot_occupied(slot_index):
             existing_ids = [v.vehicle_id for v in self.slots[slot_index]]
             print(f"\n{'='*40}")
-            print(f"⚠️  DOBLE OCUPACIÓN EN SLOT {slot_index}")
+            print(f"COLISION EN SLOT {slot_index}")
             print(f"   VMs existentes: {existing_ids}")
-            print(f"   VM entrando:  {vm.vehicle_id}")
-            print(f"   Junction belt_x: {junction_belt_x:.2f}")
+            print(f"   VM entrando: {vm.vehicle_id}")
+            if reserved_slot is not None:
+                print(f"   (Slot era reserva de colision inevitable)")
             print(f"{'='*40}\n")
             self.slots[slot_index].append(vm)
         else:
@@ -410,6 +426,69 @@ class ContinuousTrain:
     def is_vm_in_train(self, vm):
         """Verifica si un VM está en el tren."""
         return any(v.vehicle_id == vm.vehicle_id for vm_list in self.slots.values() for v in vm_list)
+
+    # ========== RESERVA DE SLOTS ==========
+
+    def is_slot_available(self, slot_index):
+        """
+        Verifica si un slot está completamente disponible:
+        ni ocupado por un VM presente, ni reservado por un VM en descenso.
+        """
+        return not self.is_slot_occupied(slot_index) and slot_index not in self.reserved_slots
+
+    def reserve_slot(self, slot_index, vm_id):
+        """
+        Reserva un slot para el VM que va a descender.
+        El slot queda bloqueado para los demás hasta que el VM llega y lo ocupa.
+
+        Args:
+            slot_index: Índice del slot a reservar.
+            vm_id: ID del vehículo que reserva (vehicle_id).
+        """
+        self.reserved_slots[slot_index] = vm_id
+
+    def release_reservation(self, vm_id):
+        """
+        Libera la reserva de un VM (cuando llega al tren o cuando se recalcula su slot).
+
+        Args:
+            vm_id: ID del vehículo cuya reserva se elimina.
+        """
+        keys_to_delete = [k for k, v in self.reserved_slots.items() if v == vm_id]
+        for k in keys_to_delete:
+            del self.reserved_slots[k]
+
+    def find_target_slot_bidirectional(self, center_slot, search_range):
+        """
+        Busca el slot libre más cercano a center_slot de forma bidireccional y recursiva.
+        Orden de búsqueda: center → center+1 → center-1 → center+2 → center-2 → ...
+
+        Un slot se considera libre si no está ocupado NI reservado.
+
+        Args:
+            center_slot: Slot predicho naturalmente (donde habría colisión o no).
+            search_range: Número máximo de slots a revisar en cada dirección.
+
+        Returns:
+            (target_slot, is_forced_collision):
+                target_slot         → índice del slot objetivo encontrado.
+                is_forced_collision → True si no había ningún slot libre en el rango
+                                      (el VM debe chocar inevitablemente).
+        """
+        for offset in range(0, search_range + 1):
+            if offset == 0:
+                candidates = [center_slot]
+            else:
+                candidates = [
+                    (center_slot + offset) % self.max_slots,
+                    (center_slot - offset) % self.max_slots,
+                ]
+            for s in candidates:
+                if self.is_slot_available(s):
+                    return s, False
+
+        # No se encontró slot libre en el rango → colisión inevitable
+        return center_slot, True
 
     # ========== DEBUG ==========
 
