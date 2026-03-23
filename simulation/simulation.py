@@ -94,7 +94,7 @@ class Simulation:
         # ║                   y ocupa el slot adyacente libre               ║
         # ║                                                                  ║
         # ║   0 → Configuración normal de producción                        ║
-        TEST_SCENARIO = 2         # ← CAMBIAR AQUÍ
+        TEST_SCENARIO = 1         # ← CAMBIAR AQUÍ
         # ╠══════════════════════════════════════════════════════════════════╣
         if TEST_SCENARIO == 1:        # Entrada fluida
             SLOT_SEARCH_RANGE = 5
