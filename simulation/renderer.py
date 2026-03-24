@@ -86,7 +86,7 @@ class Renderer:
             pos_2d = self.camera.project_3d_to_2d((pos_3d.x, pos_3d.y, pos_3d.z), margin=0)
 
             if pos_2d:
-                world_radius = 0.6
+                world_radius = point_data.get('radius', 1.0)
                 pixel_radius = int(world_radius * self.camera.zoom)
                 pygame.draw.circle(self.screen, color, pos_2d, max(2, pixel_radius), 2)
                 if label:

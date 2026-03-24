@@ -225,6 +225,43 @@ class Simulation:
             self.network.continuous_train = self.continuous_train
             self.network.lower_rail_track_ids = {t.track_id for t in lower_rail_tracks}
 
+            # ── Test_Zone: punto estático de referencia para Central Down ──────────────
+            # Calcula, con los valores por defecto del árbol y del tren, dónde está
+            # AHORA (t=0) el slot natural de Central Down, es decir, el slot que
+            # colisionaría con un VM que bajara en este instante con:
+            #   · v0            = 2 m/s  (velocidad de salida del boarding lane)
+            #   · aceleración   = natural del árbol (g·sin θ, sin ajuste de Brain)
+            #   · tail_x inicial del tren = 0
+            # Sirve para ver gráficamente qué tan atrás del circuito está el punto
+            # de encuentro potencial: si queda antes de una subida, un futuro ajuste
+            # en la lane podría liberar ese slot antes de que llegue al conflicto.
+            _tz_tree = self.network.tracks[4]                          # Central Down
+            _tz_jbx  = self.continuous_train.junction_belt_x[10]      # unión con track 10
+            _tz_v0   = 2.0                                             # vel. boarding lane
+            _tz_Tn   = _tz_tree.get_time_to_complete(
+                initial_velocity=_tz_v0, start_progress=0.0,
+                acceleration=_tz_tree.acceleration
+            )
+            if _tz_Tn and _tz_Tn > 0:
+                _tz_ftx = (self.continuous_train.tail_x +
+                           self.continuous_train.speed * _tz_Tn) % self.continuous_train.total_length
+                _tz_dlt = (_tz_jbx - _tz_ftx) % self.continuous_train.total_length
+                _tz_ns  = round(_tz_dlt / self.continuous_train.spacing)
+                if _tz_ns >= self.continuous_train.max_slots:
+                    _tz_ns = 0
+                _tz_sbx = (self.continuous_train.tail_x +
+                           _tz_ns * self.continuous_train.spacing) % self.continuous_train.total_length
+                _tz_pos = self.continuous_train.belt_x_to_3d(_tz_sbx)
+                self.debug_points = [{
+                    'pos':    _tz_pos,
+                    'color':  (0, 255, 255),
+                    'label':  'TZ-Central',
+                    'radius': 1.0           # 1 metro = tamaño de un slot
+                }]
+                print(f"[TZ] Test_Zone Central → belt_x={_tz_sbx:.2f}m  "
+                      f"pos=({_tz_pos.x:.2f}, {_tz_pos.z:.2f})  "
+                      f"(T_natural={_tz_Tn:.3f}s, slot={_tz_ns})")
+
             # 6b. Spawn de VMs directamente en el tren continuo
             # La densidad inicial del tren define qué escenario se observa.
             if TEST_SCENARIO == 1:
