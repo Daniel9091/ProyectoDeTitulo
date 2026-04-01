@@ -41,9 +41,14 @@ class Station:
         self._time_since_last_check = 0.0
         self._demand_accumulator = 0.0 # ✅ NUEVO: Acumulador para demanda fraccional
         
-        # Al final del __init__
         self.passenger_entrance_queue: list['Passenger'] = [] # Pasajeros esperando ser asignados a un andén
         self.boarding_lanes: list['BoardingLane'] = [] # Lista de andenes que pertenecen a esta estación
+
+        # ── Contador de consumos ────────────────────────────────────────────────────
+        # Cada vez que la estación consume (desvía) un VM del tren continuo, se registra.
+        # Un balance alto indica alta presión en el sistema; se puede usar para rate-limiting.
+        self.consumption_balance: int = 0
+        self._consumption_log: list = []  # [(timestamp, vm_id), ...]
         
 
     # ========== CONFIGURACIÓN Y INYECCIÓN DE DEPENDENCIAS ==========
@@ -77,6 +82,30 @@ class Station:
             raise ValueError("Los árboles de salida deben tener dirección 'down'")
         
         self.departure_trees.append(acceleration_tree)
+
+    # ========== SISTEMA DE CONSUMO ==========
+
+    def on_vm_consumed(self, vm, current_time: float):
+        """
+        Notifica que un VM fue desviado al tren y acaba de entrar al árbol de llegada
+        de esta estación por solicitud del sistema anti-colisión.
+
+        El VM pasará por el boarding lane normalmente: los pasajeros podrán abordar
+        si lo necesitan, y el VM quedará disponible para nuevas asignaciones al salir.
+
+        Args:
+            vm:           ModularVehicle que fue consumido.
+            current_time: Tiempo de simulación actual (para registro).
+        """
+        self.consumption_balance += 1
+        self._consumption_log.append((current_time, vm.vehicle_id))
+
+        print(
+            f"[ESTACIÓN {self.station_id}] VM {vm.vehicle_id} consumido  "
+            f"| p:{vm.passengers}  "
+            f"| balance total: {self.consumption_balance}  "
+            f"| t={current_time:.1f}s"
+        )
 
     def add_passenger_to_entrance_queue(self, passenger: 'Passenger'):
         """

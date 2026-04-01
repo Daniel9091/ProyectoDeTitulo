@@ -458,6 +458,18 @@ class ContinuousTrain:
         for k in keys_to_delete:
             del self.reserved_slots[k]
 
+    def get_reserving_vm_id(self, slot_index):
+        """
+        Retorna el vm_id del VM que tiene reservado este slot, o None si no está reservado.
+
+        Args:
+            slot_index: Índice del slot a consultar.
+
+        Returns:
+            str | None: vehicle_id del VM que reservó el slot, o None.
+        """
+        return self.reserved_slots.get(slot_index)
+
     def find_target_slot_bidirectional(self, center_slot, search_range):
         """
         Busca el slot libre más cercano a center_slot de forma bidireccional y recursiva.

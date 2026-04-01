@@ -52,8 +52,15 @@ class Brain:
         # ✅ NUEVO: Sistema de optimización de colisiones
         self.collision_grid = SpatialGrid(cell_size=50.0) # Celdas de 50x50x50 metros
 
-        # Lista para predicción de colisiones sincronizada
+        # Lista para predicción desde árbol de bajada (recalcula aceleración)
         self.pending_down_tree_entries = []
+
+        # Lista para predicción anticipada desde entrada al boarding lane
+        self.pending_lane_entries = []
+
+        # Dict de consumos pendientes: vm_id → consuming_station_id
+        # Un VM en este dict será desviado a parar en la estación indicada.
+        self._pending_consumptions = {}
 
         # Parámetros de gestión de slots en tren continuo (configurados desde Simulation)
         self.slot_search_range = 10   # Slots a revisar antes/después ante colisión
@@ -442,7 +449,10 @@ class Brain:
             if passenger.state != "ARRIVED":
                 passenger.update(dt)
 
-        # 9. Predicciones de colisión usando ContinuousTrain
+        # 9. Predicciones anticipadas desde entrada a boarding lane (reserva slot + consumo)
+        self._process_lane_entry_predictions()
+
+        # 10. Predicciones en árbol de bajada: recalcula aceleración para slot pre-reservado
         self._process_collision_predictions()
 
 
@@ -505,19 +515,292 @@ class Brain:
         # Esta lógica está principalmente en Network ahora
         pass
 
+    # ========== PREDICCIÓN ANTICIPADA Y SISTEMA DE CONSUMO ==========
+
+    def _get_junction_belt_x(self, down_tree):
+        """Retorna el belt_x donde el árbol de bajada conecta con el carril inferior."""
+        if not self.continuous_train:
+            return None
+        for tid in self.network.adjacency.get(down_tree.track_id, []):
+            if tid in self.network.lower_rail_track_ids:
+                return self.continuous_train.junction_belt_x[tid]
+        return None
+
+    def is_vm_targeted_for_consumption(self, vm_id):
+        """Verifica si un VM ya tiene una solicitud de consumo pendiente (otra lane lo pidió)."""
+        return vm_id in self._pending_consumptions
+
+    def request_vm_consumption(self, vm, consuming_station_id):
+        """
+        Redirige un VM para que sea consumido por la estación indicada.
+
+        Modifica destination_station y target_acceleration_trees del VM.
+        El mecanismo _process_train_exits se encarga de sacarlo del tren cuando llegue
+        al junction del árbol de llegada de esa estación.
+
+        Returns:
+            bool: True si se pudo solicitar, False si los árboles están saturados.
+        """
+        station = self.stations.get(consuming_station_id)
+        if not station or not station.arrival_trees:
+            return False
+
+        # Verificar si algún árbol de llegada puede aceptar al VM
+        can_accept = any(t.can_accept_vehicle(vm) for t in station.arrival_trees)
+        if not can_accept:
+            print(
+                f"[CONSUMO] ⚠️  ALERTA: Estación {consuming_station_id} sin capacidad "
+                f"en árboles de llegada — VM {vm.vehicle_id} no puede ser consumido ahora. "
+                f"TODO: optimizar solicitud inteligente para no saturar árboles."
+            )
+            return False
+
+        prev_dest = vm.destination_station
+        self._pending_consumptions[vm.vehicle_id] = consuming_station_id
+        vm.destination_station         = consuming_station_id
+        vm.target_acceleration_trees   = [t.track_id for t in station.arrival_trees]
+
+        print(
+            f"[CONSUMO] VM {vm.vehicle_id} redirigido → estación {consuming_station_id} "
+            f"| p:{vm.passengers} | destino anterior: {prev_dest}"
+        )
+        return True
+
+    def _get_slot_consumption_priority(self, slot_index, consuming_station_id):
+        """
+        Clasifica un slot según lo apropiado que es como candidato de consumo.
+
+        Prioridades (menor número = mejor candidato):
+          0 – Ocupado, sin pasajeros, sin destino        (consumo sin costo alguno)
+          1 – Ocupado, sin pasajeros, va a esta estación (ya venía, solo lo aceleramos)
+          2 – Reservado, sin pasajeros, sin destino      (aún no en tren, fácil redirección)
+          3 – Ocupado, sin pasajeros, otro destino       (intercepción con algún costo)
+          4 – Reservado, sin pasajeros, otro destino     (ídem pero aún no en tren)
+          5 – Ocupado, con pasajeros, va a esta estación (ok: pasajeros no se desvían)
+          6 – Ocupado, con pasajeros, otro destino       (peor caso, fuerza desvío)
+          ∞ – VM ya apuntado para consumo / sin VM       (no tocar)
+
+        Returns:
+            (priority: int|float, vm: ModularVehicle|None)
+        """
+        train = self.continuous_train
+        INF   = float('inf')
+
+        is_occupied = train.is_slot_occupied(slot_index)
+        is_reserved = slot_index in train.reserved_slots
+        vm = None
+
+        if is_occupied:
+            vm_list = train.slots.get(slot_index, [])
+            vm = vm_list[0] if vm_list else None
+        elif is_reserved:
+            vm_id = train.get_reserving_vm_id(slot_index)
+            vm = self.vehicles.get(vm_id) if vm_id else None
+
+        if vm is None:
+            return INF, None
+
+        # No tocar VMs que ya tienen consumo pendiente solicitado por otra lane
+        if self.is_vm_targeted_for_consumption(vm.vehicle_id):
+            return INF, None
+
+        passengers  = vm.passengers
+        destination = vm.destination_station
+
+        if is_occupied:
+            if passengers == 0 and destination is None:
+                return 0, vm
+            if passengers == 0 and destination == consuming_station_id:
+                return 1, vm
+            if passengers == 0:
+                return 3, vm
+            if destination == consuming_station_id:
+                return 5, vm
+            return 6, vm
+        else:  # is_reserved (VM descendiendo de estación anterior, aún no en tren)
+            if passengers == 0 and destination is None:
+                return 2, vm
+            if passengers == 0:
+                return 4, vm
+            if destination == consuming_station_id:
+                return 5, vm
+            return 6, vm
+
+    def _find_best_slot_for_lane_entry(self, natural_slot, consuming_station_id):
+        """
+        Determina el slot objetivo y la acción a tomar al entrar a la boarding lane.
+
+        Reglas en orden de prioridad:
+          1. Slot libre en ±slot_search_range → reservar directamente.
+          2. Todo el rango ocupado/reservado → buscar el mejor candidato de consumo.
+          3. Sin candidatos válidos → colisión inevitable (se registra de todas formas).
+
+        Returns:
+            (target_slot: int, action: str, candidate_vm: ModularVehicle|None)
+            action ∈ {'free', 'consume', 'inevitable'}
+        """
+        train = self.continuous_train
+
+        # ── Paso 1: Buscar slot libre ──────────────────────────────────────────────────
+        for offset in range(0, self.slot_search_range + 1):
+            candidates = ([natural_slot] if offset == 0
+                          else [(natural_slot + offset) % train.max_slots,
+                                (natural_slot - offset) % train.max_slots])
+            for s in candidates:
+                if train.is_slot_available(s):
+                    return s, 'free', None
+
+        # ── Paso 2: Buscar mejor candidato de consumo ──────────────────────────────────
+        best_priority = float('inf')
+        best_slot     = natural_slot
+        best_vm       = None
+
+        for offset in range(0, self.slot_search_range + 1):
+            candidates = ([natural_slot] if offset == 0
+                          else [(natural_slot + offset) % train.max_slots,
+                                (natural_slot - offset) % train.max_slots])
+            for s in candidates:
+                priority, vm = self._get_slot_consumption_priority(s, consuming_station_id)
+                if priority < best_priority:
+                    best_priority = priority
+                    best_slot     = s
+                    best_vm       = vm
+
+        if best_priority < float('inf'):
+            return best_slot, 'consume', best_vm
+
+        # ── Paso 3: Colisión inevitable ────────────────────────────────────────────────
+        return natural_slot, 'inevitable', None
+
+    def _process_lane_entry_predictions(self):
+        """
+        Predicción anticipada de colisiones cuando un VM entra a un boarding lane.
+
+        Usa T_total = T_lane + T_árbol_bajada para encontrar el slot objetivo con mucha
+        más anticipación que la predicción en el árbol de bajada.
+
+        Reglas de prioridad:
+          1. Slot libre → reservar directamente.
+          2. Slots en rango ocupados/reservados → buscar mejor candidato de consumo.
+          3. Sin candidatos válidos → marcar como colisión inevitable.
+
+        El slot se almacena en vehicle._pending_down_tree_slot para que cuando el VM
+        entre al árbol de bajada, solo se recalcule la aceleración (sin nueva búsqueda).
+        """
+        if not self.continuous_train or not self.pending_lane_entries:
+            self.pending_lane_entries.clear()
+            return
+
+        train = self.continuous_train
+
+        for event in list(self.pending_lane_entries):
+            vehicle              = event['vehicle']
+            boarding_lane        = event['boarding_lane']
+            down_tree            = event['descending_tree']
+            consuming_station_id = event['consuming_station_id']
+
+            # ── 1. Tiempos: lane completa + árbol de bajada desde v0 ──────────────────
+            T_lane = boarding_lane.length / boarding_lane.speed
+            v0     = boarding_lane.speed        # velocidad de salida del lane = entrada al árbol
+            T_down = down_tree.get_time_to_complete(
+                initial_velocity=v0, start_progress=0.0,
+                acceleration=down_tree.acceleration
+            )
+            if T_down is None or T_down <= 0:
+                continue
+            T_total = T_lane + T_down
+
+            # ── 2. Junction belt_x ────────────────────────────────────────────────────
+            junction_belt_x = self._get_junction_belt_x(down_tree)
+            if junction_belt_x is None:
+                continue
+
+            # ── 3. Slot natural en T_total ────────────────────────────────────────────
+            future_tail_x = (train.tail_x + train.speed * T_total) % train.total_length
+            delta         = (junction_belt_x - future_tail_x) % train.total_length
+            natural_slot  = round(delta / train.spacing)
+            if natural_slot >= train.max_slots:
+                natural_slot = 0
+
+            # Liberar reserva previa de este VM (por si hubo predicción anterior)
+            train.release_reservation(vehicle.vehicle_id)
+
+            # ── 4. Elegir slot con sistema de prioridades ─────────────────────────────
+            target_slot, action, candidate_vm = self._find_best_slot_for_lane_entry(
+                natural_slot, consuming_station_id
+            )
+
+            # ── 5. Reservar el slot y guardar en el vehículo ──────────────────────────
+            train.reserve_slot(target_slot, vehicle.vehicle_id)
+            vehicle._pending_down_tree_slot      = target_slot
+            vehicle._pending_is_forced_collision = (action == 'inevitable')
+
+            # ── 6. Solicitar consumo si corresponde ───────────────────────────────────
+            if action == 'consume' and candidate_vm is not None:
+                self.request_vm_consumption(candidate_vm, consuming_station_id)
+
+            # ── 7. Logs ───────────────────────────────────────────────────────────────
+            delta_slot = (
+                (target_slot - natural_slot + train.max_slots // 2) % train.max_slots
+                - train.max_slots // 2
+            )
+
+            if action == 'free':
+                if delta_slot == 0:
+                    print(
+                        f"[LANE] VM {vehicle.vehicle_id} (p:{vehicle.passengers}) "
+                        f"→ slot {target_slot} RESERVADO  "
+                        f"(lane {boarding_lane.track_id} | "
+                        f"T={T_lane:.1f}+{T_down:.1f}={T_total:.1f}s)"
+                    )
+                else:
+                    sign = '+' if delta_slot > 0 else ''
+                    print(
+                        f"\n{'='*50}\n"
+                        f"[LANE] COLISION PREVENIDA — VM {vehicle.vehicle_id} (p:{vehicle.passengers})\n"
+                        f"  Lane: {boarding_lane.track_id}  T={T_total:.1f}s\n"
+                        f"  Slot natural {natural_slot} → slot {target_slot} ({sign}{delta_slot})\n"
+                        f"{'='*50}\n"
+                    )
+
+            elif action == 'consume':
+                cand_id   = candidate_vm.vehicle_id        if candidate_vm else '?'
+                cand_pax  = candidate_vm.passengers        if candidate_vm else '?'
+                cand_dest = candidate_vm.destination_station if candidate_vm else '?'
+                print(
+                    f"\n{'='*50}\n"
+                    f"[LANE] CONSUMO SOLICITADO — VM {vehicle.vehicle_id} (p:{vehicle.passengers})\n"
+                    f"  Lane: {boarding_lane.track_id}  Árbol bajada: {down_tree.track_id}\n"
+                    f"  T_total={T_total:.1f}s  (lane {T_lane:.1f}s + árbol {T_down:.1f}s)\n"
+                    f"  Slot objetivo: {target_slot}  (natural: {natural_slot})\n"
+                    f"  VM a consumir: {cand_id} (p:{cand_pax}, dest:{cand_dest})\n"
+                    f"  Estación consumidora: {consuming_station_id}\n"
+                    f"{'='*50}\n"
+                )
+
+            else:  # inevitable
+                occ_vm  = train.get_vm_at_slot(target_slot)
+                occ_id  = (occ_vm.vehicle_id if occ_vm
+                           else train.get_reserving_vm_id(target_slot) or '?')
+                print(
+                    f"\n{'='*50}\n"
+                    f"[LANE] COLISION INEVITABLE — VM {vehicle.vehicle_id} (p:{vehicle.passengers})\n"
+                    f"  Lane: {boarding_lane.track_id}  T_total={T_total:.1f}s\n"
+                    f"  Sin slots libres ni candidatos válidos en ±{self.slot_search_range}\n"
+                    f"  Colisiona con: {occ_id} en slot {target_slot}\n"
+                    f"{'='*50}\n"
+                )
+
+        self.pending_lane_entries.clear()
+
     def _process_collision_predictions(self):
         """
         Gestión preventiva de colisiones en el tren continuo.
 
         Por cada VM que acaba de entrar a un árbol de bajada:
-        1. Calcula el slot "natural" (cuál slot llegará a la junction con la aceleración propia).
-        2. Busca bidireccionalmente el slot disponible más cercano (centro → +1 → -1 → +2 → -2...).
-        3. Calcula cuánto tiempo tarda ese slot en llegar a la junction DESDE SU POSICIÓN ACTUAL.
-        4. Con ese tiempo (T_slot), recalcula la aceleración del VM con MRUA para que ambos
-           lleguen a la junction al mismo tiempo → entrada fluida para los 3 casos:
-             - slot natural libre       → ajuste mínimo, casi igual a la aceleración natural
-             - colisión prevenida       → ajuste para llegar al slot adyacente
-             - colisión inevitable      → ajuste para llegar fluido al slot ocupado
+        - Si tiene slot pre-reservado (de _process_lane_entry_predictions): solo recalcula
+          la aceleración exacta para llegar a ese slot con la velocidad/progreso actuales.
+        - Si no tiene pre-reserva (fallback): ejecuta la búsqueda completa original.
         """
         if not self.continuous_train:
             self.pending_down_tree_entries.clear()
@@ -526,63 +809,54 @@ class Brain:
         train = self.continuous_train
 
         for event in self.pending_down_tree_entries:
-            vehicle = event['vehicle']
+            vehicle         = event['vehicle']
             descending_tree = event['descending_tree']
 
-            # ── 1. Estado actual del VM en el árbol ──
+            # ── 1. Estado actual del VM en el árbol ──────────────────────────────────
             start_progress = descending_tree.get_vehicle_progress(vehicle)
-            # Velocidad ACTUAL del VM (no la velocidad de entrada al árbol).
-            # El VM puede llevar unos instantes en el árbol (time_left del track anterior),
-            # por lo que su velocidad ya es ligeramente mayor que la de entrada.
-            v0 = descending_tree.get_vehicle_velocity(vehicle)
+            v0             = descending_tree.get_vehicle_velocity(vehicle)
 
-            # Tiempo restante con aceleración natural (solo para encontrar el slot candidato)
-            T_natural = descending_tree.get_time_to_complete(
-                initial_velocity=v0, start_progress=start_progress
-            )
-            if T_natural is None or T_natural <= 0:
-                continue
-
-            # ── 2. Junction belt_x ──
-            junction_belt_x = None
-            for tid in self.network.adjacency.get(descending_tree.track_id, []):
-                if tid in self.network.lower_rail_track_ids:
-                    junction_belt_x = train.junction_belt_x[tid]
-                    break
+            # ── 2. Junction belt_x (necesaria en todos los casos) ─────────────────────
+            junction_belt_x = self._get_junction_belt_x(descending_tree)
             if junction_belt_x is None:
                 continue
 
-            # ── 3. Slot natural: cuál slot estará en junction en T_natural ──
-            future_tail_x = (train.tail_x + train.speed * T_natural) % train.total_length
-            delta = (junction_belt_x - future_tail_x) % train.total_length
-            natural_slot = round(delta / train.spacing)
-            if natural_slot >= train.max_slots:
-                natural_slot = 0
+            # ── 3 & 4. Slot objetivo: pre-reservado o búsqueda completa ───────────────
+            pre_slot   = getattr(vehicle, '_pending_down_tree_slot',      None)
+            pre_forced = getattr(vehicle, '_pending_is_forced_collision', False)
 
-            # ── 4. Buscar slot objetivo (bidireccional) ──
-            train.release_reservation(vehicle.vehicle_id)
-            target_slot, is_forced_collision = train.find_target_slot_bidirectional(
-                natural_slot, self.slot_search_range
-            )
+            if pre_slot is not None:
+                # Slot ya reservado desde la entrada al boarding lane: solo recalcular accel.
+                vehicle._pending_down_tree_slot      = None
+                vehicle._pending_is_forced_collision = False
+                target_slot          = pre_slot
+                is_forced_collision  = pre_forced
+                T_natural            = None   # no disponible; no se usa en los logs de este caso
+            else:
+                # Fallback: predicción completa (sin pre-reserva de lane)
+                T_natural = descending_tree.get_time_to_complete(
+                    initial_velocity=v0, start_progress=start_progress
+                )
+                if T_natural is None or T_natural <= 0:
+                    continue
 
-            # ── 5. T_slot: cuánto tarda target_slot en llegar a junction DESDE AHORA ──
-            # Posición actual del slot en la correa 1D:
-            #   slot_belt_x = (tail_x + target_slot * spacing) % total_length
-            # Distancia que le falta recorrer hasta junction_belt_x (el tren siempre avanza):
-            #   dist = (junction_belt_x - slot_belt_x) % total_length
-            # Tiempo (MRU): T_slot = dist / speed
-            #
-            # Esta fórmula es exacta y no depende de T_natural, eliminando el error de
-            # redondeo que introducía natural_slot = round(delta/spacing).
-            # Para search_range pequeño, T_slot siempre estará cerca de T_natural.
-            slot_belt_x = (train.tail_x + target_slot * train.spacing) % train.total_length
+                future_tail_x = (train.tail_x + train.speed * T_natural) % train.total_length
+                delta         = (junction_belt_x - future_tail_x) % train.total_length
+                natural_slot  = round(delta / train.spacing)
+                if natural_slot >= train.max_slots:
+                    natural_slot = 0
+
+                train.release_reservation(vehicle.vehicle_id)
+                target_slot, is_forced_collision = train.find_target_slot_bidirectional(
+                    natural_slot, self.slot_search_range
+                )
+
+            # ── 5. T_slot: tiempo hasta que target_slot llega a junction ─────────────
+            slot_belt_x      = (train.tail_x + target_slot * train.spacing) % train.total_length
             dist_to_junction = (junction_belt_x - slot_belt_x) % train.total_length
-            T_slot = dist_to_junction / train.speed
+            T_slot           = dist_to_junction / train.speed
 
-            # ── 6. Aceleración requerida: MRUA ──
-            # Queremos que el VM recorra L_remaining en exactamente T_slot segundos,
-            # partiendo de la velocidad actual v0.
-            # De L = v0·T + ½·a·T²  →  a = 2·(L − v0·T) / T²
+            # ── 6. Aceleración requerida: MRUA  (L = v0·T + ½·a·T²) ─────────────────
             L_remaining = descending_tree.length * (1.0 - start_progress)
             if T_slot > 0:
                 a_required = 2.0 * (L_remaining - v0 * T_slot) / (T_slot ** 2)
@@ -591,45 +865,48 @@ class Brain:
 
             a_clamped = max(self.accel_range_min, min(self.accel_range_max, a_required))
 
-            # ── 7. Reservar slot y aplicar aceleración ──
+            # ── 7. Reservar slot y aplicar aceleración ───────────────────────────────
             train.reserve_slot(target_slot, vehicle.vehicle_id)
             descending_tree.set_vehicle_acceleration(vehicle, a_clamped)
 
-            # ── 8. Notificaciones en terminal ──
-            delta_slot = target_slot - natural_slot
-            if delta_slot > train.max_slots // 2:
-                delta_slot -= train.max_slots
-            elif delta_slot < -(train.max_slots // 2):
-                delta_slot += train.max_slots
-
-            if is_forced_collision:
-                conflicting_vm = train.get_vm_at_slot(target_slot)
-                conflicting_id = conflicting_vm.vehicle_id if conflicting_vm else "desconocido"
-                print(f"\n{'='*45}")
-                print(f"[TREN] COLISION INEVITABLE — VM {vehicle.vehicle_id}")
-                print(f"  Arbol         : {descending_tree.track_id}")
-                print(f"  Sin slots libres en rango ±{self.slot_search_range}")
-                print(f"  Colisiona con : VM {conflicting_id} en slot {target_slot}")
-                print(f"  T_slot        : {T_slot:.4f}s  (natural: {T_natural:.4f}s)")
-                print(f"  Aceleracion   : {a_clamped:.4f} m/s²  "
-                      f"(requerida: {a_required:.4f}, natural: {descending_tree.acceleration:.4f})")
-                print(f"{'='*45}\n")
+            # ── 8. Logs ──────────────────────────────────────────────────────────────
+            if pre_slot is not None:
+                # Slot venía pre-reservado; la lane ya imprimió el log completo.
+                print(
+                    f"[ÁRBOL] VM {vehicle.vehicle_id} (p:{vehicle.passengers}) "
+                    f"→ slot {target_slot} | a={a_clamped:.4f} m/s²  "
+                    f"(pre-reservado desde lane)"
+                )
             else:
-                sign = "+" if delta_slot > 0 else ""
-                if delta_slot == 0:
-                    print(f"[TREN] VM {vehicle.vehicle_id} → slot {target_slot} RESERVADO  "
-                          f"(arbol {descending_tree.track_id} | "
-                          f"T_slot={T_slot:.4f}s | a={a_clamped:.4f} m/s²)")
-                else:
+                # Fallback: log completo
+                delta_slot = (
+                    (target_slot - natural_slot + train.max_slots // 2) % train.max_slots
+                    - train.max_slots // 2
+                )
+                if is_forced_collision:
+                    conflicting_vm = train.get_vm_at_slot(target_slot)
+                    conflicting_id = conflicting_vm.vehicle_id if conflicting_vm else "desconocido"
                     print(f"\n{'='*45}")
-                    print(f"[TREN] COLISION PREVENIDA — VM {vehicle.vehicle_id}")
+                    print(f"[ÁRBOL] COLISION INEVITABLE — VM {vehicle.vehicle_id} (p:{vehicle.passengers})")
                     print(f"  Arbol         : {descending_tree.track_id}")
-                    print(f"  Slot natural {natural_slot} → slot {target_slot} "
-                          f"(offset {sign}{delta_slot})")
-                    print(f"  T_slot        : {T_slot:.4f}s  "
-                          f"(natural: {T_natural:.4f}s, delta: {T_slot - T_natural:+.4f}s)")
-                    print(f"  Aceleracion   : {a_clamped:.4f} m/s²  "
-                          f"(requerida: {a_required:.4f}, natural: {descending_tree.acceleration:.4f})")
+                    print(f"  Sin slots libres en rango ±{self.slot_search_range}")
+                    print(f"  Colisiona con : VM {conflicting_id} en slot {target_slot}")
+                    print(f"  T_slot        : {T_slot:.4f}s")
+                    print(f"  Aceleracion   : {a_clamped:.4f} m/s²")
+                    print(f"{'='*45}\n")
+                elif delta_slot == 0:
+                    print(
+                        f"[ÁRBOL] VM {vehicle.vehicle_id} (p:{vehicle.passengers}) "
+                        f"→ slot {target_slot} RESERVADO  "
+                        f"(árbol {descending_tree.track_id} | T_slot={T_slot:.4f}s | a={a_clamped:.4f})"
+                    )
+                else:
+                    sign = '+' if delta_slot > 0 else ''
+                    print(f"\n{'='*45}")
+                    print(f"[ÁRBOL] COLISION PREVENIDA — VM {vehicle.vehicle_id} (p:{vehicle.passengers})")
+                    print(f"  Arbol         : {descending_tree.track_id}")
+                    print(f"  Slot natural {natural_slot} → slot {target_slot} (offset {sign}{delta_slot})")
+                    print(f"  T_slot={T_slot:.4f}s  a={a_clamped:.4f} m/s²")
                     print(f"{'='*45}\n")
 
         self.pending_down_tree_entries.clear()
@@ -674,6 +951,13 @@ class Brain:
                 self.continuous_train.remove_vm(vm)
                 # Transferir al árbol de subida (velocidad de entrada = velocidad del tren)
                 vm.transfer_to_track(best_tree, entry_velocity=self.continuous_train.speed)
+
+                # Notificar a la estación si este VM fue consumido por solicitud
+                if vm.vehicle_id in self._pending_consumptions:
+                    consuming_station_id = self._pending_consumptions.pop(vm.vehicle_id)
+                    consuming_station    = self.stations.get(consuming_station_id)
+                    if consuming_station:
+                        consuming_station.on_vm_consumed(vm, self.simulation_time)
 
     def _monitor_system_health(self):
         """

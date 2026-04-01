@@ -1,0 +1,1003 @@
+(venv) danielguzman@LENOVOPF5T5J39:~/Escritorio/11sem/MemoriaDelpiano/Sim$ python3 -m simulation.main
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.3)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+Cámara resetada - Posición: (0, 0, 0) Rotación: (0, 90)
+🧠 Brain inicializado - Sistema de coordinación central listo
+🚂 ContinuousTrain inicializado:
+   Longitud total: 2900.00m
+   Spacing: 2.00m
+   Max slots: 1450
+   Velocidad: 20.0 m/s
+   Tracks: [7, 8, 9, 10, 11, 12]
+[TZ] Test_Zone Central → belt_x=622.00m  pos=(622.00, -20.00)  (T_lane=24.850s + T_arbol=36.589s = T_total=61.439s, slot=311)
+Spawn completado: 1450 VMs | Escenario 2 — Colision Inevitable | Intervalo: 1 slots (2.0m) | SlotSearchRange: 3
+✅ TreeSelector inicializado con estrategias: ['progressive_saturation', 'emergency_flow', 'round_robin']
+Sistema de navegación completamente configurado
+   Exit junctions del tren: [(1000.15, [3, 16, 18]), (2000.0, [5]), (0.0, [1])]
+INFO: Generador de pasajeros añadido para estación '1' con tasa 0.1/s.
+INFO: Generador de pasajeros añadido para estación '2' con tasa 0.1/s.
+INFO: Generador de pasajeros añadido para estación '3' con tasa 0.05/s.
+🗺️  Mapa de predecesores de la red construido.
+✓ Red validada correctamente
+
+========================= CONFIGURACIÓN COMPLETADA =========================
+
+--- Resumen General ---
+  - Estaciones: 3
+  - Tracks (Vías): 21
+  - Vehículos iniciales: 1450
+  - Conexiones en la red: 26
+
+--- Matriz Origen/Destino de Pasajeros (pasajeros/seg) ---
+ORIGEN            North StationCentral StationSouth StationTOTAL
+----------------------------------------------------------------
+North Station     0.00        0.07        0.03        0.10
+Central Station   0.02        0.00        0.08        0.10
+South Station     0.01        0.05        0.00        0.05
+----------------------------------------------------------------
+TOTAL             0.03        0.11        0.11        0.25
+
+--- Demanda de Vehículos por Estación ---
+Estación             Demanda (VMs / segundo)
+--------------------------------------------
+North Station        0.0833
+Central Station      0.5000
+South Station        0.1667
+==========================================================================
+
+[CONSUMO] VM _S_916 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_6 (p:0)
+  Lane: 14  Árbol bajada: 4
+  T_total=61.4s  (lane 24.8s + árbol 36.6s)
+  Slot objetivo: 915  (natural: 915)
+  VM a consumir: _S_916 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[ESTACIÓN 2] VM _S_916 consumido  | p:0  | balance total: 1  | t=103.5s
+[ÁRBOL] VM _S_6 (p:1) → slot 915 | a=0.4677 m/s²  (pre-reservado desde lane)
+🚂 ContinuousTrain inicializado:
+   Longitud total: 2900.00m
+   Spacing: 2.00m
+   Max slots: 1450
+   Velocidad: 20.0 m/s
+   Tracks: [7, 8, 9, 10, 11, 12]
+[TZ] Test_Zone Central → belt_x=622.00m  pos=(622.00, -20.00)  (T_lane=24.850s + T_arbol=36.589s = T_total=61.439s, slot=311)
+Spawn completado: 1450 VMs | Escenario 2 — Colision Inevitable | Intervalo: 1 slots (2.0m) | SlotSearchRange: 3
+✅ TreeSelector inicializado con estrategias: ['progressive_saturation', 'emergency_flow', 'round_robin']
+Sistema de navegación completamente configurado
+   Exit junctions del tren: [(1000.15, [3, 16, 18]), (2000.0, [5]), (0.0, [1])]
+INFO: Generador de pasajeros añadido para estación '1' con tasa 0.1/s.
+INFO: Generador de pasajeros añadido para estación '2' con tasa 0.1/s.
+INFO: Generador de pasajeros añadido para estación '3' con tasa 0.05/s.
+🗺️  Mapa de predecesores de la red construido.
+✓ Red validada correctamente
+
+========================= CONFIGURACIÓN COMPLETADA =========================
+
+--- Resumen General ---
+  - Estaciones: 3
+  - Tracks (Vías): 21
+  - Vehículos iniciales: 1450
+  - Conexiones en la red: 26
+
+--- Matriz Origen/Destino de Pasajeros (pasajeros/seg) ---
+ORIGEN            North StationCentral StationSouth StationTOTAL
+----------------------------------------------------------------
+North Station     0.00        0.07        0.03        0.10
+Central Station   0.02        0.00        0.08        0.10
+South Station     0.01        0.05        0.00        0.05
+----------------------------------------------------------------
+TOTAL             0.03        0.11        0.11        0.25
+
+--- Demanda de Vehículos por Estación ---
+Estación             Demanda (VMs / segundo)
+--------------------------------------------
+North Station        0.0833
+Central Station      0.5000
+South Station        0.1667
+==========================================================================
+
+🚂 ContinuousTrain inicializado:
+   Longitud total: 2900.00m
+   Spacing: 2.00m
+   Max slots: 1450
+   Velocidad: 20.0 m/s
+   Tracks: [7, 8, 9, 10, 11, 12]
+[TZ] Test_Zone Central → belt_x=622.00m  pos=(622.00, -20.00)  (T_lane=24.850s + T_arbol=36.589s = T_total=61.439s, slot=311)
+Spawn completado: 1450 VMs | Escenario 2 — Colision Inevitable | Intervalo: 1 slots (2.0m) | SlotSearchRange: 3
+✅ TreeSelector inicializado con estrategias: ['progressive_saturation', 'emergency_flow', 'round_robin']
+Sistema de navegación completamente configurado
+   Exit junctions del tren: [(1000.15, [3, 16, 18]), (2000.0, [5]), (0.0, [1])]
+INFO: Generador de pasajeros añadido para estación '1' con tasa 0.1/s.
+INFO: Generador de pasajeros añadido para estación '2' con tasa 0.1/s.
+INFO: Generador de pasajeros añadido para estación '3' con tasa 0.05/s.
+🗺️  Mapa de predecesores de la red construido.
+✓ Red validada correctamente
+
+========================= CONFIGURACIÓN COMPLETADA =========================
+
+--- Resumen General ---
+  - Estaciones: 3
+  - Tracks (Vías): 21
+  - Vehículos iniciales: 1450
+  - Conexiones en la red: 26
+
+--- Matriz Origen/Destino de Pasajeros (pasajeros/seg) ---
+ORIGEN            North StationCentral StationSouth StationTOTAL
+----------------------------------------------------------------
+North Station     0.00        0.07        0.03        0.10
+Central Station   0.02        0.00        0.08        0.10
+South Station     0.01        0.05        0.00        0.05
+----------------------------------------------------------------
+TOTAL             0.03        0.11        0.11        0.25
+
+--- Demanda de Vehículos por Estación ---
+Estación             Demanda (VMs / segundo)
+--------------------------------------------
+North Station        0.0833
+Central Station      0.5000
+South Station        0.1667
+==========================================================================
+
+(venv) danielguzman@LENOVOPF5T5J39:~/Escritorio/11sem/MemoriaDelpiano/Sim$ python3 -m simulation.main
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.3)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+Cámara resetada - Posición: (0, 0, 0) Rotación: (0, 90)
+🧠 Brain inicializado - Sistema de coordinación central listo
+🚂 ContinuousTrain inicializado:
+   Longitud total: 2900.00m
+   Spacing: 2.00m
+   Max slots: 1450
+   Velocidad: 20.0 m/s
+   Tracks: [7, 8, 9, 10, 11, 12]
+[TZ] Test_Zone Central → belt_x=622.00m  pos=(622.00, -20.00)  (T_lane=24.850s + T_arbol=36.589s = T_total=61.439s, slot=311)
+Spawn completado: 1450 VMs | Escenario 2 — Colision Inevitable | Intervalo: 1 slots (2.0m) | SlotSearchRange: 3
+✅ TreeSelector inicializado con estrategias: ['progressive_saturation', 'emergency_flow', 'round_robin']
+Sistema de navegación completamente configurado
+   Exit junctions del tren: [(1000.15, [3, 16, 18]), (2000.0, [5]), (0.0, [1])]
+INFO: Generador de pasajeros añadido para estación '1' con tasa 0.1/s.
+INFO: Generador de pasajeros añadido para estación '2' con tasa 0.1/s.
+INFO: Generador de pasajeros añadido para estación '3' con tasa 0.05/s.
+🗺️  Mapa de predecesores de la red construido.
+✓ Red validada correctamente
+
+========================= CONFIGURACIÓN COMPLETADA =========================
+
+--- Resumen General ---
+  - Estaciones: 3
+  - Tracks (Vías): 21
+  - Vehículos iniciales: 1450
+  - Conexiones en la red: 26
+
+--- Matriz Origen/Destino de Pasajeros (pasajeros/seg) ---
+ORIGEN            North StationCentral StationSouth StationTOTAL
+----------------------------------------------------------------
+North Station     0.00        0.07        0.03        0.10
+Central Station   0.02        0.00        0.08        0.10
+South Station     0.01        0.05        0.00        0.05
+----------------------------------------------------------------
+TOTAL             0.03        0.11        0.11        0.25
+
+--- Demanda de Vehículos por Estación ---
+Estación             Demanda (VMs / segundo)
+--------------------------------------------
+North Station        0.0833
+Central Station      0.5000
+South Station        0.1667
+==========================================================================
+
+[CONSUMO] VM _S_923 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_13 (p:0)
+  Lane: 14  Árbol bajada: 4
+  T_total=61.4s  (lane 24.8s + árbol 36.6s)
+  Slot objetivo: 922  (natural: 922)
+  VM a consumir: _S_923 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_921 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_12 (p:0)
+  Lane: 20  Árbol bajada: 17
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 920  (natural: 920)
+  VM a consumir: _S_921 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_920 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_11 (p:0)
+  Lane: 21  Árbol bajada: 19
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 919  (natural: 919)
+  VM a consumir: _S_920 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[ESTACIÓN 2] VM _S_923 consumido  | p:0  | balance total: 1  | t=102.8s
+[ESTACIÓN 2] VM _S_921 consumido  | p:0  | balance total: 2  | t=103.0s
+[ESTACIÓN 2] VM _S_920 consumido  | p:0  | balance total: 3  | t=103.1s
+[ÁRBOL] VM _S_13 (p:1) → slot 922 | a=0.4881 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_12 (p:1) → slot 920 | a=0.4888 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_11 (p:1) → slot 919 | a=0.4883 m/s²  (pre-reservado desde lane)
+[CONSUMO] VM _S_938 redirigido → estación 3 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_30 (p:0)
+  Lane: 15  Árbol bajada: 6
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 937  (natural: 937)
+  VM a consumir: _S_938 (p:0, dest:3)
+  Estación consumidora: 3
+==================================================
+
+[CONSUMO] VM _S_915 redirigido → estación 3 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_7 (p:0)
+  Lane: 15  Árbol bajada: 6
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 914  (natural: 914)
+  VM a consumir: _S_915 (p:0, dest:3)
+  Estación consumidora: 3
+==================================================
+
+[CONSUMO] VM _S_384 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_923 (p:0)
+  Lane: 14  Árbol bajada: 4
+  T_total=61.4s  (lane 24.8s + árbol 36.6s)
+  Slot objetivo: 383  (natural: 383)
+  VM a consumir: _S_384 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_380 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_921 (p:0)
+  Lane: 20  Árbol bajada: 17
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 379  (natural: 379)
+  VM a consumir: _S_380 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_379 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_920 (p:0)
+  Lane: 21  Árbol bajada: 19
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 378  (natural: 378)
+  VM a consumir: _S_379 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[ESTACIÓN 3] VM _S_938 consumido  | p:0  | balance total: 1  | t=151.3s
+[ESTACIÓN 3] VM _S_915 consumido  | p:0  | balance total: 2  | t=153.6s
+[ESTACIÓN 2] VM _S_384 consumido  | p:0  | balance total: 4  | t=156.7s
+[ESTACIÓN 2] VM _S_380 consumido  | p:0  | balance total: 5  | t=157.1s
+[ESTACIÓN 2] VM _S_379 consumido  | p:0  | balance total: 6  | t=157.2s
+[ÁRBOL] VM _S_30 (p:1) → slot 937 | a=0.4863 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_7 (p:1) → slot 914 | a=0.4868 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_923 (p:1) → slot 383 | a=0.4895 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_921 (p:1) → slot 379 | a=0.4897 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_920 (p:1) → slot 378 | a=0.4891 m/s²  (pre-reservado desde lane)
+[CONSUMO] VM _S_948 redirigido → estación 1 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_39 (p:0)
+  Lane: 13  Árbol bajada: 2
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 947  (natural: 947)
+  VM a consumir: _S_948 (p:0, dest:1)
+  Estación consumidora: 1
+==================================================
+
+[CONSUMO] VM _S_924 redirigido → estación 1 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_15 (p:0)
+  Lane: 13  Árbol bajada: 2
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 923  (natural: 923)
+  VM a consumir: _S_924 (p:0, dest:1)
+  Estación consumidora: 1
+==================================================
+
+[CONSUMO] VM _S_397 redirigido → estación 3 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_938 (p:0)
+  Lane: 15  Árbol bajada: 6
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 396  (natural: 396)
+  VM a consumir: _S_397 (p:0, dest:3)
+  Estación consumidora: 3
+==================================================
+
+[CONSUMO] VM _S_374 redirigido → estación 3 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_915 (p:0)
+  Lane: 15  Árbol bajada: 6
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 373  (natural: 373)
+  VM a consumir: _S_374 (p:0, dest:3)
+  Estación consumidora: 3
+==================================================
+
+[CONSUMO] ⚠️  ALERTA: Estación 2 sin capacidad en árboles de llegada — VM _S_1294 no puede ser consumido ahora. TODO: optimizar solicitud inteligente para no saturar árboles.
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_384 (p:0)
+  Lane: 14  Árbol bajada: 4
+  T_total=61.4s  (lane 24.8s + árbol 36.6s)
+  Slot objetivo: 1293  (natural: 1293)
+  VM a consumir: _S_1294 (p:0, dest:None)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] ⚠️  ALERTA: Estación 2 sin capacidad en árboles de llegada — VM _S_1288 no puede ser consumido ahora. TODO: optimizar solicitud inteligente para no saturar árboles.
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_380 (p:0)
+  Lane: 20  Árbol bajada: 17
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 1287  (natural: 1287)
+  VM a consumir: _S_1288 (p:0, dest:None)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] ⚠️  ALERTA: Estación 2 sin capacidad en árboles de llegada — VM _S_1288 no puede ser consumido ahora. TODO: optimizar solicitud inteligente para no saturar árboles.
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_379 (p:0)
+  Lane: 21  Árbol bajada: 19
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 1287  (natural: 1287)
+  VM a consumir: _S_1288 (p:0, dest:None)
+  Estación consumidora: 2
+==================================================
+
+[ESTACIÓN 1] VM _S_948 consumido  | p:0  | balance total: 1  | t=195.3s
+[ESTACIÓN 1] VM _S_924 consumido  | p:0  | balance total: 2  | t=197.7s
+[ÁRBOL] VM _S_39 (p:1) → slot 947 | a=0.4890 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_15 (p:1) → slot 923 | a=0.4885 m/s²  (pre-reservado desde lane)
+[ESTACIÓN 3] VM _S_397 consumido  | p:0  | balance total: 3  | t=205.4s
+[ESTACIÓN 3] VM _S_374 consumido  | p:0  | balance total: 4  | t=207.7s
+[ÁRBOL] VM _S_938 (p:1) → slot 396 | a=0.4881 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_915 (p:1) → slot 373 | a=0.4895 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_384 (p:1) → slot 1293 | a=0.4873 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_380 (p:1) → slot 1287 | a=0.4861 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_379 (p:1) → slot 1287 | a=0.4885 m/s²  (pre-reservado desde lane)
+[CONSUMO] VM _S_975 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_64 (p:0)
+  Lane: 14  Árbol bajada: 4
+  T_total=61.4s  (lane 24.8s + árbol 36.6s)
+  Slot objetivo: 974  (natural: 974)
+  VM a consumir: _S_975 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_971 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_63 (p:0)
+  Lane: 20  Árbol bajada: 17
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 970  (natural: 970)
+  VM a consumir: _S_971 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_972 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_62 (p:0)
+  Lane: 21  Árbol bajada: 19
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 971  (natural: 970)
+  VM a consumir: _S_972 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_954 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_43 (p:0)
+  Lane: 14  Árbol bajada: 4
+  T_total=61.4s  (lane 24.8s + árbol 36.6s)
+  Slot objetivo: 953  (natural: 953)
+  VM a consumir: _S_954 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_950 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_42 (p:0)
+  Lane: 20  Árbol bajada: 17
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 949  (natural: 949)
+  VM a consumir: _S_950 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_951 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_41 (p:0)
+  Lane: 21  Árbol bajada: 19
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 950  (natural: 949)
+  VM a consumir: _S_951 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_931 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_21 (p:0)
+  Lane: 14  Árbol bajada: 4
+  T_total=61.4s  (lane 24.8s + árbol 36.6s)
+  Slot objetivo: 930  (natural: 930)
+  VM a consumir: _S_931 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_929 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_20 (p:0)
+  Lane: 20  Árbol bajada: 17
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 928  (natural: 928)
+  VM a consumir: _S_929 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_927 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_19 (p:0)
+  Lane: 21  Árbol bajada: 19
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 926  (natural: 926)
+  VM a consumir: _S_927 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_406 redirigido → estación 1 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_948 (p:0)
+  Lane: 13  Árbol bajada: 2
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 405  (natural: 405)
+  VM a consumir: _S_406 (p:0, dest:1)
+  Estación consumidora: 1
+==================================================
+
+[CONSUMO] VM _S_383 redirigido → estación 1 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_924 (p:0)
+  Lane: 13  Árbol bajada: 2
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 382  (natural: 382)
+  VM a consumir: _S_383 (p:0, dest:1)
+  Estación consumidora: 1
+==================================================
+
+[CONSUMO] ⚠️  ALERTA: Estación 3 sin capacidad en árboles de llegada — VM _S_1306 no puede ser consumido ahora. TODO: optimizar solicitud inteligente para no saturar árboles.
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_397 (p:0)
+  Lane: 15  Árbol bajada: 6
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 1305  (natural: 1305)
+  VM a consumir: _S_1306 (p:0, dest:None)
+  Estación consumidora: 3
+==================================================
+
+[ESTACIÓN 2] VM _S_975 consumido  | p:0  | balance total: 7  | t=242.6s
+[CONSUMO] ⚠️  ALERTA: Estación 3 sin capacidad en árboles de llegada — VM _S_1283 no puede ser consumido ahora. TODO: optimizar solicitud inteligente para no saturar árboles.
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_374 (p:0)
+  Lane: 15  Árbol bajada: 6
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 1282  (natural: 1282)
+  VM a consumir: _S_1283 (p:0, dest:None)
+  Estación consumidora: 3
+==================================================
+
+[ESTACIÓN 2] VM _S_972 consumido  | p:0  | balance total: 8  | t=242.9s
+[ESTACIÓN 2] VM _S_971 consumido  | p:0  | balance total: 9  | t=243.0s
+[ESTACIÓN 2] VM _S_954 consumido  | p:0  | balance total: 10  | t=244.7s
+[ESTACIÓN 2] VM _S_951 consumido  | p:0  | balance total: 11  | t=245.0s
+[ESTACIÓN 2] VM _S_950 consumido  | p:0  | balance total: 12  | t=245.1s
+[ESTACIÓN 2] VM _S_931 consumido  | p:0  | balance total: 13  | t=247.0s
+[ESTACIÓN 2] VM _S_929 consumido  | p:0  | balance total: 14  | t=247.2s
+[ESTACIÓN 2] VM _S_927 consumido  | p:0  | balance total: 15  | t=247.4s
+[ÁRBOL] VM _S_64 (p:1) → slot 974 | a=0.4893 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_63 (p:1) → slot 970 | a=0.4866 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_62 (p:1) → slot 971 | a=0.4922 m/s²  (pre-reservado desde lane)
+[ESTACIÓN 1] VM _S_406 consumido  | p:0  | balance total: 3  | t=249.5s
+[ÁRBOL] VM _S_43 (p:1) → slot 953 | a=0.4899 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_42 (p:1) → slot 949 | a=0.4872 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_41 (p:1) → slot 950 | a=0.4926 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_21 (p:1) → slot 930 | a=0.4872 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_20 (p:1) → slot 928 | a=0.4880 m/s²  (pre-reservado desde lane)
+
+========================================
+COLISION EN SLOT 1293
+   VMs existentes: ['_S_1294']
+   VM entrando: _S_384
+   (Slot era reserva de colision inevitable)
+========================================
+
+[ÁRBOL] VM _S_19 (p:1) → slot 926 | a=0.4869 m/s²  (pre-reservado desde lane)
+
+========================================
+COLISION EN SLOT 1287
+   VMs existentes: ['_S_1288']
+   VM entrando: _S_380
+========================================
+
+
+========================================
+COLISION EN SLOT 1287
+   VMs existentes: ['_S_1288', '_S_380']
+   VM entrando: _S_379
+   (Slot era reserva de colision inevitable)
+========================================
+
+[ÁRBOL] VM _S_948 (p:1) → slot 405 | a=0.4867 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_924 (p:1) → slot 382 | a=0.4884 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_397 (p:1) → slot 1305 | a=0.4880 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_374 (p:1) → slot 1282 | a=0.4888 m/s²  (pre-reservado desde lane)
+[CONSUMO] VM _S_988 redirigido → estación 3 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_79 (p:0)
+  Lane: 15  Árbol bajada: 6
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 987  (natural: 987)
+  VM a consumir: _S_988 (p:0, dest:3)
+  Estación consumidora: 3
+==================================================
+
+[CONSUMO] VM _S_962 redirigido → estación 3 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_53 (p:0)
+  Lane: 15  Árbol bajada: 6
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 961  (natural: 961)
+  VM a consumir: _S_962 (p:0, dest:3)
+  Estación consumidora: 3
+==================================================
+
+[CONSUMO] VM _S_435 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_975 (p:0)
+  Lane: 14  Árbol bajada: 4
+  T_total=61.4s  (lane 24.8s + árbol 36.6s)
+  Slot objetivo: 434  (natural: 434)
+  VM a consumir: _S_435 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_932 redirigido → estación 3 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_24 (p:0)
+  Lane: 15  Árbol bajada: 6
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 931  (natural: 931)
+  VM a consumir: _S_932 (p:0, dest:3)
+  Estación consumidora: 3
+==================================================
+
+[CONSUMO] VM _S_430 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_972 (p:0)
+  Lane: 20  Árbol bajada: 17
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 429  (natural: 429)
+  VM a consumir: _S_430 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_431 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_971 (p:0)
+  Lane: 21  Árbol bajada: 19
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 430  (natural: 429)
+  VM a consumir: _S_431 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_414 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_954 (p:0)
+  Lane: 14  Árbol bajada: 4
+  T_total=61.4s  (lane 24.8s + árbol 36.6s)
+  Slot objetivo: 413  (natural: 413)
+  VM a consumir: _S_414 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_911 redirigido → estación 3 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_2 (p:0)
+  Lane: 15  Árbol bajada: 6
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 910  (natural: 910)
+  VM a consumir: _S_911 (p:0, dest:3)
+  Estación consumidora: 3
+==================================================
+
+[CONSUMO] VM _S_409 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_951 (p:0)
+  Lane: 20  Árbol bajada: 17
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 408  (natural: 408)
+  VM a consumir: _S_409 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_408 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_950 (p:0)
+  Lane: 21  Árbol bajada: 19
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 407  (natural: 407)
+  VM a consumir: _S_408 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_391 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_931 (p:0)
+  Lane: 14  Árbol bajada: 4
+  T_total=61.4s  (lane 24.8s + árbol 36.6s)
+  Slot objetivo: 390  (natural: 390)
+  VM a consumir: _S_391 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_388 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_929 (p:0)
+  Lane: 20  Árbol bajada: 17
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 387  (natural: 387)
+  VM a consumir: _S_388 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+
+==================================================
+[LANE] COLISION PREVENIDA — VM _S_927 (p:0)
+  Lane: 21  T=61.6s
+  Slot natural 385 → slot 383 (-2)
+==================================================
+
+[CONSUMO] ⚠️  ALERTA: Estación 1 sin capacidad en árboles de llegada — VM _S_1315 no puede ser consumido ahora. TODO: optimizar solicitud inteligente para no saturar árboles.
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_406 (p:0)
+  Lane: 13  Árbol bajada: 2
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 1314  (natural: 1314)
+  VM a consumir: _S_1315 (p:0, dest:None)
+  Estación consumidora: 1
+==================================================
+
+🏁 PASAJERO P_2_b1bf7dd3 LLEGÓ A SU DESTINO: Estación 1
+[CONSUMO] VM _S_1293 redirigido → estación 1 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_923 (p:0)
+  Lane: 13  Árbol bajada: 2
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 1292  (natural: 1292)
+  VM a consumir: _S_1293 (p:0, dest:1)
+  Estación consumidora: 1
+==================================================
+
+[ESTACIÓN 3] VM _S_988 consumido  | p:0  | balance total: 5  | t=291.3s
+[ESTACIÓN 3] VM _S_962 consumido  | p:0  | balance total: 6  | t=293.9s
+
+========================================
+COLISION EN SLOT 382
+   VMs existentes: ['_S_383']
+   VM entrando: _S_924
+   (Slot era reserva de colision inevitable)
+========================================
+
+[ESTACIÓN 2] VM _S_435 consumido  | p:0  | balance total: 16  | t=296.6s
+[ESTACIÓN 3] VM _S_932 consumido  | p:0  | balance total: 7  | t=296.9s
+[ESTACIÓN 2] VM _S_431 consumido  | p:0  | balance total: 17  | t=297.0s
+[ESTACIÓN 2] VM _S_430 consumido  | p:0  | balance total: 18  | t=297.1s
+[ÁRBOL] VM _S_79 (p:1) → slot 987 | a=0.4896 m/s²  (pre-reservado desde lane)
+[ESTACIÓN 2] VM _S_414 consumido  | p:0  | balance total: 19  | t=298.7s
+[ESTACIÓN 3] VM _S_911 consumido  | p:0  | balance total: 8  | t=299.0s
+[ESTACIÓN 2] VM _S_409 consumido  | p:0  | balance total: 20  | t=299.2s
+[ESTACIÓN 2] VM _S_408 consumido  | p:0  | balance total: 21  | t=299.3s
+[ÁRBOL] VM _S_53 (p:1) → slot 961 | a=0.4881 m/s²  (pre-reservado desde lane)
+[ESTACIÓN 2] VM _S_391 consumido  | p:0  | balance total: 22  | t=301.0s
+[ESTACIÓN 2] VM _S_388 consumido  | p:0  | balance total: 23  | t=301.3s
+
+========================================
+COLISION EN SLOT 1305
+   VMs existentes: ['_S_1306']
+   VM entrando: _S_397
+   (Slot era reserva de colision inevitable)
+========================================
+
+[ÁRBOL] VM _S_975 (p:1) → slot 434 | a=0.4886 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_24 (p:1) → slot 931 | a=0.4866 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_972 (p:1) → slot 429 | a=0.4859 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_971 (p:1) → slot 430 | a=0.4915 m/s²  (pre-reservado desde lane)
+
+========================================
+COLISION EN SLOT 1282
+   VMs existentes: ['_S_1283']
+   VM entrando: _S_374
+   (Slot era reserva de colision inevitable)
+========================================
+
+[ÁRBOL] VM _S_954 (p:1) → slot 413 | a=0.4872 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_2 (p:1) → slot 910 | a=0.4876 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_951 (p:1) → slot 408 | a=0.4868 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_950 (p:1) → slot 407 | a=0.4863 m/s²  (pre-reservado desde lane)
+[ESTACIÓN 1] VM _S_1293 consumido  | p:0  | balance total: 4  | t=305.8s
+[ÁRBOL] VM _S_931 (p:1) → slot 390 | a=0.4882 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_929 (p:1) → slot 387 | a=0.4887 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_927 (p:1) → slot 383 | a=0.4817 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_406 (p:1) → slot 1314 | a=0.4893 m/s²  (pre-reservado desde lane)
+[ÁRBOL] VM _S_923 (p:1) → slot 1292 | a=0.4885 m/s²  (pre-reservado desde lane)
+[CONSUMO] VM _S_998 redirigido → estación 1 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_89 (p:0)
+  Lane: 13  Árbol bajada: 2
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 997  (natural: 997)
+  VM a consumir: _S_998 (p:0, dest:1)
+  Estación consumidora: 1
+==================================================
+
+[CONSUMO] VM _S_976 redirigido → estación 1 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_67 (p:0)
+  Lane: 13  Árbol bajada: 2
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 975  (natural: 975)
+  VM a consumir: _S_976 (p:0, dest:1)
+  Estación consumidora: 1
+==================================================
+
+[CONSUMO] VM _S_941 redirigido → estación 1 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_32 (p:0)
+  Lane: 13  Árbol bajada: 2
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 940  (natural: 940)
+  VM a consumir: _S_941 (p:0, dest:1)
+  Estación consumidora: 1
+==================================================
+
+[CONSUMO] VM _S_917 redirigido → estación 1 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_8 (p:0)
+  Lane: 13  Árbol bajada: 2
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 916  (natural: 916)
+  VM a consumir: _S_917 (p:0, dest:1)
+  Estación consumidora: 1
+==================================================
+
+[CONSUMO] VM _S_447 redirigido → estación 3 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_988 (p:0)
+  Lane: 15  Árbol bajada: 6
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 446  (natural: 446)
+  VM a consumir: _S_447 (p:0, dest:3)
+  Estación consumidora: 3
+==================================================
+
+[CONSUMO] VM _S_420 redirigido → estación 3 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_962 (p:0)
+  Lane: 15  Árbol bajada: 6
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 419  (natural: 419)
+  VM a consumir: _S_420 (p:0, dest:3)
+  Estación consumidora: 3
+==================================================
+
+[CONSUMO] ⚠️  ALERTA: Estación 2 sin capacidad en árboles de llegada — VM _S_1345 no puede ser consumido ahora. TODO: optimizar solicitud inteligente para no saturar árboles.
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_435 (p:0)
+  Lane: 14  Árbol bajada: 4
+  T_total=61.4s  (lane 24.8s + árbol 36.6s)
+  Slot objetivo: 1344  (natural: 1344)
+  VM a consumir: _S_1345 (p:0, dest:None)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] ⚠️  ALERTA: Estación 2 sin capacidad en árboles de llegada — VM _S_1340 no puede ser consumido ahora. TODO: optimizar solicitud inteligente para no saturar árboles.
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_431 (p:0)
+  Lane: 20  Árbol bajada: 17
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 1339  (natural: 1339)
+  VM a consumir: _S_1340 (p:0, dest:None)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_390 redirigido → estación 3 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_932 (p:0)
+  Lane: 15  Árbol bajada: 6
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 389  (natural: 389)
+  VM a consumir: _S_390 (p:0, dest:3)
+  Estación consumidora: 3
+==================================================
+
+[CONSUMO] VM _S_1339 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_430 (p:0)
+  Lane: 21  Árbol bajada: 19
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 1338  (natural: 1338)
+  VM a consumir: _S_1339 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] ⚠️  ALERTA: Estación 2 sin capacidad en árboles de llegada — VM _S_1325 no puede ser consumido ahora. TODO: optimizar solicitud inteligente para no saturar árboles.
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_414 (p:0)
+  Lane: 14  Árbol bajada: 4
+  T_total=61.4s  (lane 24.8s + árbol 36.6s)
+  Slot objetivo: 1324  (natural: 1324)
+  VM a consumir: _S_1325 (p:0, dest:None)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_370 redirigido → estación 3 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_911 (p:0)
+  Lane: 15  Árbol bajada: 6
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 369  (natural: 369)
+  VM a consumir: _S_370 (p:0, dest:3)
+  Estación consumidora: 3
+==================================================
+
+[CONSUMO] VM _S_1318 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_409 (p:0)
+  Lane: 20  Árbol bajada: 17
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 1317  (natural: 1317)
+  VM a consumir: _S_1318 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_1317 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_408 (p:0)
+  Lane: 21  Árbol bajada: 19
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 1316  (natural: 1316)
+  VM a consumir: _S_1317 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[ESTACIÓN 1] VM _S_998 consumido  | p:0  | balance total: 5  | t=335.3s
+[CONSUMO] ⚠️  ALERTA: Estación 2 sin capacidad en árboles de llegada — VM _S_1301 no puede ser consumido ahora. TODO: optimizar solicitud inteligente para no saturar árboles.
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_391 (p:0)
+  Lane: 14  Árbol bajada: 4
+  T_total=61.4s  (lane 24.8s + árbol 36.6s)
+  Slot objetivo: 1300  (natural: 1300)
+  VM a consumir: _S_1301 (p:0, dest:None)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_1297 redirigido → estación 2 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_388 (p:0)
+  Lane: 20  Árbol bajada: 17
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 1296  (natural: 1296)
+  VM a consumir: _S_1297 (p:0, dest:2)
+  Estación consumidora: 2
+==================================================
+
+[ESTACIÓN 1] VM _S_976 consumido  | p:0  | balance total: 6  | t=337.5s
+🏁 PASAJERO P_3_c9fecf80 LLEGÓ A SU DESTINO: Estación 2
+[CONSUMO] ⚠️  ALERTA: Estación 2 sin capacidad en árboles de llegada — VM _S_1283 no puede ser consumido ahora. TODO: optimizar solicitud inteligente para no saturar árboles.
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_915 (p:0)
+  Lane: 21  Árbol bajada: 19
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 1282  (natural: 1282)
+  VM a consumir: _S_1283 (p:0, dest:None)
+  Estación consumidora: 2
+==================================================
+
+[CONSUMO] VM _S_752 redirigido → estación 1 | p:0 | destino anterior: None
+
+==================================================
+[LANE] CONSUMO SOLICITADO — VM _S_1293 (p:0)
+  Lane: 13  Árbol bajada: 2
+  T_total=61.6s  (lane 25.0s + árbol 36.6s)
+  Slot objetivo: 751  (natural: 751)
+  VM a consumir: _S_752 (p:0, dest:1)
+  Estación consumidora: 1
+==================================================
+
+[ESTACIÓN 1] VM _S_941 consumido  | p:0  | balance total: 7  | t=341.0s
+[ÁRBOL] VM _S_89 (p:1) → slot 997 | a=0.4896 m/s²  (pre-reservado desde lane)
+[ESTACIÓN 1] VM _S_917 consumido  | p:0  | balance total: 8  | t=343.4s
+[ÁRBOL] VM _S_67 (p:1) → slot 975 | a=0.4886 m/s²  (pre-reservado desde lane)
+[ESTACIÓN 3] VM _S_447 consumido  | p:0  | balance total: 9  | t=345.4s
+
+========================================
+COLISION EN SLOT 1314
+   VMs existentes: ['_S_1315']
+   VM entrando: _S_406
+   (Slot era reserva de colision inevitable)
+========================================
+
+[ÁRBOL] VM _S_32 (p:1) → slot 940 | a=0.4887 m/s²  (pre-reservado desde lane)
+[ESTACIÓN 3] VM _S_420 consumido  | p:0  | balance total: 10  | t=348.1s
+[ÁRBOL] VM _S_8 (p:1) → slot 916 | a=0.4880 m/s²  (pre-reservado desde lane)

@@ -1,4 +1,5 @@
 from objects.acceleration_tree import AccelerationTree
+from objects.boarding_lane import BoardingLane
 from objects.station_connector import StationConnector
 
 class Network:
@@ -152,8 +153,29 @@ class Network:
             self.continuous_train.reincorporate_vm(vehicle, junction_belt_x)
             return
 
+        # --- PREDICCIÓN ANTICIPADA: VM entra a boarding lane ─────────────────────────────
+        # Se registra aquí para que Brain prediga T_total = T_lane + T_árbol_bajada,
+        # dando mucho más tiempo de anticipación que la predicción en el árbol de bajada.
+        if self.brain and isinstance(next_track, BoardingLane):
+            down_tree            = None
+            consuming_station_id = None
+            for adj_id in self.adjacency.get(next_track.track_id, []):
+                adj_track = self.tracks.get(adj_id)
+                if isinstance(adj_track, AccelerationTree) and adj_track.direction == "down":
+                    down_tree            = adj_track
+                    consuming_station_id = getattr(adj_track, 'station_id', None)
+                    break
+            if down_tree is not None and consuming_station_id is not None:
+                self.brain.pending_lane_entries.append({
+                    'vehicle':              vehicle,
+                    'boarding_lane':        next_track,
+                    'descending_tree':      down_tree,
+                    'consuming_station_id': consuming_station_id,
+                })
+
         # --- PREDICCIÓN DE COLISIÓN EN UNIÓN ---
-        # Si el vehículo se va a transferir a un árbol de bajada, registramos para predicción.
+        # Fallback: si el vehículo entra al árbol de bajada sin predicción previa desde lane.
+        # Recalcula la aceleración exacta para el slot ya pre-reservado (o hace búsqueda completa).
         if self.brain and isinstance(next_track, AccelerationTree) and next_track.direction == "down":
             self.brain.pending_down_tree_entries.append({
                 'vehicle': vehicle, 'from_track': current_track, 'descending_tree': next_track
