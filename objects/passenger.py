@@ -122,7 +122,7 @@ class Passenger:
                 f"no puede ir a IN_TRANSIT desde {self.state.value}"
             )
         self.state = PassengerState.IN_TRANSIT
-        self.vehicle_id = self.vehicle_id
+        self.vehicle_id = vehicle_id
 
     def arrive(self, current_time: float) -> None:
         """
