@@ -20,9 +20,7 @@ pytest tests/ -v # Para ver mas detalles
 #### Comando para testear archivo espesifico
 ```bash
 python -m pytest tests/{{nombre_archivo_test}} -v
-
 ```
-
 
 ## Comandos para operar Ambiente uv
 

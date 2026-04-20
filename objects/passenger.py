@@ -18,7 +18,6 @@ Diseño deliberado — lo que NO tiene este archivo:
 """
 
 from objects.types import PassengerState
-from objects.math3d import Vector3
 
 class Passenger:
     """
@@ -157,12 +156,3 @@ class Passenger:
             f"{self.origin_station_id}→{self.destination_station_id}, "
             f"state={self.state.value})"
         )
-
-
-
-
-
-
-
-
-

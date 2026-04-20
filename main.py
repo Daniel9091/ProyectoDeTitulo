@@ -12,7 +12,7 @@ def main():
     print(f"GRAVITY: {GRAVITY}")
     print(f"FPS: {FPS}")
     v = Vector3(0.0,0.0,0.0)
-    print(f"Vector3: {v}, lenght ={v.length():.2f}")
+    print(f"Vector3: {v}, length ={v.length():.2f}")
     print(f" VehicleState values: {[s.value for s in VehicleState]}")
     
 if __name__ == "__main__":
