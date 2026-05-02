@@ -38,4 +38,9 @@ class CollisionAction(Enum):
     CONSUME = "CONSUME"         # No hay slot disponible pero hay un VM que puede ser consumido para liberar espacio
     INEVITABLE = "INEVITABLE"   # No hay solucion posible, colicion inevitable
 
-
+class AndenState(Enum):
+    """
+    Estados posibles para los andenes en una esation.
+    """
+    ACTIVE = "ACTIVE"           # Anden activo habilitado para recivir VMs y Pasengers
+    INACTIVE = "INACTIVE"       # Anden inactivo incapacitado para recivir VMs o Passengers

@@ -377,5 +377,3 @@ class Test_RemoveVehicle:
         lane.add_vehicle(vm)
         lane.remove_vehicle(vm.vehicle_id)
         assert vm.vehicle_id not in lane.vehicles
-
-
