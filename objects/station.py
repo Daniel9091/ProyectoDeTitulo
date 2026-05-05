@@ -54,7 +54,7 @@ class Station:
 
     Parámetros de configuración:
         station_id                  int
-        origin                      Vector3                 dentro del plano XY                     ##?## Z
+        origin                      Vector3                 dentro del plano XY
         dimensions                  StationDimensions
         passenger_rate              float                   pasajeros/segundos
         destination_probabilities   dict[int,float]         {station_id:probabilidad (peso)} - se normaliza automáticamente
@@ -108,25 +108,25 @@ class Station:
         self._passenger_accumulator:    float  = 0.0
         self._vm_demand_accumulator:    float  = 0.0
         self._walking:                  dict   = {}
-        # station_id * 100_000 garantiza no colisión de IDs entre estaciones            ##?## en un futuro esto se puede externalizar
+        # station_id * 100_000 garantiza no colisión de IDs entre estaciones
         self.next_passenger_id:         int    = station_id * 100000
-        self.next_anden_index:          int    = 0
-
+        self._next_anden_idx:           int    = 0
 
     # ─── ACTUALIZACIÓN PRINCIPAL ──────────────────────────────────────────
+
     def update(self, dt: float, current_time: float) -> None:
         """
         Avanza un frame: mueve caminantes, genera pasajeros acumula demanda de VMs.
         El oden importa: avanzar caminantes antes de generar nuevos.
         """
         self._advance_walking_passengers(dt)
-        self._accumulate_passengers(dt, current_time)
-        self._accumulate_vm_demand(dt)
+        self._accumulate_pasengers(dt, current_time)
+        self._acumulate_vm_demand(dt)
 
     # ─── INTERFAZ CON BRAIN ───────────────────────────────────────────────
 
     @property
-    def pendijg_demand(self):
+    def pending_demand(self):
         """
         Cuantos Vms necesita solucionar la estación (parte entera del acumulador).
         Brain lee esto cada frame para decidir si debe marcar un slot.
@@ -205,6 +205,7 @@ class Station:
         return (self.origin.y - half, self.origin.y + half)
 
     # ─── LÓGICA INTERNA ───────────────────────────────────────────────────
+
     def _accumulate_pasengers(self,dt: float, current_time: float) -> None:
         """
         Acumula la producion de pasajeros
@@ -213,7 +214,7 @@ class Station:
         self._passenger_accumulator += self.passenger_rate * dt
         while self._passenger_accumulator >= 1.0:
             self._passenger_accumulator -= 1.0
-            self._spawn_pasenger(current_time)
+            self.spawn_pasenger(current_time)
 
     def spawn_pasenger(self, current_time: float) -> None:
         """
@@ -239,7 +240,7 @@ class Station:
         
         self._walking[passenger.passenger_id] = {
             'passenger':        passenger,
-            'target_anden':     lane,
+            'target_lane':      lane,
             'distance':         0.0,
             'walk_distance':    self._walk_distance_to(lane),
         }
@@ -257,7 +258,7 @@ class Station:
 
         for pid in arrived:
             data = self._walking.pop(pid)
-            data["target_lane"].enqueue(data["passenger"])
+            data["target_lane"].enqueue_passenger(data["passenger"])       
 
     def _acumulate_vm_demand(self, dt: float) -> None:
         """
@@ -272,7 +273,7 @@ class Station:
         """
         idx = self._next_anden_idx % len(active_andenes)
         self._next_anden_idx +=1
-        return self.activate_andenes[idx]
+        return active_andenes[idx]
 
     def _choose_destination(self) -> int:
         """
