@@ -30,6 +30,8 @@ from objects.passenger import Passenger
 from objects.types import AndenState
 from tracks.boarding_lane import BoardingLane
 from config.constants import PASSENGER_WALK_SPEED
+from objects.passenger_id_generator import PassengerIdGenerator
+
 
 class StationDimensions:
     """
@@ -61,6 +63,7 @@ class Station:
         vm_request_rate             float                   VMs/segundo solicitados
         andenes                     list[dict]              lista de dicts (ver estructura en módulo)
         rng                         random.Random           generador compartido con semilla fija
+        id_generator                PassengerIdGenerator    generador de IDs para pasajeros (el mismo para todas las estaciones)
     
     Estado interno:
         _passenger_accumulator      float                   acumula produccion de pasajeros
@@ -80,6 +83,7 @@ class Station:
         vm_request_rate:            float,
         andenes:                    list,
         rng:                        random.Random,
+        id_generator:               PassengerIdGenerator,
     ):
         """
         Inicialisacion de una estación.
@@ -91,6 +95,8 @@ class Station:
         self.destination_probabilities  = destination_probabilities
         self.vm_request_rate            = vm_request_rate
         self._rng                       = rng
+        self._id_generator              = id_generator
+        
 
         # Cada dict recibido se copia añadiendo 'state': ACTIVE por defecto
         self._andenes: list[dict] = [
@@ -108,8 +114,6 @@ class Station:
         self._passenger_accumulator:    float  = 0.0
         self._vm_demand_accumulator:    float  = 0.0
         self._walking:                  dict   = {}
-        # station_id * 100_000 garantiza no colisión de IDs entre estaciones
-        self.next_passenger_id:         int    = station_id * 100000
         self._next_anden_idx:           int    = 0
 
     # ─── ACTUALIZACIÓN PRINCIPAL ──────────────────────────────────────────
@@ -128,7 +132,12 @@ class Station:
     @property
     def pending_demand(self):
         """
-        Cuantos Vms necesita solucionar la estación (parte entera del acumulador).
+        Balance de demanda de VMs (parte entera del acumulador):
+
+            - Positivo: la estación necesita más VMs.
+            - Cero: equilibrio.
+            - Negativo: exceso de VMs llegando, Brain no debe solicitar más.
+        
         Brain lee esto cada frame para decidir si debe marcar un slot.
         Solo lectura - Brain controla cuando se descuenta.
         """
@@ -150,8 +159,8 @@ class Station:
 
     def on_unplanned_vm_at_tree(self) -> None:
         """
-        Un Vm no marcado para demanda fue aceptado por un arbol de esta estacijon
-        Aplica cuando el VM sube por pasajeros, reserva o redijreccionamiento forzado.
+        Un VM no marcado para demanda fue aceptado por un arbol de esta estacion
+        Aplica cuando el VM sube por pasajeros, reserva o redirecionamiento forzado.
         Brain lo detecta en el momento de aceptacion del arbol y llama esto.
         Puede dejar el acumulator negativo - se autorregula con el tiempo.
         """
@@ -168,8 +177,29 @@ class Station:
     def deactivate_anden(self, anden_idx: int) -> None:
         """
         Desactiva el andén en la posicion anden_idx de self._andenes.
+
+        Desactiva el andén. Los pasajeros en caminata hacia esta lane son redirigidos.
+        VMs que ya están en la lane o en los árboles continúan hasta completar su trayecto.
+        Brain dejará de enrutar nuevos VMs por los árboles de este andén (via active_down_tree_ids).
         """
         self._andenes[anden_idx]['state'] = AndenState.INACTIVE
+        self._redirect_walking_passengers_from(anden_idx)
+
+    def _redirect_walking_passengers_from(self, closed_anden_idx: int) -> None:
+        """
+        Redirige a los pasajeros en caminata que iban al andén cerrado.
+        Si no hay andenes activos, los pasajeros continúan al andén original.
+        """
+        active = self.get_active_andenes()
+        if not active:
+            return
+        closed_lane = self._andenes[closed_anden_idx]['lane']
+        for data in self._walking.values():
+            if data['target_lane'] is closed_lane:
+                new_anden    = self._select_anden(active)
+                new_lane     = new_anden['lane']
+                data['target_lane']   = new_lane
+                data['walk_distance'] = self._walk_distance_to(new_lane)
 
     def get_active_andenes(self) -> list[dict]:
         """
@@ -227,12 +257,12 @@ class Station:
 
         destination = self._choose_destination()
         passenger = Passenger(
-            passenger_id=self.next_passenger_id,
-            origin_station_id=self.station_id,
-            destination_station_id=destination,
-            spawn_time=current_time,
+            passenger_id =              self._id_generator.next_id(),
+            origin_station_id =         self.station_id,
+            destination_station_id =    destination,
+            spawn_time =                current_time,
         )
-        self.next_passenger_id += 1
+
         passenger.start_moving_to_lane()
 
         target_anden = self._select_anden(active)

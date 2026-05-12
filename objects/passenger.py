@@ -152,7 +152,7 @@ class Passenger:
 
     def __repr__(self) -> str:
         return (
-            f"Passenger(id={self.passenger_id}, "
+            f"Passenger(id=S{self.origin_station_id}-{self.passenger_id}, "
             f"{self.origin_station_id}→{self.destination_station_id}, "
             f"state={self.state.value})"
         )
