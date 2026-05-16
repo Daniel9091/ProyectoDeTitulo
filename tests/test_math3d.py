@@ -111,7 +111,7 @@ class TestVector3Dot:
     """
     Test para la función dot
     """
-    def normal_case(self):
+    def test_normal_case(self):
         assert Vector3(1, 2, 3).dot(Vector3(4, 5, 6)) == 32
 
     def test_orthogonal(self):

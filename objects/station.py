@@ -124,8 +124,8 @@ class Station:
         El oden importa: avanzar caminantes antes de generar nuevos.
         """
         self._advance_walking_passengers(dt)
-        self._accumulate_pasengers(dt, current_time)
-        self._acumulate_vm_demand(dt)
+        self._accumulate_passengers(dt, current_time)
+        self._accumulate_vm_demand(dt)
 
     # ─── INTERFAZ CON BRAIN ───────────────────────────────────────────────
 
@@ -236,7 +236,7 @@ class Station:
 
     # ─── LÓGICA INTERNA ───────────────────────────────────────────────────
 
-    def _accumulate_pasengers(self,dt: float, current_time: float) -> None:
+    def _accumulate_passengers(self,dt: float, current_time: float) -> None:
         """
         Acumula la producion de pasajeros
         El while maneja dt grandes: si se acumula 2.7 genera 2 pasajeros
@@ -290,7 +290,7 @@ class Station:
             data = self._walking.pop(pid)
             data["target_lane"].enqueue_passenger(data["passenger"])       
 
-    def _acumulate_vm_demand(self, dt: float) -> None:
+    def _accumulate_vm_demand(self, dt: float) -> None:
         """
         Acumula demanda de VMs.
         """

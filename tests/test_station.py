@@ -307,7 +307,7 @@ class Test_VmDemand:
         rate=1.0 y dt=2.5 deberia generar una taza de 2.
         """
         station = make_station(vm_request_rate=1.0)
-        station._acumulate_vm_demand(dt=2.5)
+        station._accumulate_vm_demand(dt=2.5)
         assert station.pending_demand == 2
 
     def test_on_commitment_broken_restores(self):
@@ -315,7 +315,7 @@ class Test_VmDemand:
         Un compromiso incumplido debe incrementar nuevamente el acumulador.
         """
         station = make_station(vm_request_rate=1.0)
-        station._acumulate_vm_demand(dt=1.0)
+        station._accumulate_vm_demand(dt=1.0)
         station.on_vm_committed()
         station.on_commitment_broken()
         assert station.pending_demand == 1

@@ -112,8 +112,8 @@ class Test_destination_management():
         vm = ModularVehicle(vehicle_id=1, capacity=4)
         vm.assign_destination(5)
         assert vm.destination_station_id == 5
-        assert vm
-        
+        assert vm.has_destination
+
         vm.clear_destination()
         assert not vm.has_destination
         assert vm.destination_station_id is None

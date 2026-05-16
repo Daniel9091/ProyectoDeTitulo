@@ -13,7 +13,7 @@ def main():
     print(f"FPS: {FPS}")
     v = Vector3(0.0,0.0,0.0)
     print(f"Vector3: {v}, length ={v.length():.2f}")
-    print(f" VehicleState values: {[s.value for s in VehicleState]}")
+    print(f" ModularVehicleState values: {[s.value for s in ModularVehicleState]}")
     
 if __name__ == "__main__":
     main()

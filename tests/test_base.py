@@ -42,9 +42,9 @@ class MinimalTrack(BaseTrack):
             'velocity': velocity,
         }
 
-    def remove_vehicle(self, vehicle):
-        del self.vehicles[vehicle.vehicle_id]
-    
+    def remove_vehicle(self, vehicle_id: int):
+        del self.vehicles[vehicle_id]
+
     def update(self, dt):
         completed = []
         for vehicle_id, data in list(self.vehicles.items()):
@@ -52,7 +52,7 @@ class MinimalTrack(BaseTrack):
             if data['distance'] >= self.length:
                 completed.append(data['vehicle'])
         for vm in completed:
-            self.remove_vehicle(vm)
+            self.remove_vehicle(vm.vehicle_id)
         return completed
 
 class FakeVehicle:
@@ -225,7 +225,7 @@ class Test_gestion_vehicles:
         track = MinimalTrack(1, Vector3(0,0,0), Vector3(10,0,0))
         vm = FakeVehicle(1)
         track.add_vehicle(vm)
-        track.remove_vehicle(vm)
+        track.remove_vehicle(vm.vehicle_id)
         assert track.vehicle_count == 0
         assert vm not in track.get_vehicles()
 

@@ -199,7 +199,7 @@ class Test_AddVehicle:
         vm = FakeVehicle(1,capacity=2)
         lane.add_vehicle(vm)
         lane.add_vehicle(vm)
-        assert 1 not in lane.passenger_groups
+        assert 2 not in lane.passenger_groups
 
     def test_partial_group_remains_in_dict(self):
         """

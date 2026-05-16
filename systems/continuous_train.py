@@ -86,7 +86,7 @@ class ContinuousTrain:
     def get_slot_belt_x(self, slot_idx: int) -> float:
         """
         Coordenada 1D de carril del slot indicado.
-        Posicion de slot i = (tail_x + slot_idx * TRAIN_SPACING) % total_lenght
+        Posicion de slot i = (tail_x + slot_idx * TRAIN_SPACING) % total_length
         
         """
         return (self.tail_x + slot_idx * TRAIN_SPACING) % self.total_length
