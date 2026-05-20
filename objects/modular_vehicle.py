@@ -48,6 +48,8 @@ class ModularVehicle:
         # NAVEGACION
         # None se ocupa cuando no tiene destino fijo
         self.destination_station_id: int | None = None
+        # None mientras el vm no tenga un arbol de bajada reservado
+        self.reserved_tree_acceleration: float | None = None
 
         # METRICAS INTERNAS
         self.operational_time: float = 0.0

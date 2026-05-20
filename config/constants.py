@@ -24,7 +24,10 @@ PASSENGER_WALK_SPEED = 0.5      # velocidad peatonal (m/s)
 
 # CTE. ARBOLES DE ACELERACION
 
-MIN_SAFE_DISTANCE = 40.0    # distancia entre vm que entra al arbol y ultimo vm que entro al arbol
+TREE_ACCELERATION = 2.5                     # magnitud de aceleración gravitacional efectiva de todos los árboles (m/s²)
+MIN_VM_SEPARATION = TRAIN_SPACING           # sepaparación mínima entre centros de VMs en la cima del árbol UP (m)
+# MIN_SAFE_DISTANCE = 40.0                  # distancia entre vm que entra al arbol y ultimo vm que entro al arbol (deberia ser obsoletea por que el caclculo se hace en el arbol)
+
 
 # CTE. PREDICCION DE COLICIONES
 
