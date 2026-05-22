@@ -127,7 +127,7 @@ class AccelerationTree(BaseTrack):
       leftover_dt: float = 0.0
     ) -> bool:
         """
-        Intenta agregar un VM al árbol de rorma segura.
+        Intenta agregar un VM al árbol de forma segura.
         Retorna True si fue agregado, False si la saturación lo impide.
         No modifica ningún estado si retorna False.
         Nota: sobreescribe BaseTrack.add_vehicle() retornando bool en lugar de None.
@@ -183,12 +183,13 @@ class AccelerationTree(BaseTrack):
             data['time_in_track'] += dt
 
             if data['distance'] >= self.length:
-                time_to_complete = (
-                    (self.length - old_distance) / old_velocity
-                    if old_velocity > 0 
-                    else dt
-                )
-                leftover = max(0.0,dt - time_to_complete)
+                remaining = self.length - old_distance
+                if abs(accel) <1e-9:
+                    time_to_complete = remaining /old_velocity if old_velocity > 0 else 0.0
+                else:
+                    disciminant = old_velocity ** 2 + 2.0 * accel * remaining
+                    time_to_complete = (-old_velocity + math.sqrt(max(0.0,disciminant))) / accel
+                leftover = max(0.0, dt - time_to_complete)
                 completed.append((data['vehicle'], leftover))
             
         for vm, _ in completed:
@@ -201,20 +202,20 @@ class AccelerationTree(BaseTrack):
         Brain ajusta la aceleración de un VM específico para que el VM llegue al slot.
 
         En DOWN: el sistema de reserva, a través de Brain, llama esta funcion para que 
-        el VM ajuste su aceleración y slaga del árbol. en el momento exacto en que su slot 
+        el VM ajuste su aceleración y salaga del árbol. en el momento exacto en que su slot 
         pasa por la junction.
-        En UP: Brain llama esto para evitar colisiones dentro del árbol.
-        Clampea dentro de [ACCEL_RANGE_MIN, ACCEL_RANGE_MAX].
+
+        Avisa si se sale de ragnos de aceleracion.
         """
+        
         if new_accel < ACCEL_RANGE_MIN or new_accel > ACCEL_RANGE_MAX:
             print(
                 f"[ADVERTENCIA] AccelerationTree {self.track_id}: "
-                f"aceleración solicitada {new_accel:.3f} fuera de rango "
-                f"[{ACCEL_RANGE_MIN}, {ACCEL_RANGE_MAX}] para VM {vehicle_id} — clampando"
-            )
-        
-        clamped = max(ACCEL_RANGE_MIN, min(ACCEL_RANGE_MAX, new_accel))
-        self.vehicles[vehicle_id]['target_acceleration'] = clamped
+                f"aceleración de VM {vehicle_id} ({new_accel:.3f} m/s²) "
+                f"fuera del rango cómodo [{ACCEL_RANGE_MIN}, {ACCEL_RANGE_MAX}]"
+        )
+
+        self.vehicles[vehicle_id]['target_acceleration'] = new_accel
 
     def _insert_vehicle(
             self,
@@ -223,7 +224,7 @@ class AccelerationTree(BaseTrack):
             leftover_dt: float
     ) -> None:
         """
-        Lógica compartida de inserción entre add_vecle y force_add_vehicle.
+        Lógica compartida de inserción entre add_vehicle y force_add_vehicle.
         """
         if entry_velocity is None:
             entry_velocity = TRAIN_SPEED if self.direction == TreeDirection.UP else BOARDING_LANE_SPEED

@@ -101,6 +101,27 @@ class Test_init:
         tree = make_up_tree(length=30.0)
         assert tree.length == pytest.approx(30.0)
 
+    def test_slot_gap_rounds_up_not_down(self):
+        """
+        min_slot_gap usa math.ceil, nunca floor.
+        Con a=5, L=30, d_min=3:
+            v_exit = sqrt(20² - 2·5·30) = sqrt(100) = 10.0 m/s
+            dt_min = (-10 + sqrt(100 + 2·5·3)) / 5 = (-10 + sqrt(130)) / 5 ≈ 0.2804s
+            raw    = dt_min × 20 / 2 ≈ 2.804
+            floor  = 2  →  insuficiente, causaría choque (diferencia de 0.196 slots)
+            ceil   = 3  →  correcto
+        """
+        
+        tree = AccelerationTree(1, Vector3(0, 0, 0), Vector3(0, 0, 30.0),
+                                TreeDirection.UP, 5.0, 3.0)
+        v_exit = math.sqrt(max(0.0, 20.0**2 - 2.0 * 5.0 * 30.0))          # 10.0
+        dt_min = (-v_exit + math.sqrt(v_exit**2 + 2.0 * 5.0 * 3.0)) / 5.0 # ≈ 0.2804
+        raw = dt_min * 20.0 / 2.0                                           # ≈ 2.804
+
+        assert raw % 1 != 0, "el valor crudo debe ser no-entero para que el test tenga sentido"
+        assert tree.min_slot_gap == math.ceil(raw)   # siempre redondea hacia arriba
+        assert tree.min_slot_gap > math.floor(raw)   # nunca floor
+
 class Test_can_accept:
     """
     Testea funcion can_accept() de AccelerationTree.
@@ -341,7 +362,7 @@ class Test_Update:
         result = tree.update(2.0)
         # time_to_complete ≈ 5/5 = 1.0s (aprox. lineal); leftover ≈ 1.0s
         _, leftover = result[0]
-        assert leftover == pytest.approx(1.0, abs=0.1)
+        assert leftover == pytest.approx(1.146, abs=0.01)
 
     def test_state_restored_to_moving_on_exit(self):
         """Un VM que completa el track recupera el estado MOVING."""
@@ -373,21 +394,31 @@ class Test_BrainInterface:
         tree.set_vehicle_acceleration(vm.vehicle_id, 1.0)
         assert tree.vehicles[vm.vehicle_id]['target_acceleration'] == pytest.approx(1.0)
 
-    def test_set_vehicle_acceleration_clamps_to_min(self):
-        """Clampea a ACCEL_RANGE_MIN si el valor es menor."""
+    def test_set_vehicle_acceleration_stores_exact_value_below_range(self):
+        """
+        Caso donde sobrepasa el minimo.
+        Revisa que se exponga el valor real aunque este fuera del rango
+        AccelerationTree solo avisa que se salio del rango, Brian se procupa
+        de no salirse.
+        """
         tree = make_up_tree()
         vm = FakeVehicle(1)
         tree.add_vehicle(vm)
         tree.set_vehicle_acceleration(vm.vehicle_id, 0.0)
-        assert tree.vehicles[vm.vehicle_id]['target_acceleration'] == pytest.approx(ACCEL_RANGE_MIN)
+        assert tree.vehicles[vm.vehicle_id]['target_acceleration'] == pytest.approx(0.0)
 
-    def test_set_vehicle_acceleration_clamps_to_max(self):
-        """Clampea a ACCEL_RANGE_MAX si el valor es mayor."""
+    def test_set_vehicle_acceleration_stores_exact_value_above_range(self):
+        """
+        Caso en el que sobrepasa el maximo
+        Revisa que se exponga el valor real aunque este fuera del rango
+        AccelerationTree solo avisa que se salio del rango, Brian se procupa
+        de no salirse.
+        """
         tree = make_up_tree()
         vm = FakeVehicle(1)
         tree.add_vehicle(vm)
         tree.set_vehicle_acceleration(vm.vehicle_id, 99.0)
-        assert tree.vehicles[vm.vehicle_id]['target_acceleration'] == pytest.approx(ACCEL_RANGE_MAX)
+        assert tree.vehicles[vm.vehicle_id]['target_acceleration'] == pytest.approx(99.0)
 
     def test_two_vms_have_independent_accelerations(self):
         """Dos VMs en el mismo árbol DOWN pueden tener aceleraciones distintas."""
