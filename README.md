@@ -9,7 +9,13 @@ Esta version de la simulacion debera concentrar las mejores alternativas de dise
 python3 main.py
 
 ```
-## Comandos para testear simulacion
+## Comandos para monitorear simulacion
+
+#### Conteo de lineas
+```bash
+# En la carpeta NSim con abiente activado
+cloc config objects simulation systems tests tracks CLAUDE.md main.py README.md --exclude-dir=__pycache__
+```
 
 #### Comando para testear de manera general
 ```bash

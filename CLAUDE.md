@@ -95,20 +95,48 @@ El loop no está implementado aún (`simulation/simulation.py` está vacío), pe
 previsto basado en la arquitectura existente es:
 
 ```
-simulation.py  →  brain.update(dt)  cada frame
-                    │
-                    ├─ continuous_train.advance(dt)        — mueve tail_x, O(1)
-                    ├─ [para cada junction] detectar VMs que salen del carril
-                    │    └─ network.tree_selector → best_tree.add_vehicle(vm, leftover)
-                    ├─ [para cada track] track.update(dt)  — mueve VMs en árboles/lanes
-                    │    └─ retorna lista de (vm, leftover_dt) completados
-                    ├─ [para cada station] station.update(dt, current_time)
-                    │    ├─ genera pasajeros nuevos
-                    │    └─ acumula demanda de VMs
-                    ├─ brain lee station.pending_demand
-                    │    └─ marca slots en continuous_train (set_reservation / set_demand_supply)
-                    └─ collision_predictor procesa entradas recientes a boarding lanes
+TICK N — brain.update(dt):
+
+continuous_train.advance(dt)
+→ mueve tail_x, retorna list[(slot_idx, station_id, leftover_dt)]
+→ O(junctions). Limitación: TRAIN_SPEED * dt < TRAIN_SPACING debe cumplirse.
+
+network.update_all_tracks(dt)   ← TRACKS PRIMERO, antes del junction routing
+→ Avanza AccelerationTrees y BoardingLanes para todos los tracks
+→ Solo recolecta completions [(vm, track_id, leftover_dt)], no transfiere
+
+network.process_transitions(completions)
+→ len==1: transición mecánica, Network transfiere directamente
+→ len>1:  decisión de Brain → devuelve decisions
+→ len==0: DOWN tree terminal → devuelve belt_placements
+
+Brain procesa crossings del paso 1   ← JUNCTION ROUTING DESPUÉS de update_all_tracks
+→ Lee etiquetas del slot (destination, demand_supply)
+→ Si VM sube: train.remove_vm(slot) → junction_up.add_vm(vm, leftover_dt)
+→ VMs transferidos NO se mueven este tick (leftover banqueado en initial_distance)
+
+Brain ejecuta decisions del paso 3
+→ Para cada (vm, [next_ids], leftover): elige next_id → track.add_vehicle(vm, leftover)
+
+Brain ejecuta belt_placements del paso 3
+→ Para cada (vm, leftover, station_id): train.place_vm(vm, pre_reserved_slot)
+
+station.update(dt, current_time)
+→ Genera pasajeros, acumula demanda, avanza caminantes
+
+Brain toma decisiones para ticks futuros
+→ Lee station.pending_demand → marca slots de demanda/reserva
+→ VMs que commitieron en boarding lane → reserva slot DOWN + set_vehicle_acceleration
+→ Compromisos rotos → station.on_commitment_broken()
+→ Ajuste de aceleraciones para anti-colisión en DOWN trees activos
+
 ```
+
+CRÍTICO — por qué tracks van ANTES que el junction routing (paso 2 antes de paso 4):
+Si Brain transfiriera VMs a UP trees (paso 4) ANTES de update_all_tracks (paso 2),
+el VM recibiría `advance(leftover_dt)` como initial_distance al entrar + `advance(dt)`
+de tree.update() en el mismo tick = un frame completo de movimiento de más.
+Con el orden correcto, los VMs transferidos en paso 4 esperan al siguiente tick.
 
 El orden importa: el tren avanza ANTES de procesar salidas para que los slots calculados
 correspondan a posiciones actualizadas.

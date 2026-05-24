@@ -39,7 +39,6 @@ class FakeBoardingLane:
         """
         self.enqueued.append(passenger)
 
-
 def make_anden(lane: FakeBoardingLane, up_tree_id: int = 1, down_tree_id: int = 2) -> dict:
     """
     Stum minimo para crear un anden para una estacion.
@@ -52,7 +51,6 @@ def make_anden(lane: FakeBoardingLane, up_tree_id: int = 1, down_tree_id: int = 
         'extraction_point': Vector3(0, 0, 10),
         'discharge_point':  Vector3(0, 0, 10),
     }
-
 
 def make_station(
     num_andenes: int = 1,
@@ -295,8 +293,6 @@ class Test_AndenManagement:
         ids = station.active_down_tree_ids
         assert len(ids) == 1
         assert ids[0] == station._andenes[1]['down_tree_id']
-
-
 
 class Test_VmDemand:
     """

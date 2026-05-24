@@ -79,11 +79,13 @@ class AccelerationTree(BaseTrack):
             end_pos: Vector3,
             direction: TreeDirection,
             base_acceleration: float,
-            min_vm_separation: float
+            min_vm_separation: float,
+            station_id : int | None = None
     ):
         super().__init__(track_id, start_pos, end_pos)
         self.direction = direction
         self.base_acceleration = base_acceleration
+        self.station_id = station_id
 
         self._min_safe_distance: float = 0.0
         self.min_slot_gap: int = 0
@@ -271,6 +273,7 @@ class AccelerationTree(BaseTrack):
             f"AccelerationTree("
             f"id={self.track_id}, "
             f"dir={self.direction.value}, "
+            f"station={self.station_id}, "
             f"len={self.length:.1f}m, "
             f"vms={self.vehicle_count}, "
             f"slot_gap={self.min_slot_gap})"
