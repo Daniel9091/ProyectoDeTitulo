@@ -44,7 +44,7 @@ class ContinuousTrain:
         density             float               # proporcion inicial de slots ocupados [0.0 - 1.0]
         vm_factory          Callable            # vm_factory(vm_id: int) -> ModularVehicle
         rng                 random.Random       # generador compartido con semilla fija
-        junction_points     dict[int, float]    # {statjion_id: belt_x} puntos de conexjion de arboles
+        junction_points     dict[int, float]    # {station_id: belt_x} puntos de conexion de arboles
     """
 
     def __init__(
