@@ -16,9 +16,10 @@ Lo que no hace:
 Estructura de cada slot (dict en self.slots):
     {
         'vm':                           ModularVehicle | None
-        'reserved_for_id':              int | None              # Bloqueado para Vm que baje
-        'destination_station_id':        int | None              # Destino del VM en este slot (VM tiene destino por que tiene pasajeros a bordo)
-        'demand_supply_for_station_id'  int | None              # Marcado para suplir demanda         
+        'reserved_station_id':          int | None              # Estación que reclamo el slot (routing en junction_UP) (sistema de reserva)
+        'reserved_vm_id':               int | None              # VM esperado (verificacíon de llegada)
+        'demand_station_id':            int | None              # Marcado para suplir demanda (sistema de taza)
+        'destination_station_id':       int | None              # Destino del VM en este slot (VM tiene destino por que tiene pasajeros a bordo) (sistema de destino)    
     }
 """
 
@@ -155,7 +156,8 @@ class ContinuousTrain:
         Coloca un VM en el slot indicado.
         Brain llama esto cuando un VM termina de desender para un arbol y toma su slot.
         """
-        self.slots[slot_idx]['reserved_for_vm_id'] = None
+        self.slots[slot_idx]['reserved_station_id'] = None
+        self.slots[slot_idx]['reserved_vm_id'] = None
         self.slots[slot_idx]['vm'] = vm
 
     def remove_vm(self, slot_idx: int) -> ModularVehicle:
@@ -166,23 +168,25 @@ class ContinuousTrain:
         vm = self.slots[slot_idx]['vm']
         self.slots[slot_idx]['vm'] = None
         self.slots[slot_idx]['destination_station_id'] = None
-        self.slots[slot_idx]['demand_supply_for_station_id'] = None
+        self.slots[slot_idx]['demand_station_id'] = None
 
         return vm
 
     # ─── ETIQUETAS DE SLOT ────────────────────────────────────────────────
 
-    def set_reservation(self, slot_idx: int, vm_id: int) -> None:
+    def set_reservation(self, slot_idx: int, vm_id: int, station_id: int) -> None:
         """
-        Reserva el slot para el VM vm_id que esta desendiendo hacia el.
+        Reserva el slot: station_id para routing en junction_UP, vm_id para verificar llegada.
         """
-        self.slots[slot_idx]['reserved_for_vm_id'] = vm_id
+        self.slots[slot_idx]['reserved_station_id'] = station_id
+        self.slots[slot_idx]['reserved_vm_id'] = vm_id
 
     def clear_reservation(self, slot_idx: int) -> None:
         """
-        Limpia slots[slot_idx]['reserved_for_vm_id']
+        Limpia reserved_station_id y reserved_vm_id del slot.
         """
-        self.slots[slot_idx]['reserved_for_vm_id'] = None
+        self.slots[slot_idx]['reserved_station_id'] = None
+        self.slots[slot_idx]['reserved_vm_id'] = None
 
     def set_destination(self, slot_idx: int, station_id: int) -> None:
         """
@@ -200,13 +204,13 @@ class ContinuousTrain:
         """
         Marca el slot para suplir demanda de station_id
         """
-        self.slots[slot_idx]['demand_supply_for_station_id'] = station_id
+        self.slots[slot_idx]['demand_station_id'] = station_id
 
     def clear_demand_supply(self, slot_idx: int) -> None:
         """
         Limpia slots[slot_idx]['demand_supply_for_station_id']
         """
-        self.slots[slot_idx]['demand_supply_for_station_id'] = None
+        self.slots[slot_idx]['demand_station_id'] = None
 
     # ─── CONSULTAS PARA BRAIN ─────────────────────────────────────────────
     
@@ -235,7 +239,7 @@ class ContinuousTrain:
         """
         return sum(
             1 for s in self.slots
-            if s['vm'] is None and s['reserved_for_vm_id'] is None
+            if s['vm'] is None and s['reserved_station_id'] is None
         )
 
     # ─── INICIALIZACIÓN ───────────────────────────────────────────────────
@@ -249,10 +253,11 @@ class ContinuousTrain:
         next_vm_id = 0
         for _ in range(self.max_slots):
             slot = {
-                'vm':                           None,
-                'reserved_for_vm_id':           None,
-                'destination_station_id':       None,
-                'demand_supply_for_station_id': None,
+                'vm':                     None,
+                'reserved_station_id':    None,
+                'reserved_vm_id':         None,
+                'destination_station_id': None,
+                'demand_station_id':      None,
             }
             if rng.random() < density:
                 slot['vm'] = vm_factory(next_vm_id)

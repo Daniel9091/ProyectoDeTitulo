@@ -170,20 +170,21 @@ class TestSlotContracts:
         Brain no necesita hacer clear_reservation por separado.
         """
         train = make_train()
-        train.set_reservation(0, vm_id=42)
+        train.set_reservation(0, vm_id=42, station_id=5)
         train.place_vm(FakeVehicle(42), 0)
-        assert train.slots[0]['reserved_for_vm_id'] is None
+        assert train.slots[0]['reserved_station_id'] is None
+        assert train.slots[0]['reserved_vm_id'] is None
 
     def test_demand_supply_persists_after_place_vm(self):
         """
-        Invariante (CLAUDE.md §3): demand_supply_for_station_id NO se borra al
+        Invariante (CLAUDE.md §3): demand_station_id NO se borra al
         llegar el VM. Brain la necesita para saber a qué junction sacar al VM.
         Solo remove_vm la limpia.
         """
         train = make_train()
         train.set_demand_supply(0, station_id=7)
         train.place_vm(FakeVehicle(1), 0)
-        assert train.slots[0]['demand_supply_for_station_id'] == 7
+        assert train.slots[0]['demand_station_id'] == 7
 
     def test_remove_vm_clears_all_routing_labels(self):
         """
@@ -193,12 +194,12 @@ class TestSlotContracts:
         train = make_train()
         train.slots[2]['vm'] = FakeVehicle(5)
         train.slots[2]['destination_station_id'] = 7
-        train.slots[2]['demand_supply_for_station_id'] = 3
+        train.slots[2]['demand_station_id'] = 3
         train.remove_vm(2)
         s = train.slots[2]
         assert s['vm'] is None
         assert s['destination_station_id'] is None
-        assert s['demand_supply_for_station_id'] is None
+        assert s['demand_station_id'] is None
 
     def test_free_slot_requires_no_vm_and_no_reservation(self):
         """
@@ -208,7 +209,7 @@ class TestSlotContracts:
         """
         train = make_train(total_length=100.0)
         free_before = train.get_free_slot_count()
-        train.set_reservation(0, vm_id=1)
+        train.set_reservation(0, vm_id=1, station_id=1)
         assert train.get_free_slot_count() == free_before - 1
 
     def test_destination_persists_after_place_vm(self):
