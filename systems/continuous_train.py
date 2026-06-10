@@ -163,7 +163,9 @@ class ContinuousTrain:
     def remove_vm(self, slot_idx: int) -> ModularVehicle:
         """
         Extrae el VM del slot y lo retorna.
-        Brain llama esto cuando  un VM sale del carril hacia un arbol de subida
+        Brain llama esto cuando  un VM sale del carril hacia un arbol de subida.
+        No se limpia la etiqueta de reserva, por que se debe conservar hasta
+        el arbol de bajada.
         """
         vm = self.slots[slot_idx]['vm']
         self.slots[slot_idx]['vm'] = None
