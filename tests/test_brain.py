@@ -1,7 +1,52 @@
-#ahora quiero partir con los test, en primera instancia quiero que me digas si los test unitarios y los de integraion van en archivos diferentes, queiro que nos concentremos en los unitarios de brain, al igual que siempre ojala testear la mayoria de los casos y funciones importatnes (brain es uno de los archivos mas impportatnes de la simulacion asi que hay ser especialmente detallado)
+    # ── CONDICIONES CRÍTICAS DETECTADAS EN REVISIÓN ──────────────────────────
+    #
+    # (A) dest=S + demand=S + junction rechaza (rama dest, ok=False):
+    #     La rama dest tiene prioridad sobre demand en el elif.
+    #     Si la junction rechaza, on_commitment_broken DEBE llamarse porque
+    #     on_vm_committed ya decrementó el counter cuando se puso la etiqueta demand.
+    #     Sin la restauración, S cree que hay 1 VM más en camino del que realmente hay.
+    #     → ver test_dest_and_demand_same_station_rejected_restores_counter
+    #
+    # (B) demand=S + ok=True → on_unplanned NO debe llamarse:
+    #     Ya decrementó al ponerse la etiqueta. No contar dos veces.
+    #     → ver test_demand_vm_enters_tree_no_extra_decrement
+    #
+    # (C) dest=S sin demand + ok=False → contador sin cambio:
+    #     La etiqueta dest nunca decrementó. No hay nada que restaurar.
+    #     → ver test_destination_vm_rejected_no_counter_change
+    #
+    # (D) Todo VM que sube a un árbol UP debe estar contado exactamente una vez:
+    #     con demand → contó al ponerse la etiqueta (no al entrar)
+    #     sin demand → cuenta al entrar (on_unplanned_vm_at_tree)
+    #     En ningún caso debe contarse dos veces ni cero veces.
 
-#quiero evalues los casos bordes de cada funcion y luego revises el archivo de test_brian.py
-#luego inveta los test junto con los que ya tenemos enfocate en los unitarios y luego miraremos los de integracion pero la idea es cubrir todo lo mejor posigle por que este archvo (brain, es uno de los mas importantes)
+
+## prompt
+# dieme bien que tengo que escribir para que esto quede cubierto no te enteni bien
+# Antes de empezar: el docstring de test_counter_no_over_decrement_with_demand_and_destination_same_station (línea 667) dice "demand branch corre (prioridad sobre dest)". Eso está mal. En brain.py el orden es elif dest == S primero, elif demand == S después. Cuando ambos están presentes, corre la rama dest. Corrige el comentario a: - dest branch corre (el elif dest viene antes que elif demand). El resultado del test es el mismo (counter decrementado una sola vez), solo que por la rama equivocada.
+
+# Los unitarios llaman brain._handle_crossings([...]) directamente — más limpio para aislar el comportamiento del counter.
+# test 1:
+# el contador de pending demand se manteiene en 0 y eso esta bien, por que deciciste hacerlo con el valor 0 y no con el valor 1
+# el problema que veo es que puede ser que este test pase si es que no permite que el pendign demand tenga valor negativo
+# test 2:
+# esta el caso donde se intenta etiquetar con demanda pero no se puede asi que se vuelve a traspasar al cuenta alc ontador?
+# test 3:
+# me esta constando ver donde esta el valor del contador de la estcion que estas sumando o restando, en el test 3
+# te aseguras que es 0 si partio en 0 que esta bien pero me procupa que si pendig demand no puede ser netagtivo entonces todos estos
+# test pasan igual, me imagino que lo mantienes en 0 para que cuando hagas el update no haga mas llamadas de las que estamos testeando
+# confirmame si ese es el caso
+# pregunta 1
+# al igual que en reservation me falta un test que verifique que cuando se fija destio en un slot tampoco se descuenta al contador
+# pregunta 2:
+# cambie un poco el ordne de los test por que identifique que algunos test tienen que ver con como se comporta el
+# contador cuando tenemos la etiqueta de demana y cuando no la tiene, por que el ciclo de vida cambia segun eso#
+# perunta 3:
+# hice un apunte de los test que podrian ser until testear y creo que me faltaron un par que no vi en los test unitarios
+# no se si es posible incluirlos o ver que hacemos
+# me flatao ver qu pas cuando el contador esta por ejemplo en 2 y se hacen #
+
+
 
 """
 Tests para Brain.
@@ -16,14 +61,502 @@ Responsabilidades documentadas:
     - TestBeltPlacement:        VM en slot reservado, fallback sin reserva
 
 Convención de fixtures:
-    make_brain_fixture(num_stations, train_length) → (brain, train, network, stations)
+    make_brain_fixture()  → (brain, train, network, stations)
+    Usa objetos reales (no mocks) para train y network.
+    Station es MagicMock para evitar dependencia de PassengerIdGenerator.
+
+    Para tests que necesitan Station real con pending_demand dinámico,
+    setear station.pending_demand directamente en el test.
 """
 
-# ─── COUNTER ACCOUNTING (Q15) ─────────────────────────────────────────────────
+import random
+from unittest.mock import MagicMock, patch
 
+import pytest
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+
+from objects.math3d import Vector3
+from objects.modular_vehicle import ModularVehicle
+from objects.types import TreeDirection
+from tracks.acceleration_tree import AccelerationTree
+from tracks.boarding_lane import BoardingLane
+from tracks.junction import Junction
+from systems.continuous_train import ContinuousTrain
+from systems.network import Network
+from systems.brain import Brain
+from config.constants import (
+    TRAIN_SPACING, TREE_ACCELERATION, MIN_VM_SEPARATION,
+    TRAIN_SPEED, BOARDING_LANE_SPEED,
+)
+
+# ─── CONSTANTES DE FIXTURE ───────────────────────────────────────────────────
+
+STATION_ID      = 1
+UP_TREE_ID      = 10
+LANE_ID         = 11
+DOWN_TREE_ID    = 12
+JUNCTION_UP_X   = 10.0      # belt_x donde los VMs suben a la estación
+JUNCTION_DOWN_X = 50.0      # belt_x donde los VMs bajan al belt
+TRAIN_LENGTH    = 100.0     # longitud del carril circular (50 slots)
+TREE_LENGTH     = 10.0      # longitud de cada AccelerationTree
+LANE_LENGTH     = 20.0      # longitud del BoardingLane
+
+
+# ─── HELPERS DE FIXTURE ───────────────────────────────────────────────────────
+
+def _make_vm(vm_id: int = 0) -> ModularVehicle:
+    return ModularVehicle(vehicle_id=vm_id, capacity=4)
+
+def _make_train(junction_up_x: float = JUNCTION_UP_X) -> ContinuousTrain:
+    """
+    Carril de 100m, 50 slots, sin VMs (density=0.0).
+    junction_points marca la junction UP de la estación para detección de crossings.
+    """
+    rng = random.Random(42)
+    return ContinuousTrain(
+        start_pos=Vector3(0, 0, 0),
+        end_pos=Vector3(TRAIN_LENGTH, 0, 0),
+        density=0.0,
+        vm_factory=lambda vid: ModularVehicle(vehicle_id=vid, capacity=4),
+        rng=rng,
+        junction_points={STATION_ID: junction_up_x},
+    )
+
+def _make_network() -> Network:
+    """
+    Red mínima de 1 estación: UP tree → lane → DOWN tree (terminal).
+
+    Topología:
+        acceler_up (UP, 10m)  →  lane (20m)  →  acceler_down (DOWN, 10m, terminal)
+        junction_up  registrada en network.junctions_up[STATION_ID]
+        junction_down registrada en network.junctions_down[STATION_ID]
+
+    DOWN tree es terminal (len==0 en adyacencia) porque el VM sale al belt
+    vía Brain._handle_belt_placements, no a otro track.
+    """
+    up_tree = AccelerationTree(
+        track_id=UP_TREE_ID,
+        start_pos=Vector3(0, 0, 0),
+        end_pos=Vector3(TREE_LENGTH, 0, 0),
+        direction=TreeDirection.UP,
+        base_acceleration=TREE_ACCELERATION,
+        min_vm_separation=MIN_VM_SEPARATION,
+        station_id=STATION_ID,
+    )
+    lane = BoardingLane(
+        track_id=LANE_ID,
+        start_pos=Vector3(0, 0, 0),
+        end_pos=Vector3(LANE_LENGTH, 0, 0),
+    )
+    down_tree = AccelerationTree(
+        track_id=DOWN_TREE_ID,
+        start_pos=Vector3(0, 0, 0),
+        end_pos=Vector3(TREE_LENGTH, 0, 0),
+        direction=TreeDirection.DOWN,
+        base_acceleration=TREE_ACCELERATION,
+        min_vm_separation=MIN_VM_SEPARATION,
+        station_id=STATION_ID,
+    )
+
+    junction_up = Junction(
+        junction_id=20,
+        belt_x=JUNCTION_UP_X,
+        station_id=STATION_ID,
+        direction=TreeDirection.UP,
+        trees=[up_tree],
+    )
+    junction_down = Junction(
+        junction_id=21,
+        belt_x=JUNCTION_DOWN_X,
+        station_id=STATION_ID,
+        direction=TreeDirection.DOWN,
+        trees=[down_tree],
+    )
+
+    network = Network()
+    network.add_track(up_tree)
+    network.add_track(lane)
+    network.add_track(down_tree)
+    network.connect(UP_TREE_ID, LANE_ID)
+    network.connect(LANE_ID, DOWN_TREE_ID)
+    network.add_junction(junction_up)
+    network.add_junction(junction_down)
+    return network
+
+def _make_station_mock() -> MagicMock:
+    """
+    Station liviana para tests que verifican llamadas (on_vm_committed, etc.).
+    pending_demand=0 evita que _process_demand entre al while loop.
+    """
+    station = MagicMock()
+    station.pending_demand = 0
+    return station
+
+def make_brain_fixture():
+    """
+    Construye (brain, train, network, stations) para tests de Brain.
+
+    - train: ContinuousTrain real, 50 slots vacíos
+    - network: Network real, 1 estación con UP tree → lane → DOWN tree
+    - stations: {STATION_ID: MagicMock(pending_demand=0)}
+    - brain: Brain real coordinando todo
+
+    Para tests de comportamiento de slots, agregar VMs directamente:
+        train.slots[idx]['vm'] = _make_vm(vm_id)
+
+    Para tests que necesitan pending_demand > 0:
+        stations[STATION_ID].pending_demand = N
+    """
+    train    = _make_train()
+    network  = _make_network()
+    station  = _make_station_mock()
+    stations = {STATION_ID: station}
+    brain    = Brain(train=train, network=network, stations=stations)
+    return brain, train, network, stations
+
+def _wrong_order_8ab(brain, dt: float, current_time: float) -> None:
+    """
+    Loop idéntico a brain.update() pero con _process_demand (8b) ANTES
+    que _process_reservations (8a). Usado en tests negativos de TestBrainLoop
+    para demostrar la consecuencia de invertir esos dos pasos.
+    """
+    crossings = brain._train.advance(dt)
+    completions = brain._network.update_all_tracks(dt)
+    decisions, belt_placements = brain._network.process_transitions(completions)
+    brain._handle_crossings(crossings)
+    brain._handle_decisions(decisions)
+    brain._handle_belt_placements(belt_placements)
+    for station in brain._stations.values():
+        station.update(dt, current_time)
+    brain._process_demand()         # 8b PRIMERO (orden incorrecto)
+    brain._process_reservations()   # 8a SEGUNDO (orden incorrecto)
+
+def _wrong_order_step2_4(brain, dt: float, current_time: float) -> None:
+    """
+    Loop con _handle_crossings (paso 4) ANTES que update_all_tracks (paso 2).
+    Consecuencia: el VM que entra al árbol en el paso 4 recibe doble movimiento
+    ese mismo frame — primero leftover_dt al insertarse, luego dt completo del árbol.
+    """
+    crossings = brain._train.advance(dt)
+    brain._handle_crossings(crossings)               # paso 4 ANTES que 2 (bug)
+    completions = brain._network.update_all_tracks(dt)  # árbol mueve VM de nuevo
+    decisions, belt_placements = brain._network.process_transitions(completions)
+    brain._handle_decisions(decisions)
+    brain._handle_belt_placements(belt_placements)
+    for station in brain._stations.values():
+        station.update(dt, current_time)
+    brain._process_reservations()
+    brain._process_demand()
+
+def _wrong_order_step7_8b(brain, dt: float, current_time: float) -> None:
+    """
+    Loop con _process_demand (8b) ANTES que station.update (paso 7).
+    Consecuencia: _process_demand ve pending_demand del frame anterior.
+    Si era 0, ningún slot se etiqueta aunque station.update lo iba a subir a 1.
+    """
+    crossings = brain._train.advance(dt)
+    completions = brain._network.update_all_tracks(dt)
+    decisions, belt_placements = brain._network.process_transitions(completions)
+    brain._handle_crossings(crossings)
+    brain._handle_decisions(decisions)
+    brain._handle_belt_placements(belt_placements)
+    brain._process_demand()                          # 8b ANTES de station.update (bug)
+    for station in brain._stations.values():
+        station.update(dt, current_time)             # paso 7 llega tarde
+    brain._process_reservations()
+
+# ─── LOOP ORDER ───────────────────────────────────────────────────────────────
+class TestBrainLoop:
+    """
+    Los 8 pasos de brain.update() tienen un orden invariante.
+    Cada test verifica la CONSECUENCIA de romper ese orden:
+    corremos brain.update() normal y una variante con el orden incorrecto,
+    y comparamos el estado resultante del mundo (slots, distancias, contadores).
+    Ningún test usa call_log — si el orden cambia en brain.update(), el estado final falla.
+    """
+
+    def test_update_does_not_crash_with_empty_train(self):
+        """
+        Smoke: brain.update() completa sin excepción con 50 slots vacíos.
+        Si este test falla, el fixture está roto y los demás no tienen sentido.
+        """
+        brain, train, network, stations = make_brain_fixture()
+        brain.update(dt=0.01, current_time=0.0)
+
+    def test_tracks_advance_before_crossings_are_processed(self):
+        """
+        Invariante: update_all_tracks (paso 2) corre ANTES de _handle_crossings (paso 4).
+
+        Consecuencia de romperlo: el VM que entra al árbol UP en el paso 4 recibe
+        doble movimiento en el mismo frame. _insert_vehicle lo mueve con leftover_dt
+        al insertarlo, y luego update_all_tracks lo vuelve a mover con dt completo.
+
+        Números exactos (física MRUA UP, a = -2.5 m/s²):
+            Correcto  — solo leftover_dt=0.01:
+                d = 20×0.01 + 0.5×(-2.5)×0.01² = 0.199875 m
+            Incorrecto — leftover_dt + dt adicional:
+                d = 0.199875 + 19.975×0.01 + 0.5×(-2.5)×0.01² = 0.399500 m
+
+        Setup: VM en slot 5 (belt_x = 10.0 = JUNCTION_UP_X). Con tail_x=0
+        y dt=0.01, el VM está exactamente en la junction → leftover_dt = 0.01.
+        """
+        # ── ORDEN CORRECTO (brain.update()) ──────────────────────────────────
+        brain1, train1, network1, stations1 = make_brain_fixture()
+        vm1 = _make_vm(vm_id=0)
+        train1.slots[5]['vm'] = vm1
+        train1.slots[5]['destination_station_id'] = STATION_ID
+
+        brain1.update(dt=0.01, current_time=0.0)
+
+        up_tree1 = network1.get_track(UP_TREE_ID)
+        assert vm1.vehicle_id in up_tree1.vehicles, \
+            "Correcto: VM debe haber entrado al UP tree"
+        dist_correct = up_tree1.vehicles[vm1.vehicle_id]['distance']
+
+        # ── ORDEN INCORRECTO (_wrong_order_step2_4) ───────────────────────────
+        brain2, train2, network2, stations2 = make_brain_fixture()
+        vm2 = _make_vm(vm_id=0)
+        train2.slots[5]['vm'] = vm2
+        train2.slots[5]['destination_station_id'] = STATION_ID
+
+        _wrong_order_step2_4(brain2, dt=0.01, current_time=0.0)
+
+        up_tree2 = network2.get_track(UP_TREE_ID)
+        assert vm2.vehicle_id in up_tree2.vehicles, \
+            "Incorrecto: VM también debe estar en UP tree"
+        dist_wrong = up_tree2.vehicles[vm2.vehicle_id]['distance']
+
+        # Consecuencia medible: ~2× más movimiento con orden incorrecto
+        assert dist_correct == pytest.approx(0.199875, abs=1e-4), \
+            f"Correcto: solo leftover_dt de movimiento. Obtenido: {dist_correct:.6f} m"
+        assert dist_wrong == pytest.approx(0.399500, abs=1e-3), \
+            f"Incorrecto: doble movimiento. Obtenido: {dist_wrong:.6f} m"
+        assert dist_correct < dist_wrong, \
+            "El orden incorrecto produce ~2× más distancia en el mismo frame"
+
+    def test_station_update_before_demand_labeling(self):
+        """
+        Invariante: station.update() (paso 7) corre ANTES de _process_demand (paso 8b).
+
+        Consecuencia de romperlo: _process_demand ve pending_demand=0 (el valor
+        antes de que station.update lo incremente). El while no entra, ningún slot
+        se etiqueta, y la demanda real del frame queda sin satisfacer hasta el siguiente.
+
+        Setup: VM en slot 4 dentro del rango de búsqueda de demanda. station.update()
+        sube pending_demand de 0 a 1. Con orden correcto, el slot recibe la etiqueta.
+        Con orden incorrecto, _process_demand ya corrió cuando demand era 0 — nada.
+        """
+        # ── ORDEN CORRECTO (brain.update()) ──────────────────────────────────
+        brain1, train1, network1, stations1 = make_brain_fixture()
+        station1 = stations1[STATION_ID]
+
+        vm1 = _make_vm(vm_id=0)
+        train1.slots[4]['vm'] = vm1         # slot 4 en rango de búsqueda de demanda
+
+        station1.pending_demand = 0
+
+        def fake_update1(dt, ct):
+            station1.pending_demand = 1     # simula acumulación real de demanda
+
+        station1.update = fake_update1
+        station1.on_vm_committed.side_effect = lambda: setattr(
+            station1, 'pending_demand', station1.pending_demand - 1
+        )
+
+        with patch.object(brain1, '_would_saturate', return_value=False):
+            brain1.update(dt=0.001, current_time=0.0)
+
+        labeled_correct = any(
+            s['demand_station_id'] == STATION_ID for s in train1.slots
+        )
+        assert labeled_correct, (
+            "Correcto: station.update() corrió ANTES de _process_demand. "
+            "demand=1 al momento de la búsqueda → slot etiquetado con demand=S."
+        )
+
+        # ── ORDEN INCORRECTO (_wrong_order_step7_8b) ──────────────────────────
+        brain2, train2, network2, stations2 = make_brain_fixture()
+        station2 = stations2[STATION_ID]
+
+        vm2 = _make_vm(vm_id=0)
+        train2.slots[4]['vm'] = vm2
+
+        station2.pending_demand = 0
+
+        def fake_update2(dt, ct):
+            station2.pending_demand = 1
+
+        station2.update = fake_update2
+        station2.on_vm_committed.side_effect = lambda: setattr(
+            station2, 'pending_demand', station2.pending_demand - 1
+        )
+
+        with patch.object(brain2, '_would_saturate', return_value=False):
+            _wrong_order_step7_8b(brain2, dt=0.001, current_time=0.0)
+
+        labeled_wrong = any(
+            s['demand_station_id'] == STATION_ID for s in train2.slots
+        )
+        assert not labeled_wrong, (
+            "Incorrecto: _process_demand corrió con demand=0 (station.update llegó tarde). "
+            "while 0>0 no entró → ningún slot etiquetado → demanda del frame N ignorada."
+        )
+
+    def test_reservations_before_demand_prevents_double_commit(self):
+        """
+        Invariante: _process_reservations (8a) corre ANTES de _process_demand (8b).
+
+        Consecuencia de romperlo: demand encuentra el slot que la reserva iba a
+        elegir (está sin reserva todavía), lo etiqueta y llama on_vm_committed.
+        El counter baja a 0 mientras el VM aún está en tránsito → Brain deja de
+        buscar más VMs aunque la estación siga necesitando.
+
+        Setup: VM en lane (boarding_committed), slot 5 bloqueado para que SOLO
+        ese slot sea elegible por la reserva (todos los demás reservados para
+        otra estación). Con orden correcto: reserva primero → slot 5 bloqueado
+        para demand → on_vm_committed=0. Con orden incorrecto (8b antes 8a):
+        demand llega antes, slot 5 aún libre → on_vm_committed=1.
+
+        Slot objetivo calculado para VM en lane con progress=0.52:
+            remaining = 0.48 × 20 = 9.6 m
+            T_lane    = 9.6 / 2.0       = 4.8 s
+            T_tree    = (20−2) / 2.5    = 7.2 s
+            T_total   = 12.0 s
+            future_x  = (0 + 20×12) % 100 = 40.0
+            relative  = (50 − 40) % 100   = 10.0
+            target    = round(10/2) % 50  = slot 5
+        """
+        PROGRESS_FOR_TARGET_5 = 0.52
+
+        def _setup(brain, train, network, stations):
+            station = stations[STATION_ID]
+            lane = network.get_track(LANE_ID)
+
+            vm_lane = _make_vm(vm_id=0)
+            lane.vehicles[vm_lane.vehicle_id] = {
+                'vehicle':            vm_lane,
+                'distance':           PROGRESS_FOR_TARGET_5 * LANE_LENGTH,
+                'velocity':           BOARDING_LANE_SPEED,
+                'passengers':         [],
+                'boarding_committed': True,
+            }
+
+            vm_belt = _make_vm(vm_id=1)
+            train.slots[5]['vm'] = vm_belt
+
+            # Forzar que _range_search_reservation solo tenga slot 5 disponible
+            for offset in range(-5, 6):
+                idx = (5 + offset) % 50
+                if idx != 5:
+                    train.slots[idx]['reserved_station_id'] = 99
+
+            station.pending_demand = 1
+            station.on_vm_committed.side_effect = lambda: setattr(
+                station, 'pending_demand', station.pending_demand - 1
+            )
+            return station
+
+        # ── ORDEN CORRECTO (brain.update()) ──────────────────────────────────
+        brain1, train1, network1, stations1 = make_brain_fixture()
+        station1 = _setup(brain1, train1, network1, stations1)
+
+        with patch.object(brain1, '_would_saturate', return_value=False):
+            brain1.update(dt=0.001, current_time=0.0)
+
+        assert station1.on_vm_committed.call_count == 0, (
+            "Correcto (8a antes 8b): reserva corrió primero → slot 5 ya reservado. "
+            "_range_search_demand lo saltó (reserved != None). "
+            "on_vm_committed NO llamado → counter sin cambio prematuro."
+        )
+        assert train1.slots[5]['reserved_station_id'] == STATION_ID, \
+            "Slot 5 debe tener reserva de STATION_ID después de _process_reservations"
+        assert train1.slots[5]['demand_station_id'] is None, \
+            "Slot 5 NO debe tener demand label: demand encontró slot reservado y salió"
+
+        # ── ORDEN INCORRECTO (_wrong_order_8ab) ───────────────────────────────
+        brain2, train2, network2, stations2 = make_brain_fixture()
+        station2 = _setup(brain2, train2, network2, stations2)
+
+        with patch.object(brain2, '_would_saturate', return_value=False):
+            _wrong_order_8ab(brain2, dt=0.001, current_time=0.0)
+
+        assert station2.on_vm_committed.call_count == 1, (
+            "Incorrecto (8b antes 8a): demand corrió antes → slot 5 sin reservar todavía. "
+            "on_vm_committed llamado con VM aún en tránsito → pre-decremento del counter."
+        )
+        assert train2.slots[5]['demand_station_id'] == STATION_ID, \
+            "Slot 5 tiene demand label: demand etiquetó el slot antes de la reserva"
+
+    def test_belt_placements_after_decisions(self):
+        """
+        Invariante: _handle_belt_placements (paso 6) usa _reserved_slots que fue
+        populado por _process_reservations (paso 8a) en el frame anterior.
+        La garantía: VM aterriza en el slot EXACTO calculado, no en un slot por fallback.
+
+        Setup: VM al final del DOWN tree (casi completo). _reserved_slots tiene la
+        entrada (del frame anterior). brain.update() detecta la completion y coloca
+        el VM en el slot reservado.
+
+        Caso negativo: misma situación pero _reserved_slots vacío (simula que
+        _process_reservations no corrió o corrió en el frame equivocado). El VM
+        aterriza por fallback — en un slot cercano a junction_down, NO en slot 7.
+        """
+        # ── CON RESERVA (orden correcto) ──────────────────────────────────────
+        brain1, train1, network1, stations1 = make_brain_fixture()
+        vm1 = _make_vm(vm_id=0)
+        target_slot = 7
+
+        # Simula que _process_reservations corrió en el frame anterior
+        brain1._reserved_slots[vm1.vehicle_id] = target_slot
+
+        down_tree1 = network1.get_track(DOWN_TREE_ID)
+        down_tree1.vehicles[vm1.vehicle_id] = {
+            'vehicle':            vm1,
+            'distance':           9.99,     # 0.01 m antes del final
+            'velocity':           BOARDING_LANE_SPEED,
+            'target_acceleration': TREE_ACCELERATION,
+            'time_in_track':      5.0,
+        }
+
+        brain1.update(dt=0.01, current_time=0.0)
+
+        assert train1.slots[target_slot]['vm'] is vm1, (
+            f"Correcto: VM debe aterrizar en slot {target_slot} (el reservado). "
+            "Si está en otro slot, _handle_belt_placements no usó _reserved_slots."
+        )
+        assert vm1.vehicle_id not in brain1._reserved_slots, \
+            "_reserved_slots debe quedar limpio después del placement (.pop fue llamado)"
+
+        # ── SIN RESERVA (orden incorrecto o bug upstream) ─────────────────────
+        brain2, train2, network2, stations2 = make_brain_fixture()
+        vm2 = _make_vm(vm_id=1)
+        # _reserved_slots vacío — VM bajó sin que _process_reservations lo anticipara
+
+        down_tree2 = network2.get_track(DOWN_TREE_ID)
+        down_tree2.vehicles[vm2.vehicle_id] = {
+            'vehicle':            vm2,
+            'distance':           9.99,
+            'velocity':           BOARDING_LANE_SPEED,
+            'target_acceleration': TREE_ACCELERATION,
+            'time_in_track':      5.0,
+        }
+
+        brain2.update(dt=0.01, current_time=0.0)
+
+        placed = any(s['vm'] is vm2 for s in train2.slots)
+        assert placed, "Sin reserva: VM debe aterrizar igualmente (fallback, no crash)"
+        assert train2.slots[target_slot]['vm'] is not vm2, (
+            "Sin reserva: VM NO debe estar en el slot exacto — "
+            "aterrizó por fallback (find_neartest_slot), no por cálculo de reserva."
+        )
+
+# ─── COUNTER ACCOUNTING ───────────────────────────────────────────────────────
 class TestCounterAccounting:
     """
-    Q15: El counter de pending_demand solo se modifica en los momentos correctos.
+    El counter de pending_demand solo se modifica en los momentos correctos.
 
     Regla del diseño:
         demand label     → on_vm_committed() al poner la etiqueta
@@ -37,68 +570,210 @@ class TestCounterAccounting:
 
     # ── UNITARIOS ────────────────────────────────────────────────────────────
 
-    def test_reservation_does_not_change_counter(self):
-        """
-        Hacer una reserva (_make_reservation) no llama on_vm_committed().
-        pending_demand debe ser idéntico antes y después de la reserva.
-        Verifica que el fix de Q15 (eliminar línea 366) está en su lugar.
-        """
-        # TODO: implement
-
+    # CON ETIQUETA DEMAND
+    # Creacion de la etiqueta
     def test_demand_label_decrements_counter_immediately(self):
         """
         _process_demand() llama on_vm_committed() al marcar el slot, ANTES del crossing.
         Verificar: pending_demand -= 1 en el mismo frame que se pone la etiqueta.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
 
+        vm = _make_vm(vm_id=0)
+        train.slots[4]['vm'] = vm
+        station.pending_demand = 1
+        station.on_vm_committed.side_effect = lambda: setattr(
+            station, 'pending_demand', station.pending_demand - 1
+        )
+
+        with patch.object(brain, '_would_saturate', return_value=False):
+            brain.update(dt=0.001, current_time=0.0)
+
+        assert station.on_vm_committed.call_count == 1, \
+            "on_vm_committed debe llamarse al marcar el slot, en el mismo frame"
+        labeled = any(s['demand_station_id'] == STATION_ID for s in train.slots)
+        assert labeled, "Algún slot debe tener demand_station_id=S después del frame"
+        assert station.pending_demand == 0, \
+            "pending_demand decrementó de 1 a 0 en el mismo frame del etiquetado"
+
+    # Acepta junction
     def test_demand_vm_enters_tree_no_extra_decrement(self):
         """
         Un VM con demand == S que entra al árbol UP no llama on_unplanned_vm_at_tree().
         El counter ya fue decrementado cuando se puso la etiqueta.
         Verificar: counter == valor_inicial - 1 (exactamente uno, no dos).
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
 
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['demand_station_id'] = STATION_ID
+
+        brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert station.on_unplanned_vm_at_tree.call_count == 0, (
+            "VM con demand=S no debe llamar on_unplanned al entrar. "
+            "Ya fue contado cuando se puso la etiqueta."
+        )
+        assert station.on_vm_committed.call_count == 0, \
+            "handle_crossings nunca llama on_vm_committed"
+        assert vm.vehicle_id in network.get_track(UP_TREE_ID).vehicles, \
+            "VM debe haber entrado al árbol UP (promesa cumplida)"
+
+    # Rechasa junction
     def test_demand_vm_rejected_restores_counter(self):
         """
         Si un VM con demand == S es rechazado en la junction, on_commitment_broken() restaura.
         Verificar: counter == valor_inicial (como si nunca se hubiera etiquetado).
         También verificar: demand_station_id del slot queda limpio.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
+
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['demand_station_id'] = STATION_ID
+
+        junction = network.get_junction_up(STATION_ID)
+        with patch.object(junction, 'add_vm', return_value=False):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert station.on_commitment_broken.call_count == 1, \
+            "Promesa rota: junction rechazó → on_commitment_broken restaura el counter"
+        assert train.slots[5]['demand_station_id'] is None, \
+            "clear_demand_supply: slot liberado para nueva búsqueda el frame siguiente"
+        assert train.slots[5]['vm'] is vm, \
+            "VM se queda en el belt (crossing fue condicional, no forzado)"
+
+
+    # SIN ETIQUETA DEMAND
+    # Creacion de la etiqueta
+    def test_reservation_does_not_change_counter(self):
+        """
+        Hacer una reserva (_make_reservation) no llama on_vm_committed().
+        pending_demand debe ser idéntico antes y después de la reserva.
+        """
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
+
+        lane = network.get_track(LANE_ID)
+        vm = _make_vm(vm_id=0)
+        lane.vehicles[vm.vehicle_id] = {
+            'vehicle': vm,
+            'distance': 0.52 * LANE_LENGTH,
+            'velocity': BOARDING_LANE_SPEED,
+            'passengers': [],
+            'boarding_committed': True,
+        }
+        station.pending_demand = 0
+
+        brain.update(dt=0.001, current_time=0.0)
+
+        assert station.on_vm_committed.call_count == 0, (
+            "_process_reservations no debe llamar on_vm_committed. "
+            "El counter solo se toca al poner etiqueta de demanda, no de reserva."
+        )
+        assert vm.vehicle_id in brain._reserved_slots, \
+            "La reserva sí debe registrarse (confirma que el test set-up es válido)"
 
     def test_destination_label_no_counter_change_before_crossing(self):
         """
         Poner destination_station_id en un slot no toca el counter.
         Verificar: counter idéntico antes y después de set_destination().
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
 
+        vm = _make_vm(vm_id=0)
+        slot_idx = 40           # lejos de junction_up_x=10.0, no cruzará este frame
+        train.slots[slot_idx]['vm'] = vm
+        train.slots[slot_idx]['destination_station_id'] = STATION_ID
+        station.pending_demand = 0
+
+        brain.update(dt=0.001, current_time=0.0)   # movement=0.02m, no cruza
+
+        assert station.on_vm_committed.call_count == 0
+        assert station.on_unplanned_vm_at_tree.call_count == 0
+        assert station.on_commitment_broken.call_count == 0, (
+            "Poner destination label no toca el counter. "
+            "El counter solo cambia al cruzar la junction, no al etiquetar."
+        )
+
+    # Acepta junction
+    def test_eviction_calls_on_unplanned_exactly_once(self):
+        """
+        Cuando un slot reservado para S tiene un VM y cruza junction UP para S:
+        - El VM es eviccionado (force_add_vm)
+        - on_unplanned_vm_at_tree() se llama UNA sola vez
+        Verificar: counter -= 1 (no -2).
+        """
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
+
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['reserved_station_id'] = STATION_ID
+        # SIN demand label → on_unplanned debe llamarse (VM imprevisto para S)
+
+        brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert station.on_unplanned_vm_at_tree.call_count == 1, (
+            "Evicción sin demand label: on_unplanned exactamente una vez. "
+            "Dos llamadas sería el bug de Q15 (doble conteo)."
+        )
+        assert vm.vehicle_id in network.get_track(UP_TREE_ID).vehicles, \
+            "VM eviccionado entró al árbol (add_vm o force_add_vm)"
+        
     def test_destination_vm_enters_tree_calls_on_unplanned(self):
         """
         VM con dest == S (sin demand label) que entra al árbol llama on_unplanned_vm_at_tree().
         Verificar: counter -= 1 al momento del crossing, no antes.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
 
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = STATION_ID
+        # SIN demand label
+
+        brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert station.on_unplanned_vm_at_tree.call_count == 1, (
+            "VM con dest=S pero sin demand=S era imprevisto para la taza. "
+            "on_unplanned descuenta el counter en el momento del crossing."
+        )
+        assert vm.vehicle_id in network.get_track(UP_TREE_ID).vehicles, \
+            "VM entró al árbol (crossing condicional aceptado)"
+
+    # Rechasa junction
     def test_destination_vm_rejected_no_counter_change(self):
         """
         VM con dest == S rechazado en la junction no modifica el counter.
         No hay promesa que restaurar porque no se llamó on_vm_committed().
         Verificar: counter == valor_inicial después del crossing fallido.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
 
-    def test_eviction_calls_on_unplanned_exactly_once(self):
-        """
-        Cuando un slot reservado para S tiene un VM y cruza junction UP para S:
-        - El VM es eviccionado (force_add_vm)
-        - on_unplanned_vm_at_tree() se llama UNA sola vez
-        Verificar: counter -= 1 (no -2, que sería el bug de Q15 sin el fix).
-        """
-        # TODO: implement
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = STATION_ID
+        # SIN demand label
 
+        junction = network.get_junction_up(STATION_ID)
+        with patch.object(junction, 'add_vm', return_value=False):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert station.on_unplanned_vm_at_tree.call_count == 0, \
+            "VM rechazado: nunca entró → no hay qué descontar del counter"
+        assert station.on_commitment_broken.call_count == 0, \
+            "No hubo promesa de demanda previa que restaurar"
+        assert train.slots[5]['vm'] is vm, "VM sigue en el belt"
+
+    # SLOT VACIO
     def test_empty_reserved_slot_no_counter_change(self):
         """
         Un slot reservado para S que cruza junction UP mientras está vacío:
@@ -106,16 +781,44 @@ class TestCounterAccounting:
         - No se llama ningún callback de counter
         Verificar: counter == valor_inicial.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
 
+        train.slots[5]['reserved_station_id'] = STATION_ID
+        # slot['vm'] es None → _handle_crossings hace 'continue'
+
+        brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert station.on_unplanned_vm_at_tree.call_count == 0
+        assert station.on_vm_committed.call_count == 0
+        assert station.on_commitment_broken.call_count == 0, \
+            "Slot vacío: ningún callback del counter debe ejecutarse"
+
+    # VM SIN ETIQUETAS
     def test_vm_with_no_labels_passes_junction_no_change(self):
         """
         Un VM sin ninguna etiqueta que cruza junction UP para S pasa de largo.
         Ninguna rama del if/elif en _handle_crossings aplica.
         Verificar: counter == valor_inicial.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
 
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        # SIN ninguna etiqueta
+
+        brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert station.on_unplanned_vm_at_tree.call_count == 0
+        assert station.on_vm_committed.call_count == 0
+        assert station.on_commitment_broken.call_count == 0
+        assert train.slots[5]['vm'] is vm, "VM pasa de largo, sigue en el belt"
+        assert vm.vehicle_id not in network.get_track(UP_TREE_ID).vehicles, \
+            "VM no entró al árbol: ninguna rama del if/elif aplicó"
+
+    # VARIAS ETIQUETAS
+    # Demanda y reserved en distintas estaciones
     def test_demand_eviction_broken_other_station(self):
         """
         Slot tiene demand == T (otra estación) y reserved == S.
@@ -124,7 +827,122 @@ class TestCounterAccounting:
         - S llama on_unplanned_vm_at_tree() (VM imprevisto para S)
         Verificar que ambas estaciones se actualizan correctamente.
         """
-        # TODO: implement
+        OTHER_STATION_ID = 2
+
+        brain, train, network, stations = make_brain_fixture()
+        station_S = stations[STATION_ID]
+
+        station_T = MagicMock()
+        station_T.pending_demand = 0
+        brain._stations[OTHER_STATION_ID] = station_T
+
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['reserved_station_id'] = STATION_ID       # eviccionado para S
+        train.slots[5]['demand_station_id'] = OTHER_STATION_ID   # tenía promesa con T
+
+        brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert station_T.on_commitment_broken.call_count == 1, \
+            "Promesa de T rota: el slot fue tomado por S antes de llegar a T"
+        assert station_S.on_unplanned_vm_at_tree.call_count == 1, \
+            "VM imprevisto para S: demand era de T, no de S → on_unplanned para S"
+        assert vm.vehicle_id in network.get_track(UP_TREE_ID).vehicles
+
+    def test_reserved_and_demand_same_station_no_unplanned(self):
+        """
+        Slot tiene reserved=S Y demand=S.
+        Rama R corre (prioridad más alta). Como demand==S, el VM estaba pre-contado
+        → on_unplanned NO se llama. Counter no cambia en el crossing.
+        """
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
+
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['reserved_station_id'] = STATION_ID
+        train.slots[5]['demand_station_id'] = STATION_ID
+
+        brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert station.on_unplanned_vm_at_tree.call_count == 0, (
+            "demand==S: VM estaba pre-contado al poner la etiqueta de taza. "
+            "Rama R no llama on_unplanned cuando demand==station_id."
+        )
+        assert station.on_commitment_broken.call_count == 0, \
+            "Promesa cumplida (VM entró por reserva): no se rompe"
+        assert vm.vehicle_id in network.get_track(UP_TREE_ID).vehicles
+
+    def test_reserved_and_destination_no_demand_calls_unplanned(self):
+        """
+        Slot tiene reserved=S Y destination=S pero SIN demand label.
+        Rama R corre. demand es None → demand != S → on_unplanned se llama.
+        El destino no implica pre-contabilización: solo la etiqueta de taza lo hace.
+        """
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
+
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['reserved_station_id'] = STATION_ID
+        train.slots[5]['destination_station_id'] = STATION_ID
+        # SIN demand_station_id
+
+        brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert station.on_unplanned_vm_at_tree.call_count == 1, (
+            "dest+reserved pero sin demand: no hubo pre-contabilización. "
+            "on_unplanned se llama al entrar (demand es None != S)."
+        )
+        assert vm.vehicle_id in network.get_track(UP_TREE_ID).vehicles
+
+    def test_dest_and_demand_same_station_accepted_no_unplanned(self):
+        """
+        Slot tiene destination=S Y demand=S. Junction acepta.
+        Rama D corre (elif dest antes que elif demand en brain.py).
+        demand==S → on_unplanned NO se llama (VM estaba pre-contado vía taza).
+        """
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
+
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = STATION_ID
+        train.slots[5]['demand_station_id'] = STATION_ID
+
+        brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert station.on_unplanned_vm_at_tree.call_count == 0, (
+            "demand==S: pre-contabilizado. Rama D no llama on_unplanned "
+            "cuando demand==station_id (línea 224 de brain.py)."
+        )
+        assert station.on_commitment_broken.call_count == 0, \
+            "VM entró exitosamente: promesa cumplida"
+        assert vm.vehicle_id in network.get_track(UP_TREE_ID).vehicles
+
+    def test_all_three_labels_same_station_no_unplanned(self):
+        """
+        Slot tiene reserved=S, destination=S, demand=S (las 3 etiquetas apuntan a S).
+        Rama R corre (prioridad más alta). demand==S → NO on_unplanned.
+        Con las 3 etiquetas, la pre-contabilización por taza prevalece sobre todo.
+        """
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
+
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['reserved_station_id'] = STATION_ID
+        train.slots[5]['destination_station_id'] = STATION_ID
+        train.slots[5]['demand_station_id'] = STATION_ID
+
+        brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert station.on_unplanned_vm_at_tree.call_count == 0, (
+            "Todas las etiquetas apuntan a S. demand==S garantiza pre-contabilización. "
+            "Rama R no llama on_unplanned. Counter solo decrementó al poner la taza."
+        )
+        assert station.on_commitment_broken.call_count == 0
+        assert vm.vehicle_id in network.get_track(UP_TREE_ID).vehicles
 
     # ── INTEGRACIÓN ──────────────────────────────────────────────────────────
 
@@ -138,7 +956,25 @@ class TestCounterAccounting:
         Verificar: counter == 0 al final (no -1).
         El VM llegó, el contador está correcto.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
+
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = STATION_ID   # SIN demand label
+        station.pending_demand = 1                               # estación necesita un VM
+
+        station.on_unplanned_vm_at_tree.side_effect = lambda: setattr(
+            station, 'pending_demand', station.pending_demand - 1
+        )
+
+        brain.update(dt=0.01, current_time=0.0)
+
+        assert vm.vehicle_id in network.get_track(UP_TREE_ID).vehicles
+        assert station.on_unplanned_vm_at_tree.call_count == 1, \
+            "on_unplanned llamado al momento del crossing (no antes)"
+        assert station.pending_demand == 0, \
+            "Counter decrementó exactamente en el frame del crossing"
 
     def test_counter_end_to_end_destination_path(self):
         """
@@ -150,18 +986,53 @@ class TestCounterAccounting:
         Verificar: counter == 0 exactamente al frame del crossing.
         No antes, no después.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
+
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = STATION_ID   # SIN demand label
+        station.pending_demand = 1                               # estación necesita un VM
+
+        station.on_unplanned_vm_at_tree.side_effect = lambda: setattr(
+            station, 'pending_demand', station.pending_demand - 1
+        )
+
+        brain.update(dt=0.01, current_time=0.0)
+
+        assert vm.vehicle_id in network.get_track(UP_TREE_ID).vehicles
+        assert station.on_unplanned_vm_at_tree.call_count == 1, \
+            "on_unplanned llamado al momento del crossing (no antes)"
+        assert station.pending_demand == 0, \
+            "Counter decrementó exactamente en el frame del crossing"
 
     def test_counter_no_over_decrement_with_demand_and_destination_same_station(self):
         """
         INTEGRACIÓN: VM tiene demand == S Y destination == S simultáneamente.
         Caso: la demanda etiquetó el slot Y también tiene destino marcado.
         Al cruzar junction UP para S:
-        - demand branch corre (prioridad sobre dest)
+        - dest branch corre (el elif dest viene antes que elif demand en brain.py)
         - on_unplanned_vm_at_tree() NO se llama (demand != station_id es False)
         Verificar: counter decrementó exactamente UNA vez total (cuando se puso demand).
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
+
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['demand_station_id'] = STATION_ID
+        train.slots[5]['destination_station_id'] = STATION_ID
+        station.pending_demand = 0      # ya fue decrementado cuando se puso demand
+
+        brain.update(dt=0.01, current_time=0.0)
+
+        assert vm.vehicle_id in network.get_track(UP_TREE_ID).vehicles, \
+            "VM entró (dest branch corrió, demand != S es False → no on_unplanned)"
+        assert station.on_unplanned_vm_at_tree.call_count == 0, \
+            "demand era S: no hay on_unplanned (el VM estaba pre-contado)"
+        assert station.on_commitment_broken.call_count == 0
+        assert station.pending_demand == 0, \
+            "Counter decrementó exactamente una vez (al poner demand), no dos"
 
     def test_counter_self_regulates_after_excess_vms(self):
         """
@@ -173,8 +1044,75 @@ class TestCounterAccounting:
         - el acumulador se recupera naturalmente con el tiempo
         Verificar que el while en _process_demand no corre cuando counter <= 0.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
 
+        # VM 1: tenía demand=S, ya contado (counter=0)
+        vm1 = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm1
+        train.slots[5]['demand_station_id'] = STATION_ID
+
+        # VM 2: reservado para S sin demand (imprevisto → on_unplanned → counter=-1)
+        vm2 = _make_vm(vm_id=1)
+        train.slots[3]['vm'] = vm2
+        train.slots[3]['reserved_station_id'] = STATION_ID
+
+        station.pending_demand = 0
+        station.on_unplanned_vm_at_tree.side_effect = lambda: setattr(
+            station, 'pending_demand', station.pending_demand - 1
+        )
+
+        brain._handle_crossings([
+            (5, STATION_ID, 0.0),   # demand VM → no on_unplanned
+            (3, STATION_ID, 0.0),   # reserved VM → on_unplanned → pending_demand = -1
+        ])
+
+        assert station.pending_demand == -1, \
+            "Más VMs de los esperados → counter negativo (autorregulación)"
+        assert station.on_unplanned_vm_at_tree.call_count == 1, \
+            "Solo el VM sin demand llamó on_unplanned"
+
+        # Ahora _process_demand no debe etiquetar nada (pending_demand <= 0)
+        with patch.object(brain, '_would_saturate', return_value=False):
+            brain._process_demand()
+
+        assert station.on_vm_committed.call_count == 0, \
+            "while pending_demand > 0 no entró: counter ≤ 0 detiene el etiquetado"
+  
+    def test_dest_and_demand_same_station_rejected_restores_counter(self):
+        """
+        VM tiene dest=S Y demand=S. La junction rechaza (árboles saturados).
+        Rama dest corre (prioridad sobre demand). VM se redirige a siguiente estación.
+        Como demand=S fue colocada antes (on_vm_committed ya decrementó),
+        on_commitment_broken DEBE llamarse para restaurar el contador.
+        Verificar: counter == valor_inicial después del crossing fallido.
+        También: demand_station_id del slot queda limpio (clear_demand_supply).
+        """
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
+
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = STATION_ID
+        train.slots[5]['demand_station_id'] = STATION_ID
+
+        # on_vm_committed ya decrementó cuando se puso demand
+        station.pending_demand = 0
+        station.on_commitment_broken.side_effect = lambda: setattr(
+            station, 'pending_demand', station.pending_demand + 1
+        )
+
+        junction = network.get_junction_up(STATION_ID)
+        with patch.object(junction, 'add_vm', return_value=False):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        # dest branch corrió (prioridad), junction rechazó, demand==S → on_commitment_broken
+        assert station.on_commitment_broken.call_count == 1, \
+            "Bug Case F: promise de demand DEBE restaurarse cuando dest branch rechaza"
+        assert station.pending_demand == 1, \
+            "Counter restaurado: volvió al valor antes del etiquetado de demanda"
+        assert train.slots[5]['demand_station_id'] is None, \
+            "clear_demand_supply: etiqueta de demanda limpiada después de la promesa rota"
 
 # ─── DESTINATION REDIRECT (Q2) ───────────────────────────────────────────────
 
@@ -264,60 +1202,6 @@ class TestDestinationRedirect:
         """
         # TODO: implement
 
-
-# ─── LOOP ORDER (Q10) ────────────────────────────────────────────────────────
-
-class TestBrainLoop:
-    """
-    Q10: El orden de los 8 pasos del loop no es intercambiable.
-    Cada test viola un invariante específico para demostrar qué se rompe.
-
-    Tests unitarios: usan spies/mocks para verificar el orden de llamadas.
-    Tests de integración: ejecutan dos versiones del loop y comparan el resultado.
-    """
-
-    def test_tracks_advance_before_crossings_are_processed(self):
-        """
-        Si los tracks se avanzan DESPUÉS de procesar crossings, un VM transferido
-        al UP tree en el paso 4 recibiría doble movimiento en el mismo frame
-        (leftover_dt al entrar + dt completo del update).
-        Verificar: VM que entra al árbol en el frame N solo se mueve a partir del frame N+1.
-        Probar el negativo: si se invierten pasos 2 y 4, el VM avanza de más.
-        """
-        # TODO: implement
-
-    def test_station_update_before_demand_labeling(self):
-        """
-        station.update() acumula demanda. Si _process_demand corre ANTES,
-        Brain etiqueta slots basándose en la demanda del frame anterior.
-        Verificar: etiqueta puesta en el frame N refleja la demanda del frame N,
-        no la del frame N-1.
-        Probar el negativo: invertir pasos 7 y 8b → etiqueta del frame equivocado.
-        """
-        # TODO: implement
-
-    def test_reservations_before_demand_prevents_double_commit(self):
-        """
-        Si _process_demand corre ANTES que _process_reservations, la demanda puede
-        marcar un slot que luego la reserva también elige (priority 1).
-        Resultado: on_vm_committed() se llama dos veces para el mismo slot físico.
-        Verificar con orden correcto: el slot reservado tiene reserved_station_id != None
-        → _range_search_demand lo omite → no hay doble decremento.
-        Probar el negativo: invertir 8a/8b → counter baja dos veces para un solo VM.
-        """
-        # TODO: implement
-
-    def test_belt_placements_after_decisions(self):
-        """
-        _handle_belt_placements usa el slot reservado en _reserved_slots.
-        Si corriera ANTES de _handle_decisions, los VMs que bajaron de DOWN trees
-        no tendrían su slot asignado todavía.
-        Verificar: VM aterriza en el slot reservado cuando belt_placements corre
-        después de que la reserva ya fue guardada en _reserved_slots.
-        """
-        # TODO: implement
-
-
 # ─── LABEL LIFECYCLE (Q10) ───────────────────────────────────────────────────
 
 class TestCrossingHandler:
@@ -386,7 +1270,6 @@ class TestCrossingHandler:
         """
         # TODO: implement
 
-
 # ─── LABEL COMBINATIONS (Q10) ────────────────────────────────────────────────
 
 class TestLabelCompatibility:
@@ -444,7 +1327,6 @@ class TestLabelCompatibility:
         Verificar: counter de S baja en el momento del crossing.
         """
         # TODO: implement
-
 
 # ─── SATURATION SCENARIOS (Q10) ──────────────────────────────────────────────
 
@@ -508,7 +1390,6 @@ class TestSaturationCheck:
         """
         # TODO: implement
 
-
 # ─── DEMAND SYSTEM (Q10) ─────────────────────────────────────────────────────
 
 class TestDemandSystem:
@@ -565,7 +1446,6 @@ class TestDemandSystem:
         retorna None → break (sin on_commitment_broken — no había promesa).
         """
         # TODO: implement
-
 
 # ─── RESERVATION MATH (Q16) ──────────────────────────────────────────────────
 
@@ -628,7 +1508,6 @@ class TestReservationMath:
         Verificar: no hay leak de entradas viejas en _reserved_slots.
         """
         # TODO: implement
-
 
 # ─── RANGE SEARCH PRIORITIES (Q11) ───────────────────────────────────────────
 
@@ -702,7 +1581,6 @@ class TestRangeSearchPriorities:
         Verificar que los candidatos no fallan con IndexError y el rango es correcto.
         """
         # TODO: implement
-
 
 # ─── BELT PLACEMENT (Q16) ────────────────────────────────────────────────────
 

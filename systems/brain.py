@@ -198,7 +198,9 @@ class Brain:
                 continue
 
             if reserved == station_id:
-                # Si había demanda para otra estación, esa promesa ya no se cumplirá
+                # Romper la promesa de T es correcto SOLO si UP(S) llega antes que UP(T) en el belt.
+                # Ver INVARIANTE TOPOLÓGICO en el docstring. Con el layout actual (estaciones contiguas)
+                # esta condición siempre se cumple.
                 if demand is not None and demand != station_id:
                     demand_station = self._stations.get(demand)
                     if demand_station:
@@ -222,7 +224,12 @@ class Brain:
                     if demand != station_id:
                         station.on_unplanned_vm_at_tree()
                     self._train.remove_vm(slot_idx)
+                # else:
+                
                 else:
+                    if demand == station_id:
+                        station.on_commitment_broken()
+                        self._train.clear_demand_supply(slot_idx)
                     next_id = self._next_station_id(station_id)
                     if next_id is not None:
                         self._train.set_destination(slot_idx, next_id)
@@ -239,7 +246,7 @@ class Brain:
                 else:
                     station.on_commitment_broken()
                     self._train.clear_demand_supply(slot_idx)
-
+                
     # ─── DECISIONS ───────────────────────────────────────────────────────────
 
     def _handle_decisions(self, decisions: list) -> None:
@@ -289,14 +296,19 @@ class Brain:
     def _process_reservations(self) -> None:
         """
         Detecta VMs que hicieron boarding_commit este frame y les asigna un slot.
+        Corre en dos pases por frame sobre cada BoardingLane:
 
-        La condición de deteccion es boarding_committed == True AND el vm_id no está
-        en _reserved_slots. Esto garantiza que cada VM solo recibe una reserva, aunque
-        _process_reservations se llame múltiples frames mientras el VM sigue en la lane.
+        Pase 1 — boarding_committed recién activado:
+            Condición: boarding_committed == True AND vm_id NO en _reserved_slots.
+            Acción: _make_reservation — calcula slot, ajusta aceleración, registra promesa.
+            Garantía: cada VM recibe reserva una sola vez aunque siga varios frames en la lane.
 
-        Itera solo sobre BoardingLanes (ignorando AccelerationTrees y otros tracks).
-        Para cada lane, obtiene el DOWN tree conectado para conocer station_id y los
-        parámetros físicos necesarios para la matemática de reserva.
+        Pase 2 — destino adquirido después del commit:
+            Condición: vm_id YA en _reserved_slots AND vm.has_destination == True
+                       AND el slot reservado todavía no tiene destination_station_id.
+            Acción: train.set_destination — escribe la etiqueta que el Pase 1 no pudo.
+            Cubre el caso donde el pasajero aborda DESPUÉS del commit. El subsistema de
+            boarding no necesita llamar set_destination directamente — este pase lo detecta.
         """
         for track_id, track in self._network.tracks.items():
             if not isinstance(track, BoardingLane):
@@ -308,7 +320,13 @@ class Brain:
             for vm_id, data in list(track.vehicles.items()):
                 vm = data['vehicle']
                 if data['boarding_committed'] and vm.vehicle_id not in self._reserved_slots:
+                    # Pase 1: reserva nueva para VM recién comprometido
                     self._make_reservation(vm, track, down_tree, station_id)
+                elif vm.vehicle_id in self._reserved_slots and vm.has_destination:
+                    # Pase 2: el VM ya tiene reserva pero adquirió destino después del commit
+                    slot_idx = self._reserved_slots[vm.vehicle_id]
+                    if self._train.slots[slot_idx]['destination_station_id'] is None:
+                        self._train.set_destination(slot_idx, vm.destination_station_id)
 
     def _get_down_tree_for_lane(self, lane_id: int):
         """
@@ -365,6 +383,12 @@ class Brain:
             donde d = tree_length, v0 = BOARDING_LANE_SPEED, t = T_tree_adj.
             Esta aceleración se guarda en vm.reserved_tree_acceleration.
             AccelerationTree._insert_vehicle la consume automáticamente al insertar el VM.
+
+        Precondición sobre vm.has_destination:
+            Si el VM ya tiene pasajeros en el momento del commit, el destino se escribe
+            aquí directamente. Si no, _process_reservations lo escribe en el Pase 2 cuando
+            el pasajero aborde. No es necesario que el subsistema de boarding llame
+            set_destination por separado.
         """
         progress = lane.get_progress(vm)
         remaining = (1.0 - progress) * lane.length
@@ -652,23 +676,7 @@ class Brain:
 
 
 ## Preguntas luego de entender ##
-# Pregunta 17:
-# en la funcion _handle crossings
-# el punto 1 que se toca "Si había demanda para otra estación (demand != None and demand != S), esa promesa se rompe → on_commitment_broken() para la otra estación"
-# para nuetro caso de uso sirve pero en verdad no esta bien pensado, por que claro, yo se que el up de la estacion siguiete est despues que el down de la estacion
-# anterior por como puse yo las estaciones, pero en un futuro se podria pensar en poner el el UP de la siguiente antes del DOWN de la anteror, en tal caso eso que dices
-# que quieres romper la promesa es super peligroso, asi que me gustria dejarlo super documentado como que siempre tiene que haber un UP - DOWN y no una cobinacion, por 
-# que si no pueden pasar estas cosas, en el fondo esto se mantiene por que siempre una reserva se produce entre los arboles de la etacion, pero podria pasar que qeu enre
-# los arboles hubiera otro arbol de otra estacion, la otra solucion a eso es "si una reserva de cierta estacion x continua vigente aunque el arbol DOWN de dicha estacion 
-# ya paso quiere decir que esta reserva fue incumplida.
-# no se si se entiende lo que digo pero por ultimo si es que no es posible implementar esto hay que dejarlo super documentado para que a nadie se le ocurra poner la situacion
-# mencionada, y lo mejor en un futuro lo podemos arreglar con lo que te comente
 
-# Pregunta 19:
-# en la funcion make_reservation tengo una duda
-# el pasajero aborda en la mitad de la lene, esta fucnion se ejecuta mas o menos al pricipio de la lane, como es que registra el destino si para que se suba un pasajero hay que
-# esperar mucho tiempo mitad de la lene no al principio, esta fucion de definir el destino del vm no deberia impulsarla el pasajero al subirse al vm que le dice al vm para donde va
-# y posteriormente el vm le dice al slot?
 
 # Pregunta 21:
 # me quedeo muy claro como es que funciona el codigo completo de brain menos las funciones de saturacion, no las logro entender todavia y creo que esta es una de las genialidades mas grandes 
@@ -782,4 +790,23 @@ class Brain:
 # Todavia no entiendo muy bien como es que el sistema entiene la ventana en la que hay que buscaer en rango para no
 # saturar la junction, se que la ventana mira x cantidad de vms que corresponde a un calculo matematico que revisa
 # para que no halla saturacion pero me esta constando ver como es que te das cuenta para que no se sature
+
+# Pregunta 19:
+# en la funcion make_reservation tengo una duda
+# el pasajero aborda en la mitad de la lene, esta fucnion se ejecuta mas o menos al pricipio de la lane, como es que registra el destino si para que se suba un pasajero hay que
+# esperar mucho tiempo mitad de la lene no al principio, esta fucion de definir el destino del vm no deberia impulsarla el pasajero al subirse al vm que le dice al vm para donde va
+# y posteriormente el vm le dice al slot?
+
+# Pregunta 17:
+# en la funcion _handle crossings
+# el punto 1 que se toca "Si había demanda para otra estación (demand != None and demand != S), esa promesa se rompe → on_commitment_broken() para la otra estación"
+# para nuetro caso de uso sirve pero en verdad no esta bien pensado, por que claro, yo se que el up de la estacion siguiete est despues que el down de la estacion
+# anterior por como puse yo las estaciones, pero en un futuro se podria pensar en poner el el UP de la siguiente antes del DOWN de la anteror, en tal caso eso que dices
+# que quieres romper la promesa es super peligroso, asi que me gustria dejarlo super documentado como que siempre tiene que haber un UP - DOWN y no una cobinacion, por 
+# que si no pueden pasar estas cosas, en el fondo esto se mantiene por que siempre una reserva se produce entre los arboles de la etacion, pero podria pasar que qeu enre
+# los arboles hubiera otro arbol de otra estacion, la otra solucion a eso es "si una reserva de cierta estacion x continua vigente aunque el arbol DOWN de dicha estacion 
+# ya paso quiere decir que esta reserva fue incumplida.
+# no se si se entiende lo que digo pero por ultimo si es que no es posible implementar esto hay que dejarlo super documentado para que a nadie se le ocurra poner la situacion
+# mencionada, y lo mejor en un futuro lo podemos arreglar con lo que te comente
+
 
