@@ -70,6 +70,7 @@ Convención de fixtures:
 """
 
 import random
+import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -466,15 +467,15 @@ class TestBrainLoop:
         with patch.object(brain1, '_would_saturate', return_value=False):
             brain1.update(dt=0.001, current_time=0.0)
 
-        assert station1.on_vm_committed.call_count == 0, (
-            "Correcto (8a antes 8b): reserva corrió primero → slot 5 ya reservado. "
-            "_range_search_demand lo saltó (reserved != None). "
-            "on_vm_committed NO llamado → counter sin cambio prematuro."
+        assert station1.on_vm_committed.call_count == 1, (
+            "Correcto (8a antes 8b): reserva corrió primero → slot 5 tiene reserved=S. "
+            "_range_search_demand lo encontró con priority=1 (garantizado) → lo etiquetó. "
+            "Concentración: mismo VM cumple reserva de llegada Y demanda de subida."
         )
         assert train1.slots[5]['reserved_station_id'] == STATION_ID, \
-            "Slot 5 debe tener reserva de STATION_ID después de _process_reservations"
-        assert train1.slots[5]['demand_station_id'] is None, \
-            "Slot 5 NO debe tener demand label: demand encontró slot reservado y salió"
+            "Slot 5 tiene reserva de STATION_ID"
+        assert train1.slots[5]['demand_station_id'] == STATION_ID, \
+            "Slot 5 también tiene demand: concentración en el VM más seguro"
 
         # ── ORDEN INCORRECTO (_wrong_order_8ab) ───────────────────────────────
         brain2, train2, network2, stations2 = make_brain_fixture()
@@ -1114,11 +1115,11 @@ class TestCounterAccounting:
         assert train.slots[5]['demand_station_id'] is None, \
             "clear_demand_supply: etiqueta de demanda limpiada después de la promesa rota"
 
-# ─── DESTINATION REDIRECT (Q2) ───────────────────────────────────────────────
+# ─── DESTINATION REDIRECT ─────────────────────────────────────────────────────
 
 class TestDestinationRedirect:
     """
-    Q2: VM con destination_station_id que no puede entrar a su estación.
+    VM con destination_station_id que no puede entrar a su estación.
 
     Comportamiento correcto:
         - Si junction rechaza → redirigir a la siguiente estación (no vuelta completa)
@@ -1138,7 +1139,23 @@ class TestDestinationRedirect:
         Verificar: slot['destination_station_id'] cambia a next_station_id.
         NO queda en S (eso sería la vuelta completa).
         """
-        # TODO: implement
+
+        NEXT_ID = 2
+        brain, train, network, stations = make_brain_fixture()
+
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = STATION_ID
+
+        junction = network.get_junction_up(STATION_ID)
+        with patch.object(junction, 'add_vm', return_value=False), \
+             patch.object(brain, '_next_station_id', return_value=NEXT_ID):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert train.slots[5]['destination_station_id'] == NEXT_ID, \
+            "Rechazado en S: etiqueta redirige a siguiente estación"
+        assert train.slots[5]['vm'] is vm, \
+            "VM sigue en el belt (no entró al árbol)"
 
     def test_no_redirect_in_single_station_system(self):
         """
@@ -1146,7 +1163,19 @@ class TestDestinationRedirect:
         _next_station_id retorna None → etiqueta NO cambia, se emite WARNING.
         Verificar: slot['destination_station_id'] == S (sin cambio).
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = STATION_ID
+
+        junction = network.get_junction_up(STATION_ID)
+        with patch.object(junction, 'add_vm', return_value=False):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert train.slots[5]['destination_station_id'] == STATION_ID, \
+            "Monoestación: no hay alternativa, etiqueta no cambia"
+        assert train.slots[5]['vm'] is vm, "VM sigue en el belt"
 
     def test_redirect_is_circular_last_station_goes_to_first(self):
         """
@@ -1154,22 +1183,65 @@ class TestDestinationRedirect:
         _next_station_id(S3.id) debe retornar S1.id (distancia circular (10-90)%100 = 20).
         Verificar que el cálculo modular es correcto, no geográfico.
         """
-        # TODO: implement
+        
+        S1_ID, S2_ID, S3_ID = 1, 2, 3
+        brain, train, network, stations = make_brain_fixture()
 
-    def test_passenger_warning_when_vm_enters_wrong_station(self):
+        brain._stations[S2_ID] = MagicMock()
+        brain._stations[S3_ID] = MagicMock()
+
+        j1 = MagicMock(); j1.belt_x = 10.0
+        j2 = MagicMock(); j2.belt_x = 50.0
+        j3 = MagicMock(); j3.belt_x = 90.0
+        junction_map = {S1_ID: j1, S2_ID: j2, S3_ID: j3}
+
+        with patch.object(network, 'get_junction_up', side_effect=lambda sid: junction_map[sid]):
+            result = brain._next_station_id(S3_ID)
+
+        assert result == S1_ID, \
+        "Distancia circular: (10 - 90) % 100 = 20 → S1 es la siguiente desde S3"
+
+    def test_passenger_warning_when_vm_enters_wrong_station(self, caplog):
         """
         VM tiene dest == T (fue redirigido), llega a T, junction acepta (ok=True).
         Pero vm.destination_station_id (de los pasajeros reales) == S != T.
         Verificar: se emite WARNING con el station_id original de los pasajeros.
         """
-        # TODO: implement
+        OTHER_STATION_ID = 2
+        brain, train, network, stations = make_brain_fixture()
 
-    def test_no_passenger_warning_when_station_matches(self):
+        vm = MagicMock()
+        vm.vehicle_id = 0
+        vm.has_destination = True
+        vm.destination_station_id = OTHER_STATION_ID   # pasajeros iban a OTHER
+
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = STATION_ID  # routing: va a STATION_ID
+
+        junction = network.get_junction_up(STATION_ID)
+        with caplog.at_level(logging.WARNING, logger="systems.brain"), \
+            patch.object(junction, 'add_vm', return_value=True):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert "Pasajeros" in caplog.text, \
+            "Warning emitido: VM entró en estación incorrecta para sus pasajeros"
+
+    def test_no_passenger_warning_when_station_matches(self, caplog):
         """
         VM entra normalmente a su estación correcta.
         vm.destination_station_id == station_id → NO se emite warning de pasajeros.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+
+        vm = _make_vm(vm_id=0)   # sin pasajeros: has_destination = False
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = STATION_ID
+
+        with caplog.at_level(logging.WARNING, logger="systems.brain"):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert len(caplog.records) == 0, "Sin pasajeros: no se emite warning"
+        assert vm.vehicle_id in network.get_track(UP_TREE_ID).vehicles
 
     def test_demand_counter_not_affected_by_redirect(self):
         """
@@ -1178,8 +1250,26 @@ class TestDestinationRedirect:
         - Station T: on_unplanned_vm_at_tree() cuando finalmente entra
         Verificar que ningún contador cambia en el frame de la redirección.
         """
-        # TODO: implement
+        NEXT_ID = 2
+        brain, train, network, stations = make_brain_fixture()
+        station = stations[STATION_ID]
 
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = STATION_ID
+        # SIN demand label
+
+        junction = network.get_junction_up(STATION_ID)
+        with patch.object(junction, 'add_vm', return_value=False), \
+            patch.object(brain, '_next_station_id', return_value=NEXT_ID):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert station.on_unplanned_vm_at_tree.call_count == 0, \
+            "VM rechazado: no entró → counter sin cambio"
+        assert station.on_commitment_broken.call_count == 0, \
+            "Sin demand label: no había promesa que restaurar"
+        assert train.slots[5]['destination_station_id'] == NEXT_ID
+    
     # ── INTEGRACIÓN ──────────────────────────────────────────────────────────
 
     def test_vm_exits_at_next_station_after_redirect(self):
@@ -1190,7 +1280,33 @@ class TestDestinationRedirect:
         3. Frame N: VM llega a S1 → junction acepta → VM sube
         Verificar: VM sale del belt en S1, no da vuelta completa.
         """
-        # TODO: implement
+        NEXT_ID = 2
+        brain, train, network, stations = make_brain_fixture()
+
+        station_next = MagicMock(); station_next.pending_demand = 0
+        brain._stations[NEXT_ID] = station_next
+
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = STATION_ID
+
+        real_junction_s = network.get_junction_up(STATION_ID)
+        junction_next = MagicMock(); junction_next.add_vm.return_value = True
+        junction_map = {STATION_ID: real_junction_s, NEXT_ID: junction_next}
+
+        with patch.object(network, 'get_junction_up', side_effect=lambda sid: junction_map[sid]):
+            # Frame 1: rechaza → redirige
+            with patch.object(real_junction_s, 'add_vm', return_value=False), \
+                patch.object(brain, '_next_station_id', return_value=NEXT_ID):
+                brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+            assert train.slots[5]['destination_station_id'] == NEXT_ID
+            assert train.slots[5]['vm'] is vm   # sigue en belt
+
+            # Frame 2: acepta → VM sale
+            brain._handle_crossings([(5, NEXT_ID, 0.0)])
+
+        assert train.slots[5]['vm'] is None, "VM salió del belt al entrar a NEXT_ID"
 
     def test_cascade_redirect_finds_available_station(self):
         """
@@ -1200,13 +1316,47 @@ class TestDestinationRedirect:
         Frame 3: entra en S2 ✓
         Verificar que el cascade termina cuando encuentra capacidad.
         """
-        # TODO: implement
+        S1_ID = STATION_ID
+        S2_ID = 2
+        S3_ID = 3
+        brain, train, network, stations = make_brain_fixture()
 
-# ─── LABEL LIFECYCLE (Q10) ───────────────────────────────────────────────────
+        station_s2 = MagicMock(); station_s2.pending_demand = 0
+        station_s3 = MagicMock(); station_s3.pending_demand = 0
+        brain._stations[S2_ID] = station_s2
+        brain._stations[S3_ID] = station_s3
+
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = S3_ID
+
+        real_junction_s1 = network.get_junction_up(S1_ID)
+        junction_s2 = MagicMock(); junction_s2.add_vm.return_value = True
+        junction_s3 = MagicMock(); junction_s3.add_vm.return_value = False
+        junction_map = {S1_ID: real_junction_s1, S2_ID: junction_s2, S3_ID: junction_s3}
+
+        with patch.object(network, 'get_junction_up', side_effect=lambda sid: junction_map[sid]):
+            # Frame 1: dest=S3, rechaza → dest=S1
+            with patch.object(brain, '_next_station_id', return_value=S1_ID):
+                brain._handle_crossings([(5, S3_ID, 0.0)])
+            assert train.slots[5]['destination_station_id'] == S1_ID
+
+            # Frame 2: dest=S1, rechaza → dest=S2
+            with patch.object(real_junction_s1, 'add_vm', return_value=False), \
+                patch.object(brain, '_next_station_id', return_value=S2_ID):
+                brain._handle_crossings([(5, S1_ID, 0.0)])
+            assert train.slots[5]['destination_station_id'] == S2_ID
+
+            # Frame 3: dest=S2, acepta → VM sale del belt
+            brain._handle_crossings([(5, S2_ID, 0.0)])
+
+        assert train.slots[5]['vm'] is None, "Cascade resuelto en S2"
+
+# ─── LABEL LIFECYCLE ───────────────────────────────────────────────────────────
 
 class TestCrossingHandler:
     """
-    Q10: Las etiquetas nacen en pasos 8a/8b y mueren en el paso 4.
+    Las etiquetas nacen en pasos 8a/8b y mueren en el paso 4.
     Cada etiqueta tiene su momento exacto de nacimiento y muerte.
 
     Ciclo completo de cada etiqueta:
@@ -1226,15 +1376,35 @@ class TestCrossingHandler:
         remove_vm() limpia demand_station_id.
         Verificar: slot['demand_station_id'] == None después del crossing exitoso.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['demand_station_id'] = STATION_ID
 
+        junction = network.get_junction_up(STATION_ID)
+        with patch.object(junction, 'add_vm', return_value=True):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert train.slots[5]['vm'] is None
+        assert train.slots[5]['demand_station_id'] is None
+        
     def test_demand_label_cleared_after_rejection(self):
         """
         VM con demand == S, junction rechaza.
         clear_demand_supply() limpia demand_station_id.
         Verificar: slot['demand_station_id'] == None después del crossing fallido.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['demand_station_id'] = STATION_ID
+
+        junction = network.get_junction_up(STATION_ID)
+        with patch.object(junction, 'add_vm', return_value=False):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert train.slots[5]['vm'] is vm        # VM se quedó en el belt
+        assert train.slots[5]['demand_station_id'] is None  # etiqueta muerta
 
     def test_destination_label_cleared_after_vm_enters_tree(self):
         """
@@ -1242,7 +1412,17 @@ class TestCrossingHandler:
         remove_vm() limpia destination_station_id.
         Verificar: slot['destination_station_id'] == None después del crossing.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = STATION_ID
+
+        junction = network.get_junction_up(STATION_ID)
+        with patch.object(junction, 'add_vm', return_value=True):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert train.slots[5]['vm'] is None
+        assert train.slots[5]['destination_station_id'] is None
 
     def test_destination_label_survives_failed_crossing(self):
         """
@@ -1250,7 +1430,18 @@ class TestCrossingHandler:
         La etiqueta cambia a next_station_id (Q2) o permanece si no hay alternativa.
         Verificar: después del crossing fallido el slot NO queda limpio — tiene nueva etiqueta.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = STATION_ID
+
+        junction = network.get_junction_up(STATION_ID)
+        with patch.object(junction, 'add_vm', return_value=False):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert train.slots[5]['vm'] is vm
+        # Etiqueta NO murió — permanece porque es monoestación (sin alternativa)
+        assert train.slots[5]['destination_station_id'] == STATION_ID
 
     def test_reserved_label_NOT_cleared_by_remove_vm(self):
         """
@@ -1260,7 +1451,30 @@ class TestCrossingHandler:
         (place_vm lo limpia), pero SI se hace remove_vm SIN place_vm posterior,
         el slot queda correctamente limpio también (remove_vm limpia todos los labels).
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['reserved_station_id'] = STATION_ID
+        train.slots[5]['reserved_vm_id'] = vm.vehicle_id
+
+        junction = network.get_junction_up(STATION_ID)
+        with patch.object(junction, 'add_vm', return_value=True):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        # VM salió del belt
+        assert train.slots[5]['vm'] is None
+        # CRÍTICO: reserved_station_id sobrevive a remove_vm
+        assert train.slots[5]['reserved_station_id'] == STATION_ID
+        assert train.slots[5]['reserved_vm_id'] == vm.vehicle_id
+
+        # El VM desciende y aterriza en su slot reservado
+        descending_vm = _make_vm(vm_id=1)
+        train.place_vm(descending_vm, 5)
+
+        # Solo place_vm limpia la reserva
+        assert train.slots[5]['reserved_station_id'] is None
+        assert train.slots[5]['reserved_vm_id'] is None
+        assert train.slots[5]['vm'] is descending_vm
 
     def test_slot_fully_clean_after_successful_crossing(self):
         """
@@ -1268,134 +1482,391 @@ class TestCrossingHandler:
         completamente limpio: vm=None, todos los labels=None.
         Verificar los 5 campos del slot dict.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['demand_station_id'] = STATION_ID
 
-# ─── LABEL COMBINATIONS (Q10) ────────────────────────────────────────────────
+        junction = network.get_junction_up(STATION_ID)
+        with patch.object(junction, 'add_vm', return_value=True):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        slot = train.slots[5]
+        assert slot['vm'] is None
+        assert slot['reserved_station_id'] is None
+        assert slot['reserved_vm_id'] is None
+        assert slot['destination_station_id'] is None
+        assert slot['demand_station_id'] is None
+
+# ─── LABEL COMBINATIONS ──────────────────────────────────────────────────────
 
 class TestLabelCompatibility:
     """
-    Q10: Qué pasa cuando un slot tiene múltiples etiquetas al mismo tiempo.
-    Las ramas en _handle_crossings son elif — solo una corre. El orden importa.
+    Qué pasa cuando un slot tiene múltiples etiquetas al mismo tiempo.
+    Las ramas en _handle_crossings son elif excluyentes — solo una corre por crossing.
+    Orden de prioridad: reserved > dest > demand.
 
-    Combinaciones posibles y ganador:
-        reserved=S + dest=S    → reserved gana (más fuerte)
-        reserved=S + demand=S  → reserved gana, promesa de demanda se rompe
-        reserved=S + dest=T    → reserved gana, WARNING pasajeros (evicción)
-        reserved=S + demand=T  → reserved gana, on_commitment_broken para T
-        dest=S + demand=S      → dest gana (elif); on_unplanned NO llamado (demand==S)
-        dest=S + demand=T      → dest gana; on_unplanned SÍ llamado (demand!=S)
+    Combinaciones posibles y acciones:
+        reserved=S + dest=S             → rama reserved; on_unplanned(S) (demand=None≠S);
+                                          dest limpiado; reserved sobrevive
+        reserved=S + demand=S           → rama reserved; sin on_unplanned (demand==S,
+                                          ya contado); demand limpiado; reserved sobrevive
+        reserved=S + demand=T (T≠S)     → rama reserved; on_commitment_broken(T);
+                                          on_unplanned(S); reserved sobrevive
+        dest=S + demand=S, acepta       → rama dest; sin on_unplanned (demand==S);
+                                          slot completamente limpio
+        dest=S + demand=T (T≠S), acepta → rama dest; on_commitment_broken(T) (*);
+                                          on_unplanned(S); slot limpio
+        reserved=S + dest=S + demand=S  → rama reserved; sin on_unplanned ni
+                                          on_commitment_broken (demand==S); reserved sobrevive
+        dest=S + demand=S, rechaza      → rama dest else; on_commitment_broken(S);
+                                          demand limpiado; dest sobrevive (monoestación)
+
     """
-
+    # Combinacion etiquetas de la misma estacion
     def test_reserved_wins_over_destination_same_station(self):
         """
-        Slot: reserved=S, dest=S. Cruza junction UP para S.
-        Solo corre la rama de reserva (if, no elif).
-        Verificar: no se llama on_unplanned_vm_at_tree() (reserved branch no lo llama si demand==S... 
-        wait — reserved branch llama on_unplanned si demand != station_id).
-        Con demand=None: on_unplanned sí se llama. Verificar eso.
+        Slot: reserved=S, dest=S, demand=None. Cruza junction UP para S.
+        Rama de reserva corre. dest==S → sin eviction warning.
+        demand==None → on_unplanned SÍ se llama (demand != station_id).
+        Verificar: VM sale del belt, dest limpiado, reserved sobrevive.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['reserved_station_id'] = STATION_ID
+        train.slots[5]['destination_station_id'] = STATION_ID
+
+        junction = network.get_junction_up(STATION_ID)
+        station = brain._stations[STATION_ID]
+
+        with patch.object(junction, 'add_vm', return_value=True):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert train.slots[5]['vm'] is None
+        assert train.slots[5]['destination_station_id'] is None    # remove_vm limpió
+        assert train.slots[5]['reserved_station_id'] == STATION_ID # sobrevive
+        station.on_unplanned_vm_at_tree.assert_called_once()       # demand era None
 
     def test_reserved_wins_over_demand_same_station(self):
         """
         Slot: reserved=S, demand=S. Cruza junction UP para S.
-        Rama de reserva corre. demand==station_id → on_unplanned NO llamado.
-        Verificar: counter no cambia en el crossing (ya contó cuando se puso demand).
+        Rama de reserva corre. demand==S → on_unplanned NO llamado (ya contabilizado).
+        Verificar: counter sin cambios en el crossing, reserved sobrevive.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['reserved_station_id'] = STATION_ID
+        train.slots[5]['demand_station_id'] = STATION_ID
 
-    def test_reserved_breaks_demand_promise_other_station(self):
-        """
-        Slot: reserved=S, demand=T (T != S). Cruza junction UP para S.
-        Rama de reserva: on_commitment_broken() para T, on_unplanned para S.
-        Verificar: counter de T se restaura, counter de S baja.
-        """
-        # TODO: implement
+        junction = network.get_junction_up(STATION_ID)
+        station = brain._stations[STATION_ID]
+
+        with patch.object(junction, 'add_vm', return_value=True):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert train.slots[5]['vm'] is None
+        assert train.slots[5]['demand_station_id'] is None         # remove_vm limpió
+        assert train.slots[5]['reserved_station_id'] == STATION_ID # sobrevive
+        station.on_unplanned_vm_at_tree.assert_not_called()        # demand era S
 
     def test_destination_wins_over_demand_same_station(self):
         """
-        Slot: dest=S, demand=S. Cruza junction UP para S.
-        Rama de dest corre (elif dest == station_id). demand==S → on_unplanned NO llamado.
-        Verificar: counter cambia exactamente una vez (cuando se puso demand).
+        Slot: dest=S, demand=S, reserved=None. Cruza junction UP para S. Junction acepta.
+        Rama de destino corre (elif). demand==S → on_unplanned NO llamado (ya contabilizado).
+        Verificar: slot completamente limpio, counter sin cambios en el crossing.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = STATION_ID
+        train.slots[5]['demand_station_id'] = STATION_ID
+
+        junction = network.get_junction_up(STATION_ID)
+        station = brain._stations[STATION_ID]
+
+        with patch.object(junction, 'add_vm', return_value=True):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert train.slots[5]['vm'] is None
+        assert train.slots[5]['destination_station_id'] is None
+        assert train.slots[5]['demand_station_id'] is None
+        station.on_unplanned_vm_at_tree.assert_not_called()  # demand era S
+
+    def test_destination_demand_rejected_clears_demand_keeps_dest(self):
+        """
+        Slot: dest=S, demand=S, reserved=None. Junction rechaza.
+        Rama de destino, else: on_commitment_broken para S + clear_demand_supply.
+        Monoestación → dest permanece en S (no hay alternativa a donde redirigir).
+        Verificar: demand=None, dest=STATION_ID, VM sigue en belt.
+        Complementa Bug Case F de TestCounterAccounting — aquí el foco es el estado
+        de las etiquetas, no el contador.
+        """
+        brain, train, network, stations = make_brain_fixture()
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = STATION_ID
+        train.slots[5]['demand_station_id'] = STATION_ID
+
+        station = brain._stations[STATION_ID]
+        junction = network.get_junction_up(STATION_ID)
+
+        with patch.object(junction, 'add_vm', return_value=False):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert train.slots[5]['vm'] is vm                              # VM en belt
+        assert train.slots[5]['demand_station_id'] is None             # promesa rota
+        assert train.slots[5]['destination_station_id'] == STATION_ID  # dest sobrevive
+        station.on_commitment_broken.assert_called_once()
+
+    def test_reserved_wins_with_all_three_labels(self):
+        """
+        Slot: reserved=S, dest=S, demand=S. Cruza junction UP para S.
+        Las tres etiquetas apuntan a la misma estación.
+        Rama de reserva corre. demand==S → no on_commitment_broken, no on_unplanned.
+        El VM ya estaba contabilizado cuando se puso la etiqueta de demand.
+        Verificar: reserved sobrevive, dest y demand limpiados, counter sin cambios.
+        """
+        brain, train, network, stations = make_brain_fixture()
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['reserved_station_id'] = STATION_ID
+        train.slots[5]['destination_station_id'] = STATION_ID
+        train.slots[5]['demand_station_id'] = STATION_ID
+
+        junction = network.get_junction_up(STATION_ID)
+        station = brain._stations[STATION_ID]
+
+        with patch.object(junction, 'add_vm', return_value=True):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert train.slots[5]['vm'] is None
+        assert train.slots[5]['destination_station_id'] is None    # remove_vm limpió
+        assert train.slots[5]['demand_station_id'] is None         # remove_vm limpió
+        assert train.slots[5]['reserved_station_id'] == STATION_ID # sobrevive
+        station.on_unplanned_vm_at_tree.assert_not_called()
+        station.on_commitment_broken.assert_not_called()
+
+    # Combinacion de etiquetas de diferentes estaciones (2 casos probables)
+    def test_reserved_breaks_demand_promise_other_station(self):
+        """
+        Slot: reserved=S, demand=T (T != S). Cruza junction UP para S.
+        Rama de reserva: on_commitment_broken() para T (demanda rota).
+        demand=T != S → on_unplanned para S (no estaba contabilizado para S).
+        Verificar: counter de T se restaura, on_unplanned de S se llama.
+        """
+        OTHER_ID = 2
+        brain, train, network, stations = make_brain_fixture()
+        station_t = MagicMock()
+        station_t.pending_demand = 0
+        brain._stations[OTHER_ID] = station_t
+
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['reserved_station_id'] = STATION_ID
+        train.slots[5]['demand_station_id'] = OTHER_ID
+
+        station_s = brain._stations[STATION_ID]
+        junction = network.get_junction_up(STATION_ID)
+
+        with patch.object(junction, 'add_vm', return_value=True):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert train.slots[5]['vm'] is None
+        assert train.slots[5]['demand_station_id'] is None          # remove_vm limpió
+        assert train.slots[5]['reserved_station_id'] == STATION_ID  # sobrevive
+        station_t.on_commitment_broken.assert_called_once()         # promesa de T rota
+        station_s.on_unplanned_vm_at_tree.assert_called_once()      # no estaba contado para S
 
     def test_destination_triggers_unplanned_when_demand_different(self):
         """
-        Slot: dest=S, demand=T (T != S). Cruza junction UP para S.
-        Rama de dest corre. demand != station_id → on_unplanned_vm_at_tree() para S.
-        Verificar: counter de S baja en el momento del crossing.
+        Slot: dest=S, demand=T (T != S), reserved=None. Cruza junction UP para S. Acepta.
+        Rama de destino corre. demand=T != S:
+        → on_commitment_broken para T (promesa rota — VM no llegará a T)
+        → on_unplanned_vm_at_tree para S (el VM no estaba contabilizado para S)
+        Simétrico a la rama reserved que maneja el mismo caso.
         """
-        # TODO: implement
+        OTHER_ID = 2
+        brain, train, network, stations = make_brain_fixture()
+        station_t = MagicMock()
+        station_t.pending_demand = 0
+        brain._stations[OTHER_ID] = station_t
 
-# ─── SATURATION SCENARIOS (Q10) ──────────────────────────────────────────────
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm
+        train.slots[5]['destination_station_id'] = STATION_ID
+        train.slots[5]['demand_station_id'] = OTHER_ID
+
+        station_s = brain._stations[STATION_ID]
+        junction = network.get_junction_up(STATION_ID)
+
+        with patch.object(junction, 'add_vm', return_value=True):
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        assert train.slots[5]['vm'] is None
+        station_t.on_commitment_broken.assert_called_once()    # promesa de T rota
+        station_s.on_unplanned_vm_at_tree.assert_called_once() # no contabilizado para S
+
+# ─── SATURATION SCENARIOS ────────────────────────────────────────────────────
 
 class TestSaturationCheck:
     """
-    Q10: Saturación — qué pasa con etiquetas y VMs cuando la junction está al límite.
+    Ventana deslizante de _would_saturate — cuándo acepta y cuándo bloquea.
 
-    Parámetros físicos: burst_capacity (N) = cuántos VMs puede absorber de corrido,
-    burst_window (G) = cuántos slots debe cubrir la ventana de revisión.
+    Parámetros físicos (MagicMock en tests unitarios, real en integración):
+        N = burst_capacity: VMs que la junction puede absorber de corrido
+        G = burst_window:   slots que separan dos grupos (DOWN junction: G=0)
 
-    La ventana deslizante: para cada sub-ventana de G slots que contiene al candidato,
-    si hay N o más slots ya marcados para S → saturaría.
+    Algoritmo: para cada una de las G ventanas de tamaño G que contienen
+    al candidato, count = 1 (candidato) + slots ya marcados en esa ventana.
+    Si alguna ventana tiene count >= N → True.
+
+    Cobertura de ventanas: rango [C-(G-1), C+(G-1)]. Un slot a distancia
+    exacta G es el primer slot FUERA de todas las ventanas que contienen a C.
+
+    NOTA — fixture tiene N=1 (1 árbol UP):
+        Con N=1, count=1 (solo candidato) >= N=1 siempre → _would_saturate
+        siempre True. Tests unitarios (1-3) usan MagicMock con N=2, G=5.
+        Tests de integración (4-5) parchean _would_saturate directamente.
+
+    Tests unitarios de _would_saturate:
+        N=2, G=5, slot marcado a distancia G      → False (fuera de cobertura)
+        N=2, G=5, slot marcado a distancia 2      → True  (dentro de cobertura)
+        Wrap-around: candidato=48, slot 1 marcado → True  (distancia circular 3)
+        G=0 (DOWN junction)                       → False inmediato
+    Tests de integración:
+        _range_search_demand: omite candidato si would_saturate → sin label
+        _range_search_reservation fallback: elige mínimo saturation_count → CRITICAL
     """
 
     def test_would_saturate_returns_false_below_capacity(self):
         """
-        N=2, G=5. Solo 1 slot en el rango marcado para S.
-        Candidato nuevo → 2 total, pero N=2 → debería ser exactamente en el límite.
-        Verificar: returns False cuando count < N.
+        N=2, G=5. Hay 1 slot marcado pero a distancia exactamente G del candidato
+        → fuera del rango [C-(G-1), C+(G-1)] → no aparece en ninguna ventana con C.
+        count=1 (solo el candidato) < N=2 → False.
+        Confirma el límite: distancia < G → interfiere; distancia = G → no interfiere.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        junction = MagicMock()
+        junction.burst_capacity = 2  # N
+        junction.burst_window = 5    # G
 
+        candidate = 20
+        # Distancia 5 = G → primer slot FUERA de cobertura [16..24]
+        train.slots[25]['destination_station_id'] = STATION_ID
+
+        assert brain._would_saturate(junction, candidate, STATION_ID) is False
+        
     def test_would_saturate_returns_true_at_capacity(self):
         """
-        N=2, G=5. Ya hay 1 slot marcado en la ventana.
-        Candidato nuevo → 2 total dentro de G → count >= N → saturaría.
-        Verificar: returns True.
+        N=2, G=5. Slot 22 marcado con demand_station_id (distancia 2 del candidato 20).
+        Ventana [20..24] contiene candidato + slot 22 → count=2 >= N=2 → True.
+        Usa demand_station_id (no destination) para verificar que _is_slot_marked_for
+        responde a AMBAS etiquetas.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        junction = MagicMock()
+        junction.burst_capacity = 2
+        junction.burst_window = 5
+
+        candidate = 20
+        train.slots[22]['destination_station_id'] = STATION_ID  # dist=2, dentro de [16..24]
+
+        assert brain._would_saturate(junction, candidate, STATION_ID) is True
 
     def test_window_wraps_around_circular_belt(self):
         """
-        El belt es circular. Candidato cerca del final del array, slots marcados
-        cerca del principio. La ventana debe calcular correctamente con módulo.
-        Verificar: would_saturate detecta saturación circular correctamente.
+        max_slots=50. Candidato=48, slot 1 marcado.
+        Distancia circular hacia adelante: (1 - 48 + 50) % 50 = 3 → dentro de [44..52 mod 50].
+        Ventana start_offset=0: [48, 49, 0, 1, 2] → candidato + slot 1 → count=2 >= 2 → True.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        junction = MagicMock()
+        junction.burst_capacity = 2
+        junction.burst_window = 5
+
+        train.slots[1]['destination_station_id'] = STATION_ID
+
+        assert brain._would_saturate(junction, 48, STATION_ID) is True
 
     def test_demand_skips_candidate_if_would_saturate(self):
         """
-        _range_search_demand tiene un candidato válido que saturaría la junction.
-        Verifica que se omite (continue) aunque sea el único candidato.
-        Retorna None → demand no etiqueta → pending_demand sin cambio.
+        _would_saturate=True para todo candidato → _range_search_demand retorna None.
+        _process_demand sale del while con break sin llamar on_vm_committed.
+        El slot con VM queda sin etiqueta demand.
+        (Nota: _process_demand solo hace break, no llama on_commitment_broken aquí.)
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        vm = _make_vm(vm_id=0)
+        train.slots[5]['vm'] = vm  # slot 5 = belt_x 10 = JUNCTION_UP_X, slot visible para demand
 
-    def test_saturation_count_selects_minimum_in_fallback(self):
+        station = brain._stations[STATION_ID]
+        station.pending_demand = 1
+
+        with patch.object(brain, '_would_saturate', return_value=True):
+            brain._process_demand()
+
+        station.on_vm_committed.assert_not_called()
+        assert train.slots[5]['demand_station_id'] is None
+
+    def test_saturation_count_selects_minimum_in_fallback(self,caplog):
         """
-        _range_search_reservation: todos los candidatos saturarían.
-        _saturation_count elige el que tiene menor count.
-        Verificar: best_slot es el que menos empeora la saturación.
-        También verificar: se emite log CRÍTICO.
+        _range_search_reservation: todos los candidatos saturarían (_would_saturate=True).
+        _saturation_count retorna 2 para slot 5, 3 para el resto.
+        Fallback elige slot 5 (mínimo) y emite CRITICAL.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        junction_up = network.get_junction_up(STATION_ID)
+        BEST_SLOT = 5
+
+        def fake_sat_count(junction, candidate, station_id):
+            return 2 if candidate == BEST_SLOT else 3
+
+        with patch.object(brain, '_would_saturate', return_value=True):
+            with patch.object(brain, '_saturation_count', side_effect=fake_sat_count):
+                with caplog.at_level(logging.CRITICAL, logger='systems.brain'):
+                    result = brain._range_search_reservation(BEST_SLOT, STATION_ID, junction_up)
+
+        assert result == BEST_SLOT
+        assert any(r.levelno == logging.CRITICAL for r in caplog.records)
 
     def test_down_junction_never_saturates(self):
         """
-        Las junctions DOWN tienen burst_window=0.
-        _would_saturate retorna False inmediatamente (G==0 → return False).
-        Verificar con junction DOWN real.
+        Junction DOWN: burst_window=0 → _would_saturate retorna False inmediato.
+        Incluso con slots densamente marcados, G=0 corta antes de cualquier conteo.
         """
-        # TODO: implement
+        brain, train, network, stations = make_brain_fixture()
+        junction_down = network.get_junction_down(STATION_ID)
 
-# ─── DEMAND SYSTEM (Q10) ─────────────────────────────────────────────────────
+        # Marcar todos los vecinos para asegurar que el check no es trivialmente False
+        for i in range(0, 10):
+            train.slots[i]['destination_station_id'] = STATION_ID
+
+        assert brain._would_saturate(junction_down, 5, STATION_ID) is False
+
+# ─── DEMAND SYSTEM ───────────────────────────────────────────────────────────
 
 class TestDemandSystem:
     """
-    Q10: El sistema de taza etiqueta slots según las prioridades correctas
-    y respeta las restricciones de reserva, destino y saturación.
+    El sistema de taza etiqueta slots según las prioridades correctas
+    y respeta las restricciones de reserva, destino, saturación y double-commit.
+
+    _range_search_demand busca HACIA ATRÁS desde junction_up (slot 5 = belt_x 10.0)
+    hasta SLOT_SEARCH_RANGE=10 posiciones. Solo slots CON VM.
+
+    Reglas de exclusión:
+        reserved para otra estación → skip (VM será eviccionado antes de llegar)
+        dest de otra estación       → skip (VM tiene compromiso diferente)
+        demand=S ya puesto          → skip (ya comprometido — no double-commit)
+        would_saturate              → skip
+
+    Prioridades (menor número = mejor):
+        1. reserved=S  → llegada garantizada por force_add_vm
+        2. dest=S      → VM va a S de todas formas
+        3. limpio      → candidato sin compromisos previos
+
+    Fixture: tail_x=0, TRAIN_SPACING=2 → slot 5 = junction_up. Parchear _would_saturate=False.
     """
 
     def test_demand_labels_slot_when_pending_demand_positive(self):

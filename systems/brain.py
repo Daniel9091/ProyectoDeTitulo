@@ -135,6 +135,7 @@ class Brain:
         self._process_demand()
 
     # ─── CROSSING HANDLER ────────────────────────────────────────────────────
+
     def _handle_crossings(self, crossings: list) -> None:
         """
         Procesa los slots que cruzaron una junction UP este frame.
@@ -221,10 +222,14 @@ class Brain:
                     if vm.has_destination and vm.destination_station_id != station_id:
                         logger.warning(f"Pasajeros de VM {vm.vehicle_id} iban a estación "
                             f"{vm.destination_station_id}, bajaron en estación {station_id}")
+                    if demand is not None and demand != station_id:
+                        demand_station = self._stations.get(demand)
+                        if demand_station:
+                            demand_station.on_commitment_broken()
                     if demand != station_id:
                         station.on_unplanned_vm_at_tree()
                     self._train.remove_vm(slot_idx)
-                # else:
+                    
                 
                 else:
                     if demand == station_id:
@@ -500,8 +505,8 @@ class Brain:
             Fallback: si todos los candidatos saturarían la junction, se elige el que
             produce la menor saturación y se registra log CRITICO.
 
-        Slot ya reservados para una estación DIFERENTE se omiten completamente:
-            Sobreescribir una reserva rompería la garantía anticolición de esa reserva.
+        Slots ya reservados para CUALQUIER estación se omiten completamente:
+            Sobreescribir una reserva rompería la garantía anticolisión.
         """
         half = SLOT_SEARCH_RANGE // 2
         max_slots = self._train.max_slots
@@ -513,7 +518,7 @@ class Brain:
         for candidate in candidates:
             slot = self._train.slots[candidate]
             res_lbl = slot['reserved_station_id']
-            if res_lbl is not None and res_lbl != station_id:
+            if res_lbl is not None:
                 continue
             if self._would_saturate(junction_up, candidate, station_id):
                 continue
@@ -554,18 +559,19 @@ class Brain:
         Busca un slot con VM para marcar con demanda, mirando hasta SLOT_SEARCH_RANGE
         posiciones HACIA ATRÁS desde junction_up (slots que aún no han cruzado).
 
-        Solo considera slots CON VM: la demanda necesita un VM que suba, no un slot vacío
-        Omite slots con reserved_station_id activo: ese VM sera eviccionado antes
-        de llegar a esta junction, rompiendo la promesa de demanda.
-        Omite slots con destination de otra estación: el VM ya tiene compromiso diferente.
+        Solo considera slots CON VM:
+        Omite slots con reserved para OTRA estación: ese VM será eviccionado antes de llegar.
+        Omite slots con destination conflictivo (T != S).
+        Omite slots que ya tienen demand=S: ya comprometidos, double-commit rompería el contador.
 
-        Prioridades
-            1.  Slot que ya tiene etiqueta de esta estación (dest o demand == S).
-            2.  Slot con VM sin etiquetas conflictivas
+        Prioridades:
+            1.  reserved=S → llegada garantizada por force_add_vm
+            2.  dest=S     → VM ya iba a S de todas formas
+            3.  limpio     → candidato sin compromisos previos
         """
         start_idx = self._train.find_neartest_slot_to_belt_x(junction_up.belt_x)[0]
         max_slots = self._train.max_slots
-        best_priority = 3
+        best_priority = 4
         best_slot = None
 
         for offset in range(SLOT_SEARCH_RANGE+1):
@@ -574,7 +580,8 @@ class Brain:
             
             if slot['vm'] is None:
                 continue
-            if slot['reserved_station_id'] is not None:
+            res_lbl = slot['reserved_station_id']
+            if res_lbl is not None and res_lbl != station_id:
                 continue
             dest_lbl = slot['destination_station_id']
             if dest_lbl is not None and dest_lbl != station_id:
@@ -583,10 +590,15 @@ class Brain:
                 continue
 
             dmd_lbl = slot['demand_station_id']
-            if dest_lbl == station_id or dmd_lbl == station_id:
-                priority = 1
+            if dmd_lbl == station_id:
+                continue  # ya comprometido con S → double-commit
+            if res_lbl == station_id:
+                priority = 1  # force_add_vm garantiza entrada → el más seguro
+            elif dest_lbl == station_id:
+                priority = 2  # VM va a S de todas formas → muy bueno
             else:
-                priority = 2
+                priority = 3  # slot limpio → candidato estándar
+
 
             if priority < best_priority:
                 best_priority = priority
