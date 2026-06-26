@@ -492,72 +492,98 @@ class Brain:
         """
         Busca el mejor slot para una reserva en ±(SLOT_SEARCH_RANGE//2) del target.
 
-        Prioridades (de mejor a peor):
-            1.  Slot que ya tiene etiqueta de esta estación (dest o demand == S).
-                El VM ya iba a subir aquí de todos modos; la reserva no añade conflictos.
-            2.  Slot vacío sin reserva activa.
-                El caso ideal: no hay VM que evicionar.
-            3.  VM sin destination_station_id
-                Hay un VM pero no tiene destino comprometido; la eviccion es limpia.
-            4.  VM con destination diferente.
-                La eviccion forzará al VM a subir en la estación equivocada.
-                Sus pasajeros se bajaran ahí (log WARNING en _handle_crossings).
-            Fallback: si todos los candidatos saturarían la junction, se elige el que
-            produce la menor saturación y se registra log CRITICO.
+                Prioridades (de mejor a peor):
+            1a. dest == station_id
+                VM ya va a S con pasajeros → refuerzo sin costo.
+            1b. demand == station_id
+                VM pedido para S → mismo destino, sin pasajeros.
+            2.  Slot vacío
+                No hay VM que evicionar.
+            3.  VM limpio (sin dest ni demand)
+                Evicción limpia, no afecta ninguna estación.
+            4.  VM con demand de otra estación
+                Rompe compromiso débil con otra estación.
+            5.  VM con dest de otra estación
+                Pasajeros irán a estación incorrecta → log WARNING.
 
-        Slots ya reservados para CUALQUIER estación se omiten completamente:
-            Sobreescribir una reserva rompería la garantía anticolisión.
+        Slots ya reservados (para cualquier estación) se omiten siempre:
+            reserved=S  → doble reserva para la misma estación (sin sentido).
+            reserved=OTHER → colisión física garantizada (dos VMs al mismo slot).
+            En ambos casos: skip. Para reserved=OTHER se emite log CRITICAL.
         """
         half = SLOT_SEARCH_RANGE // 2
         max_slots = self._train.max_slots
         candidates = [(target_idx+ offset) % max_slots for offset in range(-half,half +1)]
 
-        best_priority = 6
+        best_priority = 7
         best_slot = None
 
         for candidate in candidates:
             slot = self._train.slots[candidate]
             res_lbl = slot['reserved_station_id']
             if res_lbl is not None:
-                continue
+                if res_lbl != station_id:
+                    logger.critical(
+                        f"Slot {candidate} ya reservado para estación {res_lbl} — "
+                        "riesgo de colisión si se sobreescribe, ignorando"
+                    )
+                continue  # skip: doble reserva (=S) y colisión (=OTHER)
+
             if self._would_saturate(junction_up, candidate, station_id):
                 continue
 
             dest_lbl = slot['destination_station_id']
             dmd_lbl = slot['demand_station_id']
 
-            if dest_lbl == station_id or dmd_lbl == station_id:
-                priority = 1
-            elif slot['vm'] is None and res_lbl is None:
-                priority = 2
-            elif slot['vm'] is not None and dest_lbl is None:
-                priority = 3
+            if dest_lbl == station_id:
+                priority = 1  # P1a: destino confirmado a S
+            elif dmd_lbl == station_id:
+                priority = 2  # P1b: demanda pedida por S
+            elif slot['vm'] is None:
+                priority = 3  # P2: slot vacío
+            elif dest_lbl is None and dmd_lbl is None:
+                priority = 4  # P3: VM limpio
+            elif dest_lbl is not None and dest_lbl != station_id:
+                priority = 6  # P5: destino de otra estación → WARNING
+            elif dmd_lbl is not None and dmd_lbl != station_id:
+                priority = 5  # P4: demanda de otra estación
             else:
-                priority = 4
-            
+                priority = 6  # catch-all defensivo
+
             if priority < best_priority:
                 best_priority = priority
                 best_slot = candidate
+
+        if best_priority == 6 and best_slot is not None:
+            dest = self._train.slots[best_slot]['destination_station_id']
+            logger.warning(
+                f"Reserva en slot con destino de otra estación "
+                f"(slot {best_slot}, dest={dest}) — pasajeros irán a estación incorrecta"
+            )
+
         if best_slot is None:
             best_sat = float('inf')
             for candidate in candidates:
+                if self._train.slots[candidate]['reserved_station_id'] is not None:
+                    continue  # fallback tampoco toca reservas ajenas
                 sat = self._saturation_count(junction_up, candidate, station_id)
                 if sat < best_sat:
                     best_sat = sat
                     best_slot = candidate
             if best_slot is not None:
-                logger.critical(f"Reserva en slot saturado (estación {station_id}, slot {best_slot})")
-
-        if best_priority == 4 and best_slot is not None:
-            dest = self._train.slots[best_slot]['destination_station_id']
-            logger.warning(f"Reserva en slot con destino diferente (slot {best_slot}, dest={dest})")
+                logger.critical(
+                    f"Reserva forzada en slot saturado "
+                    f"(estación {station_id}, slot {best_slot})"
+                )
         
         return best_slot
 
     def _range_search_demand(self, station_id: int, junction_up) -> int | None:
         """
         Busca un slot con VM para marcar con demanda, mirando hasta SLOT_SEARCH_RANGE
-        posiciones HACIA ATRÁS desde junction_up (slots que aún no han cruzado).
+        posiciones HACIA ATRÁS desde (junction_up − G slots) para evitar la zona ciega:
+        los G slots más próximos a la junction pueden tener etiquetas recién limpiadas
+        cuyos VMs ya están en el árbol UP y contribuyen a saturación sin ser visibles.
 
         Solo considera slots CON VM:
         Omite slots con reserved para OTRA estación: ese VM será eviccionado antes de llegar.
@@ -571,11 +597,13 @@ class Brain:
         """
         start_idx = self._train.find_neartest_slot_to_belt_x(junction_up.belt_x)[0]
         max_slots = self._train.max_slots
+        G = junction_up.burst_window
+        safe_start = (start_idx - G) % max_slots  # zona ciega: G slots más próximos a junction ya enviaron VMs al árbol
         best_priority = 4
         best_slot = None
 
         for offset in range(SLOT_SEARCH_RANGE+1):
-            candidate = (start_idx - offset) % max_slots
+            candidate = (safe_start - offset) % max_slots
             slot = self._train.slots[candidate]
             
             if slot['vm'] is None:
