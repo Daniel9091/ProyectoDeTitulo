@@ -50,7 +50,7 @@ from objects.passenger_id_generator import PassengerIdGenerator
 from tracks.acceleration_tree import AccelerationTree
 from tracks.boarding_lane import BoardingLane
 from tracks.junction import Junction
-from config.constants import TREE_ACCELERATION, MIN_VM_SEPARATION, TREE_LENGTH
+from config.constants import GRAVITY, MIN_VM_SEPARATION, TREE_LENGTH
 
 # ─── ALLOCADOR DE IDs ────────────────────────────────────────────────────────
 
@@ -106,6 +106,7 @@ def create_station(
     y_ext       = max(abs(y) for y in y_offsets)                        # Offset del lane externo
     # Paso 2 - dz (componente Z del árbol)
     dz = dims.floor_height - junction_depth                             # Dif Zest - Zjun
+    effective_accel = GRAVITY * (dz / TREE_LENGTH)                      # aceleracion efectiva del arbol
     # Paso 3 — dx del árbol más externo
     dx_ext = math.sqrt(max(0.0, TREE_LENGTH**2 - y_ext**2 - dz**2))     # dx de lane externa
     #  posición X de junction
@@ -141,7 +142,7 @@ def create_station(
             start_pos           = j_up_3d,              # Coordenada de juntion up (origen)
             end_pos             = extraction,           # indica cordenada donde comienza la lane (termino)
             direction           = TreeDirection.UP,     # Indica arbol de subida
-            base_acceleration   = TREE_ACCELERATION,    # aceleracion base del arbol
+            base_acceleration   = effective_accel,    # aceleracion base del arbol
             min_vm_separation   = MIN_VM_SEPARATION,    # Minima separacion entre vm en el arbol (anti colicion)
             station_id          = None,                 # ID de la etacion a la que pertenece
         ))
@@ -155,7 +156,7 @@ def create_station(
             start_pos           = discharge,            # Coordenada de comienzo arbol (origen)
             end_pos             = j_down_3d,            # Indica cordenada de juntion down (termino)
             direction           = TreeDirection.DOWN,   # Indica arbol de bajada
-            base_acceleration   = TREE_ACCELERATION,    # aceleracion base del arbol
+            base_acceleration   = effective_accel,      # aceleracion base del arbol
             min_vm_separation   = MIN_VM_SEPARATION,    # Minima separacion entre vm en el arbol (anti colicion)
             station_id          = station_id,           # ID de la etacion a la que pertenece
         ))

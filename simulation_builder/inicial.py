@@ -1,4 +1,3 @@
-# NSim/simulation_builder/escenario_base.py
 """
 Escenario base: 3 estaciones lineales, estación central como hub principal.
 Estudia: comportamiento del sistema con demanda asimétrica y múltiples andenes en el hub.

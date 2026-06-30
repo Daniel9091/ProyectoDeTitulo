@@ -40,21 +40,22 @@ from systems.continuous_train import ContinuousTrain
 from systems.network import Network
 from systems.brain import Brain
 from config.constants import (
-    TRAIN_SPACING, TREE_ACCELERATION, MIN_VM_SEPARATION,
+    TRAIN_SPACING, MIN_VM_SEPARATION,
     TRAIN_SPEED, BOARDING_LANE_SPEED,
 )
 
 # ─── CONSTANTES DE FIXTURE ───────────────────────────────────────────────────
 
-STATION_ID      = 1
-UP_TREE_ID      = 10
-LANE_ID         = 11
-DOWN_TREE_ID    = 12
-JUNCTION_UP_X   = 10.0      # belt_x donde los VMs suben a la estación
-JUNCTION_DOWN_X = 50.0      # belt_x donde los VMs bajan al belt
-TRAIN_LENGTH    = 100.0     # longitud del carril circular (50 slots)
-TREE_LENGTH     = 10.0      # longitud de cada AccelerationTree
-LANE_LENGTH     = 20.0      # longitud del BoardingLane
+STATION_ID          = 1
+UP_TREE_ID          = 10
+LANE_ID             = 11
+DOWN_TREE_ID        = 12
+JUNCTION_UP_X       = 10.0      # belt_x donde los VMs suben a la estación
+JUNCTION_DOWN_X     = 50.0      # belt_x donde los VMs bajan al belt
+TRAIN_LENGTH        = 100.0     # longitud del carril circular (50 slots)
+TREE_LENGTH         = 10.0      # longitud de cada AccelerationTree
+LANE_LENGTH         = 20.0      # longitud del BoardingLane
+TREE_ACCELERATION   = 2.5       # acceleracion de los arboles de test
 
 
 # ─── HELPERS DE FIXTURE ───────────────────────────────────────────────────────
