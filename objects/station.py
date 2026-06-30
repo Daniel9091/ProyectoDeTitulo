@@ -5,7 +5,7 @@ Responsabilidades:
     - Generar pasajeros con tasa de produccion configurable (acumulador decimal)
     - Asignar destionos según distribucion de probabilidades configurada por estación
     - Mover pasajeros desde el origen hasta el inico de la boarding lane asignada
-    - Gestionar boarding lanes activas/inactivas con asignacion en rotación
+    - Gestionar plataformas activas/inactivas con asignacion en rotación
     - Acumula demanda de VMs y exponerla a Brain (puede ser negativa)
 
 Lo que NO hace:
@@ -14,14 +14,14 @@ Lo que NO hace:
     - No contruye su propio layout geometrico (responsabilidad de station_factory)
     - No escribe en terminal (Simulacion lo hace con get_summary())
 
-Estructura inerna por anden (un dict en self._andenes):
+Estructura interna por plataforma (un dict en self._platforms):
     {
         'lane':             BoardingLane,       # objeto, propiedad de Station
         'up_tree_id':       int,                # arbol de subida - Network lo resuelve
         'down_tree_id':     int,                # arbol de bajada - Network lo resuelve
         'extraction_point:  Vector3,            # Punto donde los VMs llegan desde el arbol de subida
         'discharge_point':  Vector3,            # Punto donde los VMs parten al arbol de bajada
-        'state':            AndenState          # Estado actual del anden
+        'state':            AndenState          # Estado actual de la plataforma
     }
 """
 import random
@@ -37,7 +37,7 @@ class StationDimensions:
     """
     Dimenciones físicas de la estación.
     Usadas para calcular límites del plano y para render
-    El largo exacto de cada boarding_lane depende del offest de la lane mas externa,
+    El largo exacto de cada boarding lane depende del offset de la plataforma más externa,
     calculado en station_factory.
     """
     def __init__(self, x_length: float, y_length: float, floor_height: float, num_floors: int):
@@ -61,7 +61,7 @@ class Station:
         passenger_rate              float                   pasajeros/segundos
         destination_probabilities   dict[int,float]         {station_id:probabilidad (peso)} - se normaliza automáticamente
         vm_request_rate             float                   VMs/segundo solicitados
-        andenes                     list[dict]              lista de dicts (ver estructura en módulo)
+        platforms                   list[dict]              lista de dicts (ver estructura en módulo)
         rng                         random.Random           generador compartido con semilla fija
         id_generator                PassengerIdGenerator    generador de IDs para pasajeros (el mismo para todas las estaciones)
     
@@ -70,7 +70,7 @@ class Station:
         _vm_demand_acumulator       float                   acumula demanda de VMs (puede ser negativa)
         _walking                    dict                    pasajeros caminando dentro de la estación
         _next_passenger_id          int                     contador de IDs unico por estacion
-        _next_anden_idx             int                     puntero rotativo sober andenes activos
+        _next_platform_idx          int                     puntero rotativo sobre plataformas activas
     """
 
     def __init__(
@@ -81,7 +81,7 @@ class Station:
         passenger_rate:             float,
         destination_probabilities:  dict,
         vm_request_rate:            float,
-        andenes:                    list,
+        platforms:                  list,
         rng:                        random.Random,
         id_generator:               PassengerIdGenerator,
     ):
@@ -99,7 +99,7 @@ class Station:
         
 
         # Cada dict recibido se copia añadiendo 'state': ACTIVE por defecto
-        self._andenes: list[dict] = [
+        self._platforms: list[dict] = [
             {
                 'lane':             a['lane'],
                 'up_tree_id':       a['up_tree_id'],
@@ -108,13 +108,13 @@ class Station:
                 'discharge_point':  a['discharge_point'],
                 'state':            AndenState.ACTIVE,
             }
-            for a in andenes
+            for a in platforms
         ]
 
         self._passenger_accumulator:    float  = 0.0
         self._vm_demand_accumulator:    float  = 0.0
         self._walking:                  dict   = {}
-        self._next_anden_idx:           int    = 0
+        self._next_platform_idx:           int    = 0
 
     # ─── ACTUALIZACIÓN PRINCIPAL ──────────────────────────────────────────
 
@@ -166,71 +166,71 @@ class Station:
         """
         self._vm_demand_accumulator -= 1.0
       
-    # ─── GESTIÓN DE ANDENES ───────────────────────────────────────────────
+    # ─── GESTIÓN DE PLATFORMS ───────────────────────────────────────────────
 
-    def activate_anden(self, anden_idx: int) -> None:
+    def activate_platform(self, platform_idx: int) -> None:
         """
-        Activa el andén en la posicion anden_idx de self._andenes.
+        Activa la plataforma en la posicion platform_idx de self._platforms.
         """
-        self._andenes[anden_idx]['state'] = AndenState.ACTIVE
+        self._platforms[platform_idx]['state'] = AndenState.ACTIVE
 
-    def deactivate_anden(self, anden_idx: int) -> None:
+    def deactivate_platform(self, platform_idx: int) -> None:
         """
-        Desactiva el andén en la posicion anden_idx de self._andenes.
+        Desactiva la plataforma en la posicion platform_idx de self._platforms.
 
-        Desactiva el andén. Los pasajeros en caminata hacia esta lane son redirigidos.
+        Los pasajeros en caminata hacia esta plataforma son redirigidos.
         VMs que ya están en la lane o en los árboles continúan hasta completar su trayecto.
-        Brain dejará de enrutar nuevos VMs por los árboles de este andén (via active_down_tree_ids).
+        Brain dejará de enrutar nuevos VMs por los árboles de esta plataforma (via active_down_tree_ids).
         """
-        self._andenes[anden_idx]['state'] = AndenState.INACTIVE
-        self._redirect_walking_passengers_from(anden_idx)
+        self._platforms[platform_idx]['state'] = AndenState.INACTIVE
+        self._redirect_walking_passengers_from(platform_idx)
 
-    def _redirect_walking_passengers_from(self, closed_anden_idx: int) -> None:
+    def _redirect_walking_passengers_from(self, closed_platform_idx: int) -> None:
         """
-        Redirige a los pasajeros en caminata que iban al andén cerrado.
-        Si no hay andenes activos, los pasajeros continúan al andén original.
+        Redirige a los pasajeros en caminata que iban a la plataforma cerrada.
+        Si no hay plataformas activas, los pasajeros conservan su plataforma original.
         """
-        active = self.get_active_andenes()
+        active = self.get_active_platforms()
         if not active:
             return
-        closed_lane = self._andenes[closed_anden_idx]['lane']
+        closed_lane = self._platforms[closed_platform_idx]['lane']
         for data in self._walking.values():
             if data['target_lane'] is closed_lane:
-                new_anden    = self._select_anden(active)
-                new_lane     = new_anden['lane']
+                new_platform = self._select_platform(active)
+                new_lane     = new_platform['lane']
                 data['target_lane']   = new_lane
                 data['walk_distance'] = self._walk_distance_to(new_lane)
 
-    def get_active_andenes(self) -> list[dict]:
+    def get_active_platforms(self) -> list[dict]:
         """
-        Retorna lista de andenes activos.
+        Retorna lista de plataformas activas.
         """
-        return [a for a in self._andenes if a['state'] == AndenState.ACTIVE]
+        return [a for a in self._platforms if a['state'] == AndenState.ACTIVE]
 
     # ─── INFORMACIÓN PARA BRAIN/NETWORK ───────────────────────────────────
 
     @property
     def active_down_tree_ids(self) -> list[int]:
-        """ IDs de arboles de bajada de andenes activos. Brain los usa para enviar VMs. """
-        return [a['down_tree_id'] for a in self.get_active_andenes()]
+        """ IDs de arboles de bajada de plataformas activas. Brain los usa para enviar VMs. """
+        return [a['down_tree_id'] for a in self.get_active_platforms()]
 
     @property
     def active_up_tree_ids(self) -> list[int]:
-        """ IDs de arboles de subida de andenes activos. Brain los usa para enviar VMs. """
-        return [a['up_tree_id'] for a in self.get_active_andenes()]
+        """ IDs de arboles de subida de plataformas activas. Brain los usa para enviar VMs. """
+        return [a['up_tree_id'] for a in self.get_active_platforms()]
     
     @property
     def boarding_lanes(self) -> list[BoardingLane]:
         """ Todas las boarding lanes de la estacion, en orden de creacion. """
-        return [a['lane'] for a in self._andenes]
+        return [a['lane'] for a in self._platforms]
     
     @property
-    def x_bounds(self) -> tuple[float,float]: ##
+    def x_bounds(self) -> tuple[float,float]:
         half = self.dimensions.x_length / 2
         return (self.origin.x - half, self.origin.x + half)
     
     @property
-    def y_bounds(self) -> tuple[float,float]: ##
+    def y_bounds(self) -> tuple[float,float]:
         half = self.dimensions.y_length / 2
         return (self.origin.y - half, self.origin.y + half)
 
@@ -248,10 +248,10 @@ class Station:
 
     def spawn_pasenger(self, current_time: float) -> None:
         """
-        Genera un pasajero y lo pone a caminar hacia el siguiente anden activo en rotación.
-        Si no hay andenes activos, el pasajero se descarta silenciosamente.
+        Genera un pasajero y lo pone a caminar hacia la siguiente plataforma activa en rotación.
+        Si no hay plataformas activas, el pasajero se descarta silenciosamente.
         """
-        active = self.get_active_andenes()
+        active = self.get_active_platforms()
         if not active:
             return
 
@@ -265,8 +265,8 @@ class Station:
 
         passenger.start_moving_to_lane()
 
-        target_anden = self._select_anden(active)
-        lane = target_anden['lane']
+        target_platform = self._select_platform(active)
+        lane = target_platform['lane']
         
         self._walking[passenger.passenger_id] = {
             'passenger':        passenger,
@@ -296,14 +296,14 @@ class Station:
         """
         self._vm_demand_accumulator += self.vm_request_rate * dt
     
-    def _select_anden(self, active_andenes: list) -> dict:
+    def _select_platform(self, active_platforms: list) -> dict:
         """
-        Round-robin sobre los andenes activos.
+        Round-robin sobre las plataformas activas.
         El modulo garantiza que el indice no salga del rango si cambia la cantidad de activos
         """
-        idx = self._next_anden_idx % len(active_andenes)
-        self._next_anden_idx +=1
-        return active_andenes[idx]
+        idx = self._next_platform_idx % len(active_platforms)
+        self._next_platform_idx +=1
+        return active_platforms[idx]
 
     def _choose_destination(self) -> int:
         """
@@ -331,20 +331,20 @@ class Station:
         Simulation/Brain imprime esto — Station no escribe en terminal directamente.
         """
         return {
-            'station_id':     self.station_id,
-            'origin':         self.origin,
-            'andenes':        len(self._andenes),
-            'active_andenes': len(self.get_active_andenes()),
-            'passenger_rate': self.passenger_rate,
-            'vm_request_rate': self.vm_request_rate,
-            'destinations':   self.destination_probabilities,
+            'station_id':           self.station_id,
+            'origin':               self.origin,
+            'platforms':            len(self._platforms),
+            'active_platforms':     len(self.get_active_platforms()),
+            'passenger_rate':       self.passenger_rate,
+            'vm_request_rate':      self.vm_request_rate,
+            'destinations':         self.destination_probabilities,
         }
     
     def __repr__(self) -> str:
-        active = len(self.get_active_andenes())
+        active = len(self.get_active_platforms())
         return (
             f"Station(id={self.station_id}, "
-            f"andenes={len(self._andenes)} ({active} activos), "
+            f"platforms={len(self._platforms)} ({active} activos), "
             f"walking={len(self._walking)}, "
             f"vm_demand={self._vm_demand_accumulator:.2f})"
         )
