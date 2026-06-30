@@ -38,3 +38,20 @@ FPS = 30                # frames por segundo
 SCREEN_WIDTH = 1200     # ancho de la pantalla (px)
 SCREEN_HEIGHT = 800     # alto de la pantalla (px)
 
+# CTE. CAMARA
+
+CAM_FOV_DEFAULT    = 60.0   # campo de visión por defecto (grados)
+CAM_FOV_MIN        = 15.0   # zoom máximo alcanzable (FOV mínimo)
+CAM_FOV_MAX        = 100.0  # zoom mínimo alcanzable (FOV máximo)
+CAM_NEAR_CLIP      = 0.5    # plano de recorte cercano — puntos más cerca no se renderizan (m)
+CAM_MOVE_SPEED     = 200.0  # velocidad de traslación con teclado (m/s)
+CAM_ROT_SPEED      = 60.0   # velocidad de rotación con teclado (°/s)
+CAM_MOUSE_SENS     = 0.25   # sensibilidad de mouse look (°/pixel)
+CAM_ZOOM_KEY_SPEED = 5.0    # velocidad de zoom con teclas Z/X (°/s)
+CAM_PITCH_LIMIT    = 89.0   # límite superior/inferior de pitch para evitar gimbal lock (°)
+
+# CTE. DIMENCIONES VM
+
+VM_RENDER_WIDTH  = TRAIN_VM_LENGTH      # ancho del VM en 3D (m)
+VM_RENDER_DEPTH  = 1.0                  # profundidad del VM en 3D (m)
+VM_RENDER_HEIGHT = 1.5                  # alto del VM en 3D (m)

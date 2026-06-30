@@ -23,7 +23,6 @@ class Simulation:
         sim = Simulation(brain, stations)
         sim.run_headless(n_ticks = 3000)
     """
-
     def __init__(self,brain: Brain, stations: dict):
         self._brian = brain
         self._stations = stations

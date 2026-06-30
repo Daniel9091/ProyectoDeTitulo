@@ -15,7 +15,7 @@ from simulation.station_factory import TrackIdAllocator, create_station, connect
 # ─── PARÁMETROS ──────────────────────────────────────────────────────────────
 
 VM_CAPACITY    = 6        # VMs pequeños tipo pod de 6 personas
-JUNCTION_DEPTH = 3.0      # belt 3m bajo el piso de la estación
+JUNCTION_DEPTH = -15.0     # belt 3m bajo el piso de la estación
 DENSITY        = 1.0      # 100% de slots ocupados al iniciar
 BELT_MARGIN    = 150.0
 
