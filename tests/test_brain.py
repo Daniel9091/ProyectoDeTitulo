@@ -29,7 +29,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-
+from unittest.mock import patch
 from objects.math3d import Vector3
 from objects.modular_vehicle import ModularVehicle
 from objects.types import TreeDirection
@@ -57,6 +57,17 @@ TREE_LENGTH         = 10.0      # longitud de cada AccelerationTree
 LANE_LENGTH         = 20.0      # longitud del BoardingLane
 TREE_ACCELERATION   = 2.5       # acceleracion de los arboles de test
 
+TEST_SLOT_SEARCH_RANGE = 10     # ancho fijo para tests — independiente de config/constants.py
+@pytest.fixture(autouse=True)
+def _fixed_slot_search_range():
+    """
+    Todos los tests de este archivo corren con SLOT_SEARCH_RANGE=10 sin importar
+    qué valor tenga config/constants.py para la simulación real.
+    Los tests fueron diseñados asumiendo half=5 (offsets -5..+5); cambiar el valor
+    de producción para tunear la simulación no debe romper ningún test.
+    """
+    with patch('systems.brain.SLOT_SEARCH_RANGE', TEST_SLOT_SEARCH_RANGE):
+        yield
 
 # ─── HELPERS DE FIXTURE ───────────────────────────────────────────────────────
 
@@ -401,8 +412,7 @@ class TestBrainLoop:
             train.slots[5]['vm'] = vm_belt
 
             # Forzar que _range_search_reservation solo tenga slot 5 disponible
-            for offset in range(-5, 6):
-                idx = (5 + offset) % 50
+            for idx in range(train.max_slots):
                 if idx != 5:
                     train.slots[idx]['reserved_station_id'] = 99
 
@@ -1714,7 +1724,7 @@ class TestSaturationCheck:
     def test_would_saturate_returns_true_at_capacity(self):
         """
         N=2, G=5. Slot 22 marcado con demand_station_id (distancia 2 del candidato 20).
-        Ventana [20..24] contiene candidato + slot 22 → count=2 >= N=2 → True.
+        Ventana [20..24] contiene candidato + slot 22 → count=3 > N=2 → True.
         Usa demand_station_id (no destination) para verificar que _is_slot_marked_for
         responde a AMBAS etiquetas.
         """
@@ -1724,23 +1734,24 @@ class TestSaturationCheck:
         junction.burst_window = 5
 
         candidate = 20
-        train.slots[22]['destination_station_id'] = STATION_ID  # dist=2, dentro de [16..24]
 
+        train.slots[21]['destination_station_id'] = STATION_ID
+        train.slots[22]['destination_station_id'] = STATION_ID
         assert brain._would_saturate(junction, candidate, STATION_ID) is True
 
     def test_window_wraps_around_circular_belt(self):
         """
         max_slots=50. Candidato=48, slot 1 marcado.
         Distancia circular hacia adelante: (1 - 48 + 50) % 50 = 3 → dentro de [44..52 mod 50].
-        Ventana start_offset=0: [48, 49, 0, 1, 2] → candidato + slot 1 → count=2 >= 2 → True.
+        Ventana start_offset=0: [48, 49, 0, 1, 2] → candidato + slot 1 → count=3 > 2 → True.
         """
         brain, train, network, stations = make_brain_fixture()
         junction = MagicMock()
         junction.burst_capacity = 2
         junction.burst_window = 5
 
+        train.slots[0]['destination_station_id'] = STATION_ID
         train.slots[1]['destination_station_id'] = STATION_ID
-
         assert brain._would_saturate(junction, 48, STATION_ID) is True
 
     def test_demand_skips_candidate_if_would_saturate(self):
@@ -1983,8 +1994,7 @@ class TestReservationMath:
         }
 
         # Forzar candidato único: bloquear todos excepto slot 3
-        for offset in range(-5, 6):
-            idx = (3 + offset) % 50
+        for idx in range(train.max_slots):
             if idx != 3:
                 train.slots[idx]['reserved_station_id'] = 99
 
@@ -2011,8 +2021,7 @@ class TestReservationMath:
         }
 
         # Forzar candidato único: bloquear todos excepto slot 7
-        for offset in range(-5, 6):
-            idx = (7 + offset) % 50
+        for idx in range(train.max_slots):
             if idx != 7:
                 train.slots[idx]['reserved_station_id'] = 99
 
@@ -2025,9 +2034,9 @@ class TestReservationMath:
     def test_adjusted_acceleration_mrua_formula(self):
         """
         progress=0.5 → target=3. best_slot=5 (raw_offset=2, slot 3 bloqueado, 4 también).
-        T_target = 12.2 + 2*(2/20) = 12.4
-        T_tree_adj = 12.4 - 5.0 = 7.4
-        a = 2*(10 - 2*7.4) / 7.4² = 2*(-4.8)/54.76 ≈ -0.17530...
+        T_target = 12.2 - 2*(2/20) = 12.0
+        T_tree_adj = 12.0 - 5.0 = 7.0
+        a = 2*(10 - 2*7.0) / 7.0² = 2*(-4)/49 ≈ -0.16327...
         Verificar: vm.reserved_tree_acceleration ≈ expected_a.
         """
 
@@ -2042,13 +2051,14 @@ class TestReservationMath:
         }
 
         # Bloquear todo el rango [3-5, ..., 3+5] excepto slot 5 (raw_offset=2 desde target=3)
-        for idx in [48, 49, 0, 1, 2, 3, 4, 6, 7, 8]:
-            train.slots[idx]['reserved_station_id'] = 99
+        for idx in range(train.max_slots):
+            if idx != 5:
+                train.slots[idx]['reserved_station_id'] = 99
 
         with patch.object(brain, '_would_saturate', return_value=False):
             brain._make_reservation(vm, lane, down_tree, STATION_ID)
 
-        T_tree_adj = 7.4
+        T_tree_adj = 7.0
         expected_a = 2.0 * (TREE_LENGTH - BOARDING_LANE_SPEED * T_tree_adj) / (T_tree_adj ** 2)
         assert vm.reserved_tree_acceleration == pt.approx(expected_a, rel=1e-6)
         assert brain._reserved_slots[vm.vehicle_id] == 5
@@ -2182,7 +2192,7 @@ class TestRangeSearchPriorities:
         junction_up = network.get_junction_up(STATION_ID)
 
         with patch.object(brain, '_would_saturate', return_value=False):
-            for i in range(17, 28):              # llena todo el rango con demand=OTHER
+            for i in range(train.max_slots):              # llena todo el rango con demand=OTHER
                 train.slots[i]['vm'] = _make_vm()
                 train.set_demand_supply(i, OTHER)
 
@@ -2201,7 +2211,7 @@ class TestRangeSearchPriorities:
         junction_up = network.get_junction_up(STATION_ID)
 
         with patch.object(brain, '_would_saturate', return_value=False):
-            for i in range(17, 28):              # llena todo el rango con dest=OTHER → P5
+            for i in range(train.max_slots):              # llena todo el rango con dest=OTHER → P5
                 train.slots[i]['vm'] = _make_vm()
                 train.set_destination(i, OTHER)
 
@@ -2226,7 +2236,7 @@ class TestRangeSearchPriorities:
         junction_up = network.get_junction_up(STATION_ID)
 
         with patch.object(brain, '_would_saturate', return_value=False):
-            for i in range(17, 28):
+            for i in range(train.max_slots):
                 train.slots[i]['vm'] = _make_vm()
                 train.set_destination(i, OTHER)  # todos P5
 
@@ -2248,16 +2258,15 @@ class TestRangeSearchPriorities:
         junction_up = network.get_junction_up(STATION_ID)
 
         with patch.object(brain, '_would_saturate', return_value=False):
-            for i in range(17, 27):              # slots 17–26: reservados para OTRA
-                train.slots[i]['vm'] = _make_vm()
-                train.slots[i]['reserved_station_id'] = OTHER
-
-            # slot 27: vacío, sin reserva → único candidato válido
+            for i in range(train.max_slots):
+                if i != 22:   # 22 = target = siempre dentro del rango
+                    train.slots[i]['reserved_station_id'] = OTHER
+            # slot 22: vacío, sin reserva → único candidato válido
 
             with caplog.at_level(logging.CRITICAL, logger="systems.brain"):
                 result = brain._range_search_reservation(22, STATION_ID, junction_up)
 
-        assert result == 27, "Único slot no reservado debe ser elegido"
+        assert result == 22, "Único slot no reservado debe ser elegido"
         assert any("riesgo de colisión" in r.message for r in caplog.records
                 if r.levelno == logging.CRITICAL), "Debe emitir CRITICAL por cada reserved=OTRA"
 
@@ -2268,13 +2277,14 @@ class TestRangeSearchPriorities:
         junction_up = network.get_junction_up(STATION_ID)
 
         with patch.object(brain, '_would_saturate', return_value=False):
-            for i in range(17, 27):
-                train.slots[i]['reserved_station_id'] = STATION_ID  # doble reserva → skip silencioso
+            for i in range(train.max_slots):
+                if i != 22:
+                    train.slots[i]['reserved_station_id'] = STATION_ID
 
             with caplog.at_level(logging.CRITICAL, logger="systems.brain"):
                 result = brain._range_search_reservation(22, STATION_ID, junction_up)
 
-        assert result == 27, "El único slot sin reserva debe elegirse"
+        assert result == 22, "El único slot sin reserva debe elegirse"
         assert not any(r.levelno == logging.CRITICAL for r in caplog.records), \
             "reserved=S debe saltarse sin CRITICAL — no es un error externo, es doble reserva propia"
 

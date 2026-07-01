@@ -111,7 +111,6 @@ class Brain:
         #   - decisions: adyacencia len>1, Brain elige el siguiente track
         #   - belt_placementes: track terminal (DOWN tree sin siguiente), VM va al belt
         decisions, belt_placements = self._network.process_transitions(completions)
-
         # 4. Para cada slot que cruzo una juntion UP este frame: decidir si el VM sube,
         #   y si el obligatorio (reserva) o condicional (destino, demanda).
         self._handle_crossings(crossings)
@@ -418,7 +417,7 @@ class Brain:
         
         half = self._train.max_slots // 2
         raw_offset = (best_slot - target_idx + half) % self._train.max_slots - half
-        T_target = T_total + raw_offset * (TRAIN_SPACING / TRAIN_SPEED)
+        T_target = T_total - raw_offset * (TRAIN_SPACING / TRAIN_SPEED)
         T_tree_adj = max(T_target -T_lane, 0.01)
         a = 2.0 * (down_tree.length - BOARDING_LANE_SPEED * T_tree_adj) / T_tree_adj ** 2
 
@@ -669,7 +668,7 @@ class Brain:
                 idx = (candidate + start_offset + i) % max_slots
                 if idx != candidate and self._is_slot_marked_for(idx, station_id):
                     count += 1
-            if count >= N:
+            if count > N:
                 return True
         return False
 

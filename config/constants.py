@@ -30,7 +30,7 @@ TREE_LENGTH = 400                           # Largo de los arboles de aceleracio
 
 # CTE. PREDICCION DE COLICIONES
 
-SLOT_SEARCH_RANGE = 10          # rango de busqueda bidireccional de slots
+SLOT_SEARCH_RANGE = 10          # rango de busqueda bidireccional de slots 
 
 # CTE. VISUALISACION
 
