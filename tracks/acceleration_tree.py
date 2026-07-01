@@ -26,7 +26,7 @@ from objects.math3d import Vector3
 from objects.types import TreeDirection, ModularVehicleState
 from config.constants import (
     TRAIN_SPEED, BOARDING_LANE_SPEED, TRAIN_SPACING,
-    ACCEL_RANGE_MIN, ACCEL_RANGE_MAX
+    ACCEL_RANGE_MIN, ACCEL_RANGE_MAX, GRAVITY
 )
 
 class AccelerationTree(BaseTrack):
@@ -67,7 +67,7 @@ class AccelerationTree(BaseTrack):
     
     Atributos propios:
         direction           TreeDiection    UP o DOWN
-        base_acceleration   float           magnitud de aceleración (m/s2), siempre > 0
+        base_acceleration   float           magnitud de aceleración (m/s2), siempre > 0 (calculada, no recibida)
         min_slot_gap        int             slots mínimos entre entradas consecutivas (0 si DOWN)
         _min_safe_distnce   float           umbral de distancia del vM más joven para can_accept
     """
@@ -78,19 +78,44 @@ class AccelerationTree(BaseTrack):
             start_pos: Vector3,
             end_pos: Vector3,
             direction: TreeDirection,
-            base_acceleration: float,
             min_vm_separation: float,
             station_id : int | None = None
     ):
         super().__init__(track_id, start_pos, end_pos)
         self.direction = direction
-        self.base_acceleration = base_acceleration
+        self.base_acceleration = self._compute_effective_acceleration()
         self.station_id = station_id
 
         self._min_safe_distance: float = 0.0
         self.min_slot_gap: int = 0
         if direction == TreeDirection.UP:
             self._init_saturation(min_vm_separation)
+
+    def _compute_effective_acceleration(self) -> float:
+
+        """
+        Calcula la aceleración efectiva a partir de la geometría del árbol.
+
+        La gravedad actúa solo en el eje Z. El árbol tiene largo self.length
+        (distancia entre start_pos y end_pos) con componente vertical
+        dz = |end_pos.z - start_pos.z|. La aceleración efectiva es la proyección
+        de la gravedad sobre la dirección del árbol:
+            a_eff = GRAVITY * (dz / length)
+
+        Un árbol con dz=0 no tiene componente gravitacional — no es un
+        AccelerationTree válido, es conceptualmente un track recto sin
+        aceleración. Se rechaza explícitamente en vez de degradar a
+        aceleración 0, que generaría VMs que nunca cambian de velocidad
+        de forma silenciosa (bug invisible, no un crash visible).
+        """
+        dz = abs(self.end_pos.z - self.start_pos.z)
+        if dz <= 0:
+            raise ValueError(
+                f"AccelerationTree {self.track_id}: start_pos y end_pos tienen "
+                f"la misma altura Z (dz=0) — sin componente gravitacional. "
+                f"Un árbol de aceleración siempre requiere diferencia de altura."
+            )
+        return GRAVITY * (dz / self.length)
 
     def _init_saturation(self, d_min: float) -> None:
         """

@@ -29,11 +29,11 @@ class FakeVehicle:
 
 def make_up_tree(track_id: int = 1) -> AccelerationTree:
     return AccelerationTree(track_id, Vector3(0, 0, 0), Vector3(0, 0, 30.0),
-                            TreeDirection.UP, 5.0, 2.0)
+                            TreeDirection.UP, 2.0)
 
 def make_down_tree(track_id: int = 10) -> AccelerationTree:
     return AccelerationTree(track_id, Vector3(0, 0, 30.0), Vector3(0, 0, 0),
-                            TreeDirection.DOWN, 5.0, 2.0)
+                            TreeDirection.DOWN, 2.0)
 
 def make_up_junction(trees=None) -> Junction:
     if trees is None:

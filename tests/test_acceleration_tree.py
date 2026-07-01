@@ -20,7 +20,7 @@ from objects.math3d import Vector3
 from objects.types import TreeDirection, ModularVehicleState
 from config.constants import (
     TRAIN_SPEED, BOARDING_LANE_SPEED,
-    ACCEL_RANGE_MIN, ACCEL_RANGE_MAX, TRAIN_SPACING,
+    ACCEL_RANGE_MIN, ACCEL_RANGE_MAX, TRAIN_SPACING, GRAVITY
 )
 
 
@@ -30,24 +30,35 @@ class FakeVehicle:
         self.state = ModularVehicleState.MOVING
         self.reserved_tree_acceleration = None  # accel del proximo arbol DOWN
 
+def _slanted_end_pos(length: float, target_accel: float) -> Vector3:
+    """
+    Punto final que, junto al origen, da un árbol de `length` metros con
+    aceleración efectiva == target_accel (dado GRAVITY).
+        dz = target_accel * length / GRAVITY  ;  dx = sqrt(length² - dz²)
+    """
+    dz = target_accel * length / GRAVITY
+    dx = math.sqrt(max(0.0, length ** 2 - dz ** 2))
+    return Vector3(dx, 0.0, dz)
+
 def make_up_tree(
     length: float = 30.0,
-    acceleration: float = 5.0,
+    acceleration: float = 5.0,  # acceleracion effectiva
     separation: float = 2.0,
 ) -> AccelerationTree:
     return AccelerationTree(
-        1, Vector3(0, 0, 0), Vector3(0, 0, length),
-        TreeDirection.UP, acceleration, separation,
+        1, Vector3(0, 0, 0), _slanted_end_pos(length, acceleration),
+        TreeDirection.UP, separation,
     )
 
 def make_down_tree(
     length: float = 30.0,
-    acceleration: float = 5.0,
+    acceleration: float = 5.0,  # acceleracion effectiva
     separation: float = 2.0,
 ) -> AccelerationTree:
+    end = _slanted_end_pos(length, acceleration)
     return AccelerationTree(
-        2, Vector3(0, 0, length), Vector3(0, 0, 0),
-        TreeDirection.DOWN, acceleration, separation,
+        2, end, Vector3(0, 0, 0),
+        TreeDirection.DOWN, separation,
     )
 
 class Test_init:
@@ -112,8 +123,8 @@ class Test_init:
             ceil   = 3  →  correcto
         """
         
-        tree = AccelerationTree(1, Vector3(0, 0, 0), Vector3(0, 0, 30.0),
-                                TreeDirection.UP, 5.0, 3.0)
+        tree = AccelerationTree(1, Vector3(0, 0, 0), _slanted_end_pos(30.0, 5.0),
+                                TreeDirection.UP, 3.0)
         v_exit = math.sqrt(max(0.0, 20.0**2 - 2.0 * 5.0 * 30.0))          # 10.0
         dt_min = (-v_exit + math.sqrt(v_exit**2 + 2.0 * 5.0 * 3.0)) / 5.0 # ≈ 0.2804
         raw = dt_min * 20.0 / 2.0                                           # ≈ 2.804

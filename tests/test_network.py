@@ -48,7 +48,6 @@ def make_down_tree(track_id: int = 1, station_id: int | None = None) -> Accelera
         start_pos=Vector3(0, 0, 30),
         end_pos=Vector3(0, 0, 0),
         direction=TreeDirection.DOWN,
-        base_acceleration=5.0,
         min_vm_separation=2.0,
         station_id=station_id,
     )
@@ -60,7 +59,6 @@ def make_junction(junction_id: int = 1, station_id: int = 10,
         start_pos=Vector3(0, 0, 0),
         end_pos=Vector3(0, 0, 30),
         direction=direction,
-        base_acceleration=5.0,
         min_vm_separation=2.0,
     )
     return Junction(
@@ -70,7 +68,6 @@ def make_junction(junction_id: int = 1, station_id: int = 10,
         direction=direction,
         trees=[tree],
     )
-
 
 # ─── TOPOLOGÍA ────────────────────────────────────────────────────────────────
 

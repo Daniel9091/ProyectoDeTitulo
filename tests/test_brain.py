@@ -21,6 +21,7 @@ Convención de fixtures:
 
 import random
 import logging
+import math
 from unittest.mock import MagicMock, patch
 
 import pytest as pt
@@ -41,7 +42,7 @@ from systems.network import Network
 from systems.brain import Brain
 from config.constants import (
     TRAIN_SPACING, MIN_VM_SEPARATION,
-    TRAIN_SPEED, BOARDING_LANE_SPEED,
+    TRAIN_SPEED, BOARDING_LANE_SPEED, GRAVITY
 )
 
 # ─── CONSTANTES DE FIXTURE ───────────────────────────────────────────────────
@@ -74,6 +75,16 @@ def _fixed_slot_search_range():
 def _make_vm(vm_id: int = 0) -> ModularVehicle:
     return ModularVehicle(vehicle_id=vm_id, capacity=4)
 
+def _slanted_end_pos(start: Vector3, length: float, target_accel: float) -> Vector3:
+    """
+    Punto final que, junto a start, produce un árbol de `length` metros con
+    aceleración efectiva == target_accel (dado GRAVITY).
+        dz = target_accel * length / GRAVITY  ;  dx = sqrt(length² - dz²)
+    """
+    dz = target_accel * length / GRAVITY
+    dx = math.sqrt(max(0.0, length ** 2 - dz ** 2))
+    return Vector3(start.x + dx, start.y, start.z + dz)
+
 def _make_train(junction_up_x: float = JUNCTION_UP_X) -> ContinuousTrain:
     """
     Carril de 100m, 50 slots, sin VMs (density=0.0).
@@ -101,12 +112,12 @@ def _make_network() -> Network:
     DOWN tree es terminal (len==0 en adyacencia) porque el VM sale al belt
     vía Brain._handle_belt_placements, no a otro track.
     """
+    up_start = Vector3(0, 0, 0)
     up_tree = AccelerationTree(
         track_id=UP_TREE_ID,
-        start_pos=Vector3(0, 0, 0),
-        end_pos=Vector3(TREE_LENGTH, 0, 0),
+        start_pos=up_start,
+        end_pos=_slanted_end_pos(up_start, TREE_LENGTH, TREE_ACCELERATION),
         direction=TreeDirection.UP,
-        base_acceleration=TREE_ACCELERATION,
         min_vm_separation=MIN_VM_SEPARATION,
         station_id=STATION_ID,
     )
@@ -115,16 +126,15 @@ def _make_network() -> Network:
         start_pos=Vector3(0, 0, 0),
         end_pos=Vector3(LANE_LENGTH, 0, 0),
     )
+    down_start = Vector3(0, 0, 0)
     down_tree = AccelerationTree(
         track_id=DOWN_TREE_ID,
-        start_pos=Vector3(0, 0, 0),
-        end_pos=Vector3(TREE_LENGTH, 0, 0),
+        start_pos=down_start,
+        end_pos=_slanted_end_pos(down_start, TREE_LENGTH, TREE_ACCELERATION),
         direction=TreeDirection.DOWN,
-        base_acceleration=TREE_ACCELERATION,
         min_vm_separation=MIN_VM_SEPARATION,
         station_id=STATION_ID,
     )
-
     junction_up = Junction(
         junction_id=20,
         belt_x=JUNCTION_UP_X,
