@@ -5,8 +5,8 @@ Tests para station_factory.py
 - Test_CreateStation: integración — tipos, conteos, IDs únicos, geometría invariante
 - Test_ConnectStationToNetwork: registra correctamente en Network
 
-Fixture: JUNCTION_DEPTH=2, DIMS.floor_height=10 → dz=8
-    Para N=3 (y_ext=5): dx_ext=sqrt(225-25-64)=sqrt(136)≈11.66 → geometría válida.
+Fixture: dz = TREE_DZ (física, ya no configurable) ≈ 20.20
+    Para N=3 (y_ext=5): dx_ext=sqrt(400²-25-20.20²)≈399.46 → geometría válida.
 """
 
 import pytest
@@ -30,13 +30,13 @@ from simulation.station_factory import (
     connect_station_to_network,
     _lane_y_offsets,
 )
-from config.constants import TREE_LENGTH
+from config.constants import TREE_LENGTH, TREE_DZ
 
 # ─── FIXTURES ────────────────────────────────────────────────────────────────
 
-JUNCTION_DEPTH = 2.0
 DIMS = StationDimensions(x_length=40.0, y_length=20.0, floor_height=10.0, num_floors=1)
-ORIGIN = Vector3(100.0, 0.0, 0.0)   # origin.y=0.0 requerido por la geometría del factory
+ORIGIN = Vector3(100.0, 0.0, 0.0)
+EXPECTED_JUNCTION_DEPTH = ORIGIN.z - TREE_DZ   # junction_depth que create_station calcula internamente
 
 def make_components(num_lanes: int = 1, station_id: int = 1):
     alloc   = TrackIdAllocator(start=1)
@@ -45,7 +45,6 @@ def make_components(num_lanes: int = 1, station_id: int = 1):
     return create_station(
         station_id                 = station_id,
         station_origin             = ORIGIN,
-        junction_depth             = JUNCTION_DEPTH,
         num_lanes                  = num_lanes,
         dims                       = DIMS,
         passenger_rate             = 0.0,
@@ -205,7 +204,6 @@ class Test_CreateStation:
         pid_gen = PassengerIdGenerator()
         kwargs  = dict(
             station_origin            = ORIGIN,
-            junction_depth            = JUNCTION_DEPTH,
             num_lanes                 = 2,
             dims                      = DIMS,
             passenger_rate            = 0.0,
@@ -263,7 +261,6 @@ class Test_ConnectStationToNetwork:
         station, *rest = create_station(
             station_id                = 1,
             station_origin            = ORIGIN,
-            junction_depth            = JUNCTION_DEPTH,
             num_lanes                 = 1,
             dims                      = DIMS,
             passenger_rate            = 0.0,
@@ -295,7 +292,7 @@ class Test_Geometry:
         """Los árboles UP parten desde la profundidad correcta del belt (eje Z)."""
         _, up_trees, _, _, _, _ = make_components(num_lanes=3)
         for tree in up_trees:
-            assert tree.start_pos.z == pytest.approx(JUNCTION_DEPTH)
+            assert tree.start_pos.z == pytest.approx(EXPECTED_JUNCTION_DEPTH)
 
     def test_junction_y_equals_station_origin_y(self):
         """La junction queda justo debajo del centro de la estación en Y."""
@@ -309,13 +306,13 @@ class Test_Geometry:
         """Todos los puntos de extracción (fin del UP tree) están en el piso de la estación."""
         _, up_trees, _, _, _, _ = make_components(num_lanes=3)
         for tree in up_trees:
-            assert tree.end_pos.z == pytest.approx(DIMS.floor_height)
+            assert tree.end_pos.z == pytest.approx(ORIGIN.z)
 
     def test_discharge_z_is_floor_height(self):
         """Todos los puntos de descarga (inicio del DOWN tree) están en el piso de la estación."""
         _, _, _, dn_trees, _, _ = make_components(num_lanes=3)
         for tree in dn_trees:
-            assert tree.start_pos.z == pytest.approx(DIMS.floor_height)
+            assert tree.start_pos.z == pytest.approx(ORIGIN.z)
 
     def test_belt_x_symmetric_around_station_center(self):
         """junction_up y junction_down son equidistantes del centro X de la estación."""
@@ -325,7 +322,7 @@ class Test_Geometry:
 
     def test_belt_x_exact_value(self):
         """belt_x_up coincide con el valor calculado manualmente con la fórmula geométrica."""
-        dz     = DIMS.floor_height - JUNCTION_DEPTH
+        dz     = TREE_DZ
         y_ext  = max(abs(y) for y in _lane_y_offsets(3, DIMS.y_length))
         dx_ext = math.sqrt(TREE_LENGTH**2 - y_ext**2 - dz**2)
         expected_belt_x_up = ORIGIN.x - DIMS.x_length / 2.0 - dx_ext
@@ -348,7 +345,6 @@ class Test_Geometry:
         _, up_trees, _, _, _, _ = create_station(
             station_id=1,
             station_origin=Vector3(100.0, origin_y, 0.0),
-            junction_depth=JUNCTION_DEPTH,
             num_lanes=3,
             dims=DIMS,
             passenger_rate=0.0,

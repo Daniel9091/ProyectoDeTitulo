@@ -11,13 +11,18 @@ from systems.network import Network
 from systems.continuous_train import ContinuousTrain
 from systems.brain import Brain
 from simulation.station_factory import TrackIdAllocator, create_station, connect_station_to_network
+from config.constants import TREE_DZ
+
 
 # ─── PARÁMETROS ──────────────────────────────────────────────────────────────
 
-VM_CAPACITY    = 6        # VMs pequeños tipo pod de 6 personas
-JUNCTION_DEPTH = -15.0     # belt 3m bajo el piso de la estación
-DENSITY        = 1.0      # 100% de slots ocupados al iniciar
-BELT_MARGIN    = 150.0
+VM_CAPACITY     = 6        # VMs pequeños tipo pod de 6 personas
+DENSITY         = 1.0      # 100% de slots ocupados al iniciar
+BELT_MARGIN     = 150.0
+
+STATION_Z       = 0.0
+BELT_Z          = STATION_Z - TREE_DZ
+STATION_Y       = 0.0
 
 DIMS = StationDimensions(
     x_length   = 100.0,   # 100m de largo (ancho en X del hall)
@@ -59,11 +64,11 @@ def build(seed: int = 42) -> tuple[Brain, dict[int, Station]]:
     network = Network()
     stations: dict[int, Station] = {}
 
+
     # ── Estación 1 — terminal izquierda, 1 andén ─────────────────────────────
     s1, up1, l1, dn1, j_up_1, j_dn_1 = create_station(
         station_id=1,
-        station_origin=Vector3(X_S1, 0.0, 0.0),
-        junction_depth=JUNCTION_DEPTH,
+        station_origin=Vector3(X_S1, STATION_Y, STATION_Z),
         num_lanes=1,
         dims=DIMS,
         passenger_rate=RATE_S1,
@@ -77,8 +82,7 @@ def build(seed: int = 42) -> tuple[Brain, dict[int, Station]]:
     # ── Estación 2 — hub central, 3 andenes ──────────────────────────────────
     s2, up2, l2, dn2, j_up_2, j_dn_2 = create_station(
         station_id=2,
-        station_origin=Vector3(X_S2, 0.0, 0.0),
-        junction_depth=JUNCTION_DEPTH,
+        station_origin=Vector3(X_S2, STATION_Y, STATION_Z),
         num_lanes=4,
         dims=DIMS,
         passenger_rate=RATE_S2,
@@ -92,8 +96,7 @@ def build(seed: int = 42) -> tuple[Brain, dict[int, Station]]:
     # ── Estación 3 — terminal derecha, 1 andén ───────────────────────────────
     s3, up3, l3, dn3, j_up_3, j_dn_3 = create_station(
         station_id=3,
-        station_origin=Vector3(X_S3, 0.0, 0.0),
-        junction_depth=JUNCTION_DEPTH,
+        station_origin=Vector3(X_S3, STATION_Y, STATION_Z),
         num_lanes=2,
         dims=DIMS,
         passenger_rate=RATE_S3,
@@ -108,8 +111,8 @@ def build(seed: int = 42) -> tuple[Brain, dict[int, Station]]:
     # El tamaño del belt se determina aquí, después de conocer los belt_x calculados
     belt_end_x = max(j_dn_1.belt_x, j_dn_2.belt_x, j_dn_3.belt_x) + BELT_MARGIN
     train = ContinuousTrain(
-        start_pos       = Vector3(0.0, 0.0, JUNCTION_DEPTH),
-        end_pos         = Vector3(belt_end_x, 0.0, JUNCTION_DEPTH),
+        start_pos       = Vector3(0.0, 0.0,BELT_Z),
+        end_pos         = Vector3(belt_end_x, STATION_Y, BELT_Z),
         density         = DENSITY,
         vm_factory      = lambda vm_id: ModularVehicle(vm_id, capacity=VM_CAPACITY),
         rng             = rng,

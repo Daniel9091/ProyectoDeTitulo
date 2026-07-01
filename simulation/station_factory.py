@@ -50,7 +50,7 @@ from objects.passenger_id_generator import PassengerIdGenerator
 from tracks.acceleration_tree import AccelerationTree
 from tracks.boarding_lane import BoardingLane
 from tracks.junction import Junction
-from config.constants import MIN_VM_SEPARATION, TREE_LENGTH
+from config.constants import MIN_VM_SEPARATION, TREE_LENGTH, TREE_DZ
 
 # ─── ALLOCADOR DE IDs ────────────────────────────────────────────────────────
 
@@ -71,7 +71,6 @@ class TrackIdAllocator:
 def create_station(
     station_id:                 int,                    # ID
     station_origin:             Vector3,                # Cordenadas del centro de la estacion
-    junction_depth:             float,                  # Cordenada z de juntiones
     num_lanes:                  int,                    # Numero de andenes
     dims:                       StationDimensions,      # Dimensiones de la estacion ancho, largo altura
     passenger_rate:             float,                  # Tasa de produccion de pasajeros (s)
@@ -105,7 +104,8 @@ def create_station(
     y_offsets   = _lane_y_offsets(num_lanes, dims.y_length)
     y_ext       = max(abs(y) for y in y_offsets)                        # Offset del lane externo
     # Paso 2 - dz (componente Z del árbol)
-    dz = dims.floor_height - junction_depth                             # Dif Zest - Zjun
+    dz = TREE_DZ
+    junction_depth = station_origin.z - TREE_DZ                         # profundidad del belt
     # Paso 3 — dx del árbol más externo
     dx_ext = math.sqrt(max(0.0, TREE_LENGTH**2 - y_ext**2 - dz**2))     # dx de lane externa
     #  posición X de junction
@@ -133,8 +133,8 @@ def create_station(
         lane_id     = id_alloc.next()
         down_id     = id_alloc.next()
 
-        extraction = Vector3(x_ext, station_origin.y + y_i, dims.floor_height)
-        discharge  = Vector3(x_dis, station_origin.y + y_i, dims.floor_height)
+        extraction = Vector3(x_ext, station_origin.y + y_i, station_origin.z)
+        discharge  = Vector3(x_dis, station_origin.y + y_i, station_origin.z)
 
         up_trees.append(AccelerationTree(
             track_id            = up_id,                # ID

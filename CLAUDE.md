@@ -48,50 +48,54 @@ NSim/
 │   ├── types.py            Enums de estado (ModularVehicleState, PassengerState, etc.)
 │   ├── modular_vehicle.py  VM: identidad, capacidad, pasajeros, destino, posición
 │   ├── passenger.py        Pasajero: ciclo de vida y métricas de viaje
+│   ├── passenger_id_generator.py  Contador global de IDs de pasajeros
 │   └── station.py          Estación: genera pasajeros, acumula demanda, gestiona andenes
 │
 ├── tracks/         Segmentos de vía lineales — física del movimiento de VMs
 │   ├── base.py             BaseTrack ABC: geometría y contrato común
 │   ├── boarding_lane.py    Velocidad constante + abordaje de pasajeros
-│   ├── acceleration_tree.py  MRUA gravitacional, saturación UP, station_id
+│   ├── acceleration_tree.py  MRUA gravitacional; calcula su propia aceleración desde geometría
 │   └── junction.py         Punto de conexión belt↔árboles, routing, burst_capacity
 │
 ├── systems/        Sistemas de coordinación global — sin estado físico propio
 │   ├── continuous_train.py Carril circular: slots, etiquetas, advance() con crossing detection
 │   ├── network.py          Topología, update_all_tracks, process_transitions
-│   ├── brain.py            Coordinador central: routing, demanda, colisiones (vacío)
-│   ├── demand_manager.py   (vacío — posiblemente se absorbe en Brain)
-│   ├── collision_predictor.py  (vacío — posiblemente se absorbe en Brain)
-│   └── consumption_manager.py  (vacío — posiblemente se absorbe en Brain)
+│   └── brain.py            Coordinador central: routing, demanda, colisiones (COMPLETO)
 │
-├── simulation/     Orquestación — ensambla todo y corre el loop (todos vacíos)
-│   ├── simulation.py       Loop principal: llama brain.update(dt) cada frame
-│   ├── simulation_builder.py  Construye el grafo de objetos inicial
-│   ├── renderer.py         Pygame — visualización 3D
-│   ├── event_handler.py    Eventos de teclado/mouse
-│   ├── camera.py           Cámara 3D
-│   ├── info_panel.py       Panel de métricas en pantalla
-│   ├── vehicle_spawner.py  Crea VMs iniciales
-│   ├── passenger_spawner.py  Llama station.update() para generar pasajeros
-│   └── main.py             Entry point con pygame
+├── simulation/     Orquestación y visualización
+│   ├── station_factory.py  Construye una estación completa con geometría 3D automática
+│   ├── simulation.py       Simulation.step(dt) / run_headless(n_ticks) — wrapper sobre Brain
+│   ├── camera.py           Cámara 3D con proyección perspectiva (yaw/pitch/FOV, mouse look)
+│   ├── renderer.py         Pygame — wireframe 3D de VMs, árboles, estaciones, HUD
+│   └── info_panel.py       (vacío — no implementado)
+│
+├── simulation_builder/     Escenarios — cada archivo construye una red completa
+│   ├── inicial.py          Escenario base: 3 estaciones (S2 con 3 andenes)
+│   └── molde.py            Template con `...` para copiar al crear un escenario nuevo
 │
 ├── config/
-│   ├── constants.py        Todas las constantes físicas y de simulación
-│   └── network_config.py   Configuración geométrica de la red (vacío)
+│   └── constants.py        Todas las constantes físicas y de simulación
 │
-└── tests/          Un archivo de test por cada archivo de objects/ y tracks/
+├── main.py         Entry point pygame (raíz de NSim, no dentro de simulation/)
+│
+└── tests/          Un archivo de test por cada archivo de objects/, tracks/, systems/, simulation/
 ```
 
 **Regla de dependencias**: `objects` no importa nada del proyecto. `tracks` importa solo
-`objects`. `systems` importa `objects` y `tracks`. `simulation` importa todo. Esta
-jerarquía evita imports circulares.
+`objects`. `systems` importa `objects` y `tracks`. `simulation` y `simulation_builder`
+importan todo. `main.py` importa `simulation_builder` y `simulation`. Esta jerarquía evita
+imports circulares.
+
+**Archivos que ya NO existen** (fueron absorbidos o descartados):
+`systems/demand_manager.py`, `systems/collision_predictor.py`, `systems/consumption_manager.py`
+(absorbidos en Brain), `config/network_config.py`, `systems/tree_selector.py`, `systems/spatial_grid.py`.
 
 ---
 
 ## Flujo principal del loop de simulación
 
-El loop no está implementado aún (`simulation/simulation.py` está vacío), pero el diseño
-previsto basado en la arquitectura existente es:
+Implementado en `systems/brain.py` (`Brain.update`) y verificado con 329 tests y ejecución
+real vía `main.py`. El loop es:
 
 ```
 TICK N — brain.update(dt):
@@ -202,7 +206,6 @@ Sistema anticolicisón. Almacena `station_id | None` (NO vm_id — Brain usa `_r
 - **SET**: VM hace commit en boarding lane → Brain calcula tiempo (lane + DOWN tree) → encuentra qué slot estará en junction_down en ese momento → marca ese slot con el `station_id` de la estación → ajusta `vm.reserved_tree_acceleration` para que el VM llegue exactamente ahí.
 - **CLEAR**: `place_vm` limpia la reserva cuando el VM aterriza en el slot.
 - **Junction UP behavior**: si `reserved_station_id == station_id` → try `add_vm`; si rechaza → Brain llama `force_add_vm` en el **mismo frame** (el sistema de reserva garantiza entrada).
-- **CAMBIO PENDIENTE en `continuous_train.py`**: renombrar key `'reserved_for_vm_id'` → `'reserved_station_id'` y cambiar a almacenar station_id. Actualizar `set_reservation(slot, vm_id)` → `set_reservation(slot, station_id)` y tests.
 
 ### Destino — `destination_station_id`
 Sistema de routing. Se anticipa antes de que el VM llegue al tren.
@@ -236,29 +239,21 @@ estación X, Brain lee `demand_station_id` del slot ANTES de llamar `remove_vm`:
 
 ---
 
-## Estado de implementación (Junio 2026) — 221 tests, todos verdes
+## Estado de implementación (Julio 2026) — 329 tests, todos verdes
 
 ### Completo con tests
-- `objects/math3d.py` — Vector3
-- `objects/types.py` — Enums
-- `objects/passenger.py` — Ciclo de vida completo
-- `objects/modular_vehicle.py` — Estado interno completo
-- `objects/passenger_id_generator.py` — Contador global de IDs
-- `objects/station.py` — Genera pasajeros, acumula demanda, gestiona andenes
-- `tracks/base.py` — ABC con geometría
-- `tracks/boarding_lane.py` — Física + abordaje
-- `tracks/acceleration_tree.py` — MRUA gravitacional, saturación UP, station_id
-- `tracks/junction.py` — Routing UP/DOWN, burst_capacity/burst_window
-- `systems/continuous_train.py` — Carril circular, advance() con crossing detection
-- `systems/network.py` — Topología, update_all_tracks, process_transitions
+- `objects/` — math3d, types, passenger, modular_vehicle, passenger_id_generator, station
+- `tracks/` — base, boarding_lane, acceleration_tree, junction
+- `systems/` — continuous_train, network, brain
+- `simulation/station_factory.py`
 
-### Vacío — pendiente de implementación
-- `systems/brain.py` — PRÓXIMO PASO
-- `systems/demand_manager.py`
-- `systems/collision_predictor.py`
-- `systems/consumption_manager.py`
-- `simulation/` — todos los archivos
-- `config/network_config.py`
+### Completo y funcional, verificado corriendo (sin test automatizado)
+- `simulation_builder/inicial.py` — escenario corre indefinidamente sin crashear
+- `simulation/simulation.py`, `camera.py`, `renderer.py`, `main.py` — pygame end-to-end
+
+### Vacío — no implementado, no bloqueante
+- `simulation/info_panel.py`
+- `simulation/event_handler.py`, `vehicle_spawner.py`, `passenger_spawner.py` (nunca se crearon; sus responsabilidades quedaron cubiertas por camera.py/renderer.py y station.update()/density inicial)
 
 ---
 
@@ -321,13 +316,10 @@ Esta sección es para calibrar qué contexto necesito al retomar el proyecto:
 - El orden exacto de pasos dentro del tick de Brain: `advance → update_all_tracks → process_transitions → handle_crossings → handle_decisions → handle_belt_placements → station.update → process_demand → process_reservations`
 - Que `reserved_station_id` almacena `station_id` (no vm_id) — Brain mantiene `_reserved_slots: dict[int,int]` (vm_id→slot_idx) por separado
 - Qué ocurre cuando `junction.add_vm` rechaza: solo `reserved_station_id` fuerza entrada en el mismo frame (`force_add_vm`); `destination_station_id` y `demand_station_id` son condicionales (VM se queda en belt si rechaza)
+- Que `AccelerationTree` calcula su propia `base_acceleration` desde `dz/length * GRAVITY` — NO se pasa como parámetro. Un árbol con `dz=0` lanza `ValueError` (fail-fast, no degrada a aceleración 0).
+- Que `JUNCTION_DEPTH` en un escenario NO es arbitrario: debe cumplir `dz = (TRAIN_SPEED²-BOARDING_LANE_SPEED²)/(2·GRAVITY)` para que el VM realmente alcance BOARDING_LANE_SPEED al final del árbol.
 
-**Brain ya está diseñado** (ver `/home/danielguzman/.claude/plans/indexed-riding-breeze.md` y sección Brain abajo).
-La implementación en `systems/brain.py` y `tests/test_brain.py` es el siguiente paso concreto.
-
-**Marcadores `##?##` abiertos en el código:**
-- `station.py` línea 57: `##?## Z` — pregunta sobre coordenada Z del parámetro `origin`
-Cuando sean resueltos, borrar el marcador y documentar la decisión aquí.
+**Marcadores `##?##` abiertos en el código:** ninguno pendiente conocido a julio 2026.
 
 ---
 
@@ -340,14 +332,20 @@ Adicionalmente a los bugs de Mayo 2026 (ver historial):
 - `test_acceleration_tree.py`: dos tests de "clamp" actualizados para reflejar nuevo comportamiento (solo warning)
 - `test_acceleration_tree.py`: valor esperado en `test_update_returns_leftover_dt` corregido de 1.0 a 1.146
 
+## Bugs resueltos (Julio 2026)
+
+- `acceleration_tree.py`: **refactor arquitectónico** — `base_acceleration` ya no es parámetro del constructor. Se calcula internamente en `_compute_effective_acceleration()` desde `dz = |end_pos.z - start_pos.z|` y `GRAVITY`. Si `dz <= 0` lanza `ValueError` (antes: `station_factory.py` calculaba la física y se la pasaba — violación de responsabilidad).
+- `brain.py` — `_would_saturate`: usaba `count >= N`, lo que bloqueaba SIEMPRE el primer VM en estaciones con `burst_capacity=1` (1 andén). Corregido a `count > N`.
+- `brain.py` — `_make_reservation`: signo invertido en `T_target = T_total + raw_offset * (...)`. Corregido a `-`. Con el signo malo, los VMs llegaban sistemáticamente desfasados de su slot reservado (offset de hasta -10 slots observado en simulación real).
+- `simulation_builder/inicial.py`: `JUNCTION_DEPTH` debe cumplir `dz = (TRAIN_SPEED²-BOARDING_LANE_SPEED²)/(2·GRAVITY)` — un valor puesto sin verificar esta relación deja a los VMs congelados dentro del árbol o sin desacelerar lo suficiente antes del boarding lane.
+
 ## Notas de desarrollo activo
 
 - `TRAIN_SPACING = TRAIN_VM_LENGTH + TRAIN_GAP` — spacing es distancia entre centros, no entre bordes
 - `BOARDING_COMMIT_PROGRESS = 0.5` — al 50% del lane el embarque es definitivo
 - IDs de pasajeros: usa `PassengerIdGenerator` (contador global), no el esquema `station_id * 100_000`
 - `ACCEL_RANGE_MIN/MAX` son de comodidad del pasajero (advertencia), no límites duros — Brain puede superar el rango en emergencias anticolicisón
-- `demand_manager.py`, `collision_predictor.py`, `consumption_manager.py` están vacíos — posiblemente se absorban en Brain directamente
-- `systems/tree_selector.py` y `systems/spatial_grid.py` ya no existen (eliminados)
+- `TREE_ACCELERATION` YA NO ES una constante global — cada `AccelerationTree` calcula la suya desde su geometría (ver Bugs resueltos Julio 2026). Solo sobrevive como constante local en algunos archivos de test.
 
 ---
 
@@ -399,7 +397,7 @@ Para cada `(slot_idx, station_id, leftover_dt)` en crossings donde el slot tiene
 
 ```
 T_lane = distancia_restante / BOARDING_LANE_SPEED
-T_tree_std = (TRAIN_SPEED - BOARDING_LANE_SPEED) / TREE_ACCELERATION
+T_tree_std = (TRAIN_SPEED - BOARDING_LANE_SPEED) / down_tree.base_acceleration
 T_total = T_lane + T_tree_std
 
 future_tail_x = (train.tail_x + TRAIN_SPEED * T_total) % train.total_length
@@ -409,11 +407,16 @@ target_idx = round(relative / TRAIN_SPACING) % train.max_slots
 
 Ajuste por offset del slot elegido `best_slot`:
 ```
-slot_offset = (best_slot - target_idx + max_slots//2) % max_slots - max_slots//2
-T_target = T_total + slot_offset * (TRAIN_SPACING / TRAIN_SPEED)
+raw_offset = (best_slot - target_idx + max_slots//2) % max_slots - max_slots//2
+T_target = T_total - raw_offset * (TRAIN_SPACING / TRAIN_SPEED)
 T_tree_adj = T_target - T_lane
 a = 2.0 * (tree_length - BOARDING_LANE_SPEED * T_tree_adj) / T_tree_adj**2
 ```
+
+CRÍTICO — el signo de `raw_offset` en `T_target`: un slot que está ADELANTE del target
+(raw_offset > 0) llega a junction_down ANTES en el tiempo → el VM debe apurarse → `T_target`
+debe ser MENOR que `T_total`. Por eso es RESTA, no suma. (Bug real corregido en julio 2026 —
+con el signo `+`, los VMs llegaban sistemáticamente desfasados de su slot.)
 
 ### Búsqueda en rango — constantes y prioridades
 
@@ -431,4 +434,6 @@ Prioridades para reserva (mejor primero):
 `_would_saturate(junction, candidate, station_id)`:
 - Lee `junction.burst_capacity` (N) y `junction.burst_window` (G)
 - Cuenta slots ya marcados para S en ventana de tamaño G alrededor del candidato
-- Retorna `True` si alguna sub-ventana de tamaño G ya tiene ≥ N slots marcados
+- Retorna `True` si alguna sub-ventana de tamaño G ya tiene MÁS de N slots marcados (`count > N`,
+  no `>=` — con `>=`, N=1 (estación de 1 andén) bloqueaba siempre el primer VM: bug real
+  corregido en julio 2026)
