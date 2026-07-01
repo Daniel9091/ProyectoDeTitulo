@@ -71,7 +71,7 @@ class Renderer:
                         current_time, fps, speed, paused)
     """
 
-    HUD_H = 90   # altura reservada para el panel HUD en píxeles
+    HUD_H = 112   # altura reservada para el panel HUD en píxeles
 
     def __init__(self, font_sm: pygame.font.Font, font_md: pygame.font.Font):
         self._font_sm = font_sm
@@ -110,12 +110,14 @@ class Renderer:
         surface.fill(BG)
 
         self._draw_belt_rail(surface, camera, train)
-        self._draw_belt_vms(surface, camera, train, W, H)
+        belt_drawn = self._draw_belt_vms(surface, camera, train, W, H)
         self._draw_tracks(surface, camera, network)
         self._draw_junction_markers(surface, camera, network, train)
         self._draw_stations(surface, camera, stations)
-        self._draw_transit_vms(surface, camera, network)
-        self._draw_hud(surface, train, current_time, fps, speed, paused, W, H)
+        transit_drawn = self._draw_transit_vms(surface, camera, network, W, H)
+        self._draw_hud(surface, train, current_time, fps, speed, paused, W, H,
+                        belt_drawn, transit_drawn)
+
         if paused:
             self._draw_pause_overlay(surface, W, H)
 
@@ -139,7 +141,7 @@ class Renderer:
 
     def _draw_belt_vms(
     self, surface: pygame.Surface, camera, train, W: int, H: int
-    ) -> None:
+    ) -> int:
         """
         Dibuja los VMs del belt como cajas wireframe 3D.
 
@@ -147,24 +149,27 @@ class Renderer:
             depth > 1200 → invisible (sub-pixel, no dibuja)
             depth 400-1200 → punto de 1px coloreado por etiqueta dominante
             depth < 400   → caja wireframe completa con codificación por etiquetas
+        + Retorna la cantidad de VMs dibujados este frame.
         """
+
         by = train.start_pos.y
         bz = train.start_pos.z
+        drawn = 0
 
         for i, slot in enumerate(train.slots):
             if slot['vm'] is None:
                 continue
             bx     = train.get_slot_belt_x(i)
-            center = camera.project(bx, by, bz)
+            center = self._project_visible(camera, bx, by, bz, W, H)
             if center is None:
                 continue
             sx, sy, depth = center
-            if sx < -50 or sx > W + 50 or sy < -50 or sy > H + 50:
-                continue
             if depth > 1200:
                 continue
+            drawn += 1
 
             labels = self._active_label_colors(slot)
+
 
             if depth > 400:
                 # Vista general: punto de 1px con color de etiqueta dominante
@@ -173,6 +178,8 @@ class Renderer:
             else:
                 # Vista detallada: caja wireframe completa
                 self._draw_vm_box(surface, camera, slot, bx, by, bz, depth, labels)
+
+        return drawn
 
     def _draw_vm_box(
         self, surface, camera, slot, cx, cy, cz, depth, labels
@@ -349,7 +356,7 @@ class Renderer:
 
     # ── VMs en tránsito ───────────────────────────────────────────────────────
 
-    def _draw_transit_vms(self, surface: pygame.Surface, camera, network) -> None:
+    def _draw_transit_vms(self, surface: pygame.Surface, camera, network, W: int, H: int) -> int:
         """
         Dibuja los VMs que están dentro de acceleration trees o boarding lanes.
 
@@ -359,9 +366,11 @@ class Renderer:
 
         Si la profundidad supera 800m la caja es sub-pixel → se dibuja como
         círculo (fallback visible en vista general).
+        + Retorna la cantidad de VMs dibujados este frame.
         """
-        VM_W, VM_D, VM_H = VM_RENDER_WIDTH, VM_RENDER_DEPTH, VM_RENDER_HEIGHT
 
+        VM_W, VM_D, VM_H = VM_RENDER_WIDTH, VM_RENDER_DEPTH, VM_RENDER_HEIGHT
+        drawn = 0
         for track in network.tracks.values():
             for vm_id, data in track.vehicles.items():
                 dist     = data['distance']
@@ -369,10 +378,12 @@ class Renderer:
                 pos        = track.position_at_progress(progress)
                 cx, cy, cz = pos.x, pos.y, pos.z
 
-                center = camera.project(cx, cy, cz)
+                center = self._project_visible(camera, cx, cy, cz, W, H)
                 if center is None:
                     continue
                 sx, sy, depth = center
+                drawn += 1
+
 
                 if depth > 800:
                     # Fallback: círculo de 3px cuando la caja sería sub-pixel
@@ -394,11 +405,13 @@ class Renderer:
                 self._draw_wireframe_box(surface, camera, verts, VM_TRANSIT_GL, 5)
                 # Caja principal
                 self._draw_wireframe_box(surface, camera, verts, VM_TRANSIT, 1)
+        return drawn
+
 
     # ── HUD ───────────────────────────────────────────────────────────────────
-
     def _draw_hud(
-        self, surface, train, current_time, fps, speed, paused, W, H
+        self, surface, train, current_time, fps, speed, paused, W, H,
+        belt_drawn, transit_drawn,
     ) -> None:
         """
         Panel semitransparente en la parte inferior con:
@@ -419,11 +432,16 @@ class Renderer:
         vel_str = "PAUSADO" if paused else f"{speed}×"
 
         # Columna izquierda
+        # Columna izquierda
+        # Columna izquierda
         for i, line in enumerate([
             f"t = {current_time:>9.1f} s",
             f"FPS: {fps:>4.0f}     Vel: {vel_str}",
             f"Belt: {on}/{total}    Tránsito: {transit}",
+            f"Visibles: {belt_drawn + transit_drawn}  (belt {belt_drawn}/{on}  ·  tránsito {transit_drawn}/{transit})",
         ]):
+
+
             surf = self._font_sm.render(line, True, TEXT_BRIGHT)
             surface.blit(surf, (16, hud_y + 8 + i * 22))
 
@@ -462,6 +480,24 @@ class Renderer:
         surface.blit(txt, (W // 2 - txt.get_width() // 2, H // 2 - 12))
 
     # ── Primitivas internas ───────────────────────────────────────────────────
+
+    def _project_visible(
+        self, camera, x: float, y: float, z: float, W: int, H: int, margin: int = 50
+    ):
+        """
+        Proyecta un punto 3D y aplica cull de viewport.
+
+        Retorna (sx, sy, depth) si el punto cae dentro de la pantalla
+        (con margen), o None si está detrás de la cámara o fuera de vista.
+        Único criterio de "visible" para VMs — el resto de objetos no lo usa.
+        """
+        center = camera.project(x, y, z)
+        if center is None:
+            return None
+        sx, sy, depth = center
+        if sx < -margin or sx > W + margin or sy < -margin or sy > H + margin:
+            return None
+        return center
 
     def _draw_segment(
         self, surface, camera,
