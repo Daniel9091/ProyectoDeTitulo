@@ -284,6 +284,15 @@ class Camera:
         """
         self._fov_scale = (self.screen_h / 2.0) / math.tan(math.radians(self.fov / 2.0))
 
-
+    def on_resize(self, screen_w: int, screen_h: int) -> None:
+        """
+        Actualiza las dimensiones de pantalla tras un resize de ventana o
+        toggle de fullscreen. El fov_scale depende de screen_h, así que
+        hay que recalcularlo — si no, la proyección queda desfasada del
+        tamaño real de la superficie.
+        """
+        self.screen_w = screen_w
+        self.screen_h = screen_h
+        self._recompute_fov_scale()
 
 

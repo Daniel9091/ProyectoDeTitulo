@@ -19,10 +19,13 @@ def main():
 
     pygame.init()
     pygame.display.set_caption("NSim — Sistema de Transporte Modular")
-    screen   = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    screen   = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
     clock    = pygame.time.Clock()
     font_sm  = pygame.font.SysFont("monospace", 12)
     font_md  = pygame.font.SysFont("monospace", 15, bold=True)
+
+    is_fullscreen = False
+    windowed_size = (SCREEN_WIDTH, SCREEN_HEIGHT)
 
     z_belt   = train.start_pos.z
     z_floor  = max(s.dimensions.floor_height for s in stations.values())
@@ -33,21 +36,44 @@ def main():
     speed_idx = 0
     paused    = False
 
-    print("Corriendo — Esc o cierra la ventana para salir.")
+    print("Corriendo — Esc para salir (o cerrar fullscreen). F11 = pantalla completa.")
     running = True
     while running:
         dt_real = clock.tick(FPS) / 1000.0
 
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:                           running   = False
+            if event.type == pygame.QUIT:
+                running = False
+
+            elif event.type == pygame.VIDEORESIZE:
+
+                if not is_fullscreen:
+                    windowed_size = (event.w, event.h)
+                    camera.on_resize(event.w, event.h)
+
             elif event.type == pygame.KEYDOWN:
-                if   event.key == pygame.K_ESCAPE:                  running   = False
-                elif event.key == pygame.K_SPACE:                   paused    = not paused
-                elif event.key == pygame.K_1:                       speed_idx = 0
-                elif event.key == pygame.K_2:                       speed_idx = 1
-                elif event.key == pygame.K_3:                       speed_idx = 2
-                elif event.key == pygame.K_4:                       speed_idx = 3
+                if event.key == pygame.K_ESCAPE:
+                    if is_fullscreen:
+                        is_fullscreen = False
+                        pygame.display.toggle_fullscreen()
+                        screen = pygame.display.get_surface()
+                        camera.on_resize(*screen.get_size())
+                    else:
+                        running = False
+                elif event.key == pygame.K_F11:
+                    is_fullscreen = not is_fullscreen
+                    pygame.display.toggle_fullscreen()
+                    screen = pygame.display.get_surface()
+                    camera.on_resize(*screen.get_size())
+                    
+                elif event.key == pygame.K_SPACE: paused    = not paused
+                elif event.key == pygame.K_1:     speed_idx = 0
+                elif event.key == pygame.K_2:     speed_idx = 1
+                elif event.key == pygame.K_3:     speed_idx = 2
+                elif event.key == pygame.K_4:     speed_idx = 3
             camera.handle_event(event)
+
+
 
         camera.update(dt_real)
 
