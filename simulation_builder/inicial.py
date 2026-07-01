@@ -18,11 +18,12 @@ from config.constants import TREE_DZ
 
 VM_CAPACITY     = 6        # VMs pequeños tipo pod de 6 personas
 DENSITY         = 1.0      # 100% de slots ocupados al iniciar
-BELT_MARGIN     = 150.0
+BELT_MARGIN     = 150.0    # margen antes y despues del prier y ultimo arbol
 
+STATION_Y       = 0.0
 STATION_Z       = 0.0
 BELT_Z          = STATION_Z - TREE_DZ
-STATION_Y       = 0.0
+
 
 DIMS = StationDimensions(
     x_length   = 100.0,   # 100m de largo (ancho en X del hall)

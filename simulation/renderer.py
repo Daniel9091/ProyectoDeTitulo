@@ -129,15 +129,18 @@ class Renderer:
             - Exterior grueso + oscuro → efecto de halo luminoso
             - Interior delgado + brillante → el rail propiamente dicho
         El belt va de X=0 a X=total_length, Y=0, Z=start_pos.z.
+        Usa project_segment (no project) porque el belt es muy largo: sin
+        recorte contra el near-clip, un extremo detrás de cámara borra el
+        rail completo en vez de solo la parte que corresponde.
         """
-        z  = train.start_pos.z
-        p1 = camera.project(train.start_pos.x, train.start_pos.y, train.start_pos.z)
-        p2 = camera.project(train.end_pos.x,   train.end_pos.y,   train.end_pos.z)
-        if p1 and p2:
-            sx1, sy1 = p1[0], p1[1]
-            sx2, sy2 = p2[0], p2[1]
-            pygame.draw.line(surface, BELT_GLOW, (sx1, sy1), (sx2, sy2), 7)
-            pygame.draw.line(surface, BELT_CORE, (sx1, sy1), (sx2, sy2), 2)
+        seg = camera.project_segment(
+            train.start_pos.x, train.start_pos.y, train.start_pos.z,
+            train.end_pos.x,   train.end_pos.y,   train.end_pos.z,
+        )
+        if seg:
+            p1, p2 = seg
+            pygame.draw.line(surface, BELT_GLOW, p1, p2, 7)
+            pygame.draw.line(surface, BELT_CORE, p1, p2, 2)
 
     def _draw_belt_vms(
     self, surface: pygame.Surface, camera, train, W: int, H: int
@@ -312,7 +315,6 @@ class Renderer:
                     sx, sy, depth = result
                     r = max(1, min(3, int(600 / max(depth, 80))))
                     pygame.draw.circle(surface, JUNCTION_DOT, (sx, sy), r)
-
 
     # ── Estaciones ────────────────────────────────────────────────────────────
 
@@ -506,33 +508,34 @@ class Renderer:
     ) -> None:
         """
         Proyecta y dibuja un segmento 3D entre (x1,y1,z1) y (x2,y2,z2).
-        Si algún extremo queda detrás de la cámara (project=None) no dibuja nada.
+        Recorta contra el near-clip plane si solo un extremo está detrás de
+        cámara — el segmento solo se omite por completo si ambos lo están.
         """
-        p1 = camera.project(x1, y1, z1)
-        p2 = camera.project(x2, y2, z2)
-        if p1 and p2:
-            pygame.draw.line(surface, color, (p1[0], p1[1]), (p2[0], p2[1]), width)
+        seg = camera.project_segment(x1, y1, z1, x2, y2, z2)
+        if seg:
+            p1, p2 = seg
+            pygame.draw.line(surface, color, p1, p2, width)
+
 
     def _draw_wireframe_box(
         self, surface, camera, vertices, color, width=1
     ) -> None:
         """
         Proyecta una lista de 8 vértices 3D y dibuja las 12 aristas de la caja.
-        Las aristas cuyos extremos no proyectan (detrás de cámara) se omiten.
+        Cada arista se recorta contra el near-clip plane si solo uno de sus
+        dos vértices está detrás de cámara — solo se omite si ambos lo están.
 
         Parámetros
         ----------
         vertices : list de 8 tuplas (x, y, z) — orden: [0-3] base, [4-7] techo
         """
-        pts = [camera.project(vx, vy, vz) for vx, vy, vz in vertices]
         for a, b in BOX_EDGES:
-            if pts[a] and pts[b]:
-                pygame.draw.line(
-                    surface, color,
-                    (pts[a][0], pts[a][1]),
-                    (pts[b][0], pts[b][1]),
-                    width,
-                )
+            xa, ya, za = vertices[a]
+            xb, yb, zb = vertices[b]
+            seg = camera.project_segment(xa, ya, za, xb, yb, zb)
+            if seg:
+                p1, p2 = seg
+                pygame.draw.line(surface, color, p1, p2, width)
 
     @staticmethod
     def _active_label_colors(slot: dict) -> list:

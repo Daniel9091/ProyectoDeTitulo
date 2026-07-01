@@ -103,27 +103,19 @@ class Camera:
         self._fov_scale   = 0.0
         self._recompute_fov_scale()
 
-        # ── API principal ─────────────────────────────────────────────────────────
+    # ── Pipeline de proyección ────────────────────────────────────────────────
+    # world → _to_camera_space → [chequeo near-clip] → _camera_to_screen → píxeles
+    # project()         : la ruta de arriba para UN punto.
+    # project_segment() : misma ruta para un SEGMENTO; si un extremo cae
+    #                     detrás del near-clip, lo recorta con _clip_to_near
+    #                     en vez de descartar el segmento completo.
 
-    def project(
+    def _to_camera_space(
         self, wx: float, wy: float, wz: float
-    ) -> tuple[int, int, float] | None:
+    ) -> tuple[float, float, float]:
         """
-        Proyecta un punto 3D del mundo a coordenadas de pantalla 2D.
-
-        Matemática:
-            1. delta = punto_mundo − posición_cámara
-            2. x_cam, y_cam, z_cam = proyección de delta sobre los ejes
-               {right, up, forward} de la cámara (ver módulo docstring).
-            3. Si z_cam < CAM_NEAR_CLIP el punto está detrás → retorna None.
-            4. División perspectiva:
-                   sx = cx + fov_scale * x_cam / z_cam
-                   sy = cy − fov_scale * y_cam / z_cam   (Y invertido en Pygame)
-
-        Retorna
-        -------
-        (screen_x, screen_y, depth) si el punto es visible, None si está
-        detrás de la cámara o demasiado cerca del plano near clip.
+        Transforma un punto del mundo al espacio de cámara (x_cam, y_cam, z_cam),
+        sin near-clip ni división perspectiva.
         """
         dx = wx - self.pos[0]
         dy = wy - self.pos[1]
@@ -134,30 +126,95 @@ class Camera:
         cos_y   = math.cos(yaw_r);   sin_y = math.sin(yaw_r)
         cos_p   = math.cos(pitch_r); sin_p = math.sin(pitch_r)
 
-        # Proyección sobre el eje RIGHT de la cámara = (sin_y, −cos_y, 0)
         x_cam = dx * sin_y - dy * cos_y
-
-        # h: componente de delta en la dirección horizontal forward (XY)
-        # Sirve de puente para calcular y_cam y z_cam eficientemente.
         h     =  dx * cos_y + dy * sin_y
-
-        # Proyección sobre UP = (−cos_y·sin_p, −sin_y·sin_p, cos_p)
         y_cam = -h * sin_p + dz * cos_p
-
-        # Profundidad: proyección sobre FORWARD = (cos_y·cos_p, sin_y·cos_p, sin_p)
         z_cam =  h * cos_p + dz * sin_p
+        return x_cam, y_cam, z_cam
 
-        if z_cam < CAM_NEAR_CLIP:
-            return None  # punto detrás de la cámara — no renderizar
-
-        inv_depth = 1.0 / z_cam   # división perspectiva
+    def _camera_to_screen(
+        self, x_cam: float, y_cam: float, z_cam: float
+    ) -> tuple[int, int, float]:
+        """División perspectiva: espacio de cámara → píxeles de pantalla."""
+        inv_depth = 1.0 / z_cam
         cx = self.screen_w / 2
         cy = self.screen_h / 2
         sx = int(cx + self._fov_scale * x_cam * inv_depth)
         sy = int(cy - self._fov_scale * y_cam * inv_depth)
-
         return sx, sy, z_cam
-    
+
+    def project(
+        self, wx: float, wy: float, wz: float
+    ) -> tuple[int, int, float] | None:
+        """
+        Proyecta un punto 3D del mundo a coordenadas de pantalla 2D.
+
+        Orquesta el pipeline en 2 pasos (la matemática vive en cada uno,
+        no aquí):
+            1. _to_camera_space  → x_cam, y_cam, z_cam
+            2. si z_cam < CAM_NEAR_CLIP → detrás de cámara, retorna None
+            3. _camera_to_screen → división perspectiva → píxeles
+
+        Para un SEGMENTO que puede cruzar el near-clip plane, usar
+        project_segment en vez de llamar este método dos veces — evita que
+        el segmento entero desaparezca cuando solo un extremo está detrás.
+
+        Retorna
+        -------
+        (screen_x, screen_y, depth) si el punto es visible, None si está
+        detrás de la cámara o demasiado cerca del plano near clip.
+        """
+        x_cam, y_cam, z_cam = self._to_camera_space(wx, wy, wz)
+
+        if z_cam < CAM_NEAR_CLIP:
+            return None  # punto detrás de la cámara — no renderizar
+
+        return self._camera_to_screen(x_cam, y_cam, z_cam)
+
+    @staticmethod
+    def _clip_to_near(
+        behind: tuple[float, float, float], front: tuple[float, float, float]
+    ) -> tuple[float, float, float]:
+        """
+        Interpola el punto donde el segmento behind→front cruza el plano
+        z_cam = CAM_NEAR_CLIP. `behind` tiene z_cam < CAM_NEAR_CLIP,
+        `front` tiene z_cam >= CAM_NEAR_CLIP (garantizado por el caller).
+        """
+        xb, yb, zb = behind
+        xf, yf, zf = front
+        t = (CAM_NEAR_CLIP - zb) / (zf - zb)
+        return (
+            xb + (xf - xb) * t,
+            yb + (yf - yb) * t,
+            CAM_NEAR_CLIP,
+        )
+
+    def project_segment(
+        self, x1: float, y1: float, z1: float, x2: float, y2: float, z2: float
+    ) -> tuple[tuple[int, int], tuple[int, int]] | None:
+        """
+        Proyecta un segmento 3D completo, recortando contra el near-clip
+        plane si solo uno de los extremos está detrás de cámara — evita que
+        el segmento entero desaparezca al pasar cerca de un extremo.
+
+        Retorna ((sx1, sy1), (sx2, sy2)), o None si el segmento entero
+        queda detrás de la cámara.
+        """
+        ca = self._to_camera_space(x1, y1, z1)
+        cb = self._to_camera_space(x2, y2, z2)
+        za, zb = ca[2], cb[2]
+
+        if za < CAM_NEAR_CLIP and zb < CAM_NEAR_CLIP:
+            return None
+        if za < CAM_NEAR_CLIP:
+            ca = self._clip_to_near(ca, cb)
+        elif zb < CAM_NEAR_CLIP:
+            cb = self._clip_to_near(cb, ca)
+
+        sa = self._camera_to_screen(*ca)
+        sb = self._camera_to_screen(*cb)
+        return (sa[0], sa[1]), (sb[0], sb[1])
+
     def update(self, dt: float) -> None:
         """
         Aplica movimiento continuo basado en el estado actual del teclado.
