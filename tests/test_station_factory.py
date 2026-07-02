@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 
 from objects.math3d import Vector3
-from objects.station import Station, StationDimensions
+from objects.station import Station
 from objects.passenger_id_generator import PassengerIdGenerator
 from objects.types import TreeDirection
 from tracks.junction import Junction
@@ -30,11 +30,10 @@ from simulation.station_factory import (
     connect_station_to_network,
     _lane_y_offsets,
 )
-from config.constants import TREE_LENGTH, TREE_DZ
+from config.constants import TREE_LENGTH, TREE_DZ, STATION_X_LENGTH, STATION_Y_LENGTH
 
 # ─── FIXTURES ────────────────────────────────────────────────────────────────
 
-DIMS = StationDimensions(x_length=40.0, y_length=20.0, floor_height=10.0, num_floors=1)
 ORIGIN = Vector3(100.0, 0.0, 0.0)
 EXPECTED_JUNCTION_DEPTH = ORIGIN.z - TREE_DZ   # junction_depth que create_station calcula internamente
 
@@ -46,7 +45,6 @@ def make_components(num_lanes: int = 1, station_id: int = 1):
         station_id                 = station_id,
         station_origin             = ORIGIN,
         num_lanes                  = num_lanes,
-        dims                       = DIMS,
         passenger_rate             = 0.0,
         destination_probabilities  = {2: 1.0},
         vm_request_rate            = 0.0,
@@ -205,7 +203,6 @@ class Test_CreateStation:
         kwargs  = dict(
             station_origin            = ORIGIN,
             num_lanes                 = 2,
-            dims                      = DIMS,
             passenger_rate            = 0.0,
             destination_probabilities = {2: 1.0},
             vm_request_rate           = 0.0,
@@ -262,7 +259,6 @@ class Test_ConnectStationToNetwork:
             station_id                = 1,
             station_origin            = ORIGIN,
             num_lanes                 = 1,
-            dims                      = DIMS,
             passenger_rate            = 0.0,
             destination_probabilities = {2: 1.0},
             vm_request_rate           = 0.0,
@@ -323,9 +319,9 @@ class Test_Geometry:
     def test_belt_x_exact_value(self):
         """belt_x_up coincide con el valor calculado manualmente con la fórmula geométrica."""
         dz     = TREE_DZ
-        y_ext  = max(abs(y) for y in _lane_y_offsets(3, DIMS.y_length))
+        y_ext  = max(abs(y) for y in _lane_y_offsets(3, STATION_Y_LENGTH))
         dx_ext = math.sqrt(TREE_LENGTH**2 - y_ext**2 - dz**2)
-        expected_belt_x_up = ORIGIN.x - DIMS.x_length / 2.0 - dx_ext
+        expected_belt_x_up = ORIGIN.x - STATION_X_LENGTH / 2.0 - dx_ext
         _, _, _, _, j_up, _ = make_components(num_lanes=3)
         assert j_up.belt_x == pytest.approx(expected_belt_x_up)
 
@@ -346,7 +342,6 @@ class Test_Geometry:
             station_id=1,
             station_origin=Vector3(100.0, origin_y, 0.0),
             num_lanes=3,
-            dims=DIMS,
             passenger_rate=0.0,
             destination_probabilities={2: 1.0},
             vm_request_rate=0.0,
@@ -354,7 +349,7 @@ class Test_Geometry:
             id_generator=pid_gen,
             id_alloc=alloc,
         )
-        for tree, y_i in zip(up_trees, _lane_y_offsets(3, DIMS.y_length)):
+        for tree, y_i in zip(up_trees, _lane_y_offsets(3, STATION_Y_LENGTH)):
             assert tree.end_pos.y == pytest.approx(origin_y + y_i)
 
     def test_lane_endpoints_match_tree_endpoints(self):

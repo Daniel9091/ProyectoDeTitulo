@@ -25,12 +25,6 @@ STATION_Z       = 0.0
 BELT_Z          = STATION_Z - TREE_DZ
 
 
-DIMS = StationDimensions(
-    x_length   = 100.0,   # 100m de largo (ancho en X del hall)
-    y_length   = 30.0,    # 30m de ancho (permite 3 andenes cómodos)
-    floor_height = 5.0,   # 5m de altura de planta baja
-    num_floors = 1,
-)
 
 # Estaciones en línea recta, separadas 1 km entre sí
 X_S1 = 500.0
@@ -71,7 +65,6 @@ def build(seed: int = 42) -> tuple[Brain, dict[int, Station]]:
         station_id=1,
         station_origin=Vector3(X_S1, STATION_Y, STATION_Z),
         num_lanes=1,
-        dims=DIMS,
         passenger_rate=RATE_S1,
         destination_probabilities=DEST_FROM_1,
         vm_request_rate=VM_RATE_S1,
@@ -85,7 +78,6 @@ def build(seed: int = 42) -> tuple[Brain, dict[int, Station]]:
         station_id=2,
         station_origin=Vector3(X_S2, STATION_Y, STATION_Z),
         num_lanes=4,
-        dims=DIMS,
         passenger_rate=RATE_S2,
         destination_probabilities=DEST_FROM_2,
         vm_request_rate=VM_RATE_S2,
@@ -99,7 +91,6 @@ def build(seed: int = 42) -> tuple[Brain, dict[int, Station]]:
         station_id=3,
         station_origin=Vector3(X_S3, STATION_Y, STATION_Z),
         num_lanes=2,
-        dims=DIMS,
         passenger_rate=RATE_S3,
         destination_probabilities=DEST_FROM_3,
         vm_request_rate=VM_RATE_S3,

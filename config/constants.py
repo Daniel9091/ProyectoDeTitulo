@@ -55,3 +55,10 @@ CAM_PITCH_LIMIT    = 89.0   # límite superior/inferior de pitch para evitar gim
 VM_RENDER_WIDTH  = TRAIN_VM_LENGTH      # ancho del VM en 3D (m)
 VM_RENDER_DEPTH  = 1.0                  # profundidad del VM en 3D (m)
 VM_RENDER_HEIGHT = 1.5                  # alto del VM en 3D (m)
+
+# CTE. DIMENCIONES ESTACIONES
+
+STATION_X_LENGTH        = 100.0         # largo de la estacion  dx  (m)
+STATION_Y_LENGTH        = 30.0          # ancho de la estacion  dy  (m)
+STATION_FLOOR_HEIGHT    = 5.0           # altura de los pisos   dz  (m)
+STATION_NUM_FLOORS      = 1             # Canitdad de pisos

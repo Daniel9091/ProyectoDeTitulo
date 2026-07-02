@@ -28,7 +28,6 @@ def main():
     windowed_size = (SCREEN_WIDTH, SCREEN_HEIGHT)
 
     z_belt   = train.start_pos.z
-    z_floor  = max(s.dimensions.floor_height for s in stations.values())
     camera   = Camera(SCREEN_WIDTH, SCREEN_HEIGHT,
                       pos=[1500.0, -600.0, 250.0], yaw=90.0, pitch=-20.0)
     renderer = Renderer(font_sm, font_md)   # ← ya no recibe camera
@@ -65,7 +64,7 @@ def main():
                     pygame.display.toggle_fullscreen()
                     screen = pygame.display.get_surface()
                     camera.on_resize(*screen.get_size())
-                    
+
                 elif event.key == pygame.K_SPACE: paused    = not paused
                 elif event.key == pygame.K_1:     speed_idx = 0
                 elif event.key == pygame.K_2:     speed_idx = 1

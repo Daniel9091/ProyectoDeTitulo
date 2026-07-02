@@ -50,7 +50,9 @@ from objects.passenger_id_generator import PassengerIdGenerator
 from tracks.acceleration_tree import AccelerationTree
 from tracks.boarding_lane import BoardingLane
 from tracks.junction import Junction
-from config.constants import MIN_VM_SEPARATION, TREE_LENGTH, TREE_DZ
+from config.constants import MIN_VM_SEPARATION, TREE_LENGTH, TREE_DZ, STATION_X_LENGTH, STATION_Y_LENGTH, STATION_FLOOR_HEIGHT, STATION_NUM_FLOORS
+
+
 
 # ─── ALLOCADOR DE IDs ────────────────────────────────────────────────────────
 
@@ -72,7 +74,6 @@ def create_station(
     station_id:                 int,                    # ID
     station_origin:             Vector3,                # Cordenadas del centro de la estacion
     num_lanes:                  int,                    # Numero de andenes
-    dims:                       StationDimensions,      # Dimensiones de la estacion ancho, largo altura
     passenger_rate:             float,                  # Tasa de produccion de pasajeros (s)
     destination_probabilities:  dict,                   # diccionario con probabilidades de que pasagero valla a estacion x
     vm_request_rate:            float,                  # Tasa de solicitudes de VMs (s)
@@ -101,7 +102,7 @@ def create_station(
 
     # ── Geometría de accelerationTree ────────────────────────────────────────
     # Paso 1 — Offset Y máximo (andén más externo):
-    y_offsets   = _lane_y_offsets(num_lanes, dims.y_length)
+    y_offsets   = _lane_y_offsets(num_lanes, STATION_Y_LENGTH)
     y_ext       = max(abs(y) for y in y_offsets)                        # Offset del lane externo
     # Paso 2 - dz (componente Z del árbol)
     dz = TREE_DZ
@@ -109,8 +110,8 @@ def create_station(
     # Paso 3 — dx del árbol más externo
     dx_ext = math.sqrt(max(0.0, TREE_LENGTH**2 - y_ext**2 - dz**2))     # dx de lane externa
     #  posición X de junction
-    x_left = station_origin.x - dims.x_length /2.0                      # borde X izq. de la lane externa
-    x_right= station_origin.x + dims.x_length /2.0                      # borde X der. de la lane externa
+    x_left = station_origin.x - STATION_X_LENGTH /2.0                      # borde X izq. de la lane externa
+    x_right= station_origin.x + STATION_X_LENGTH /2.0                      # borde X der. de la lane externa
 
     belt_x_up   = x_left    - dx_ext                                    # junction UP (coordenada X lineal)
     belt_x_down = x_right   + dx_ext                                    # junction DOWN (coordenada X lineal)
@@ -172,6 +173,13 @@ def create_station(
     junction_down = Junction(j_down_id, belt_x_down, station_id, TreeDirection.DOWN, down_trees)
 
     # ── Station ────────────────────────────────────────────────────────────
+
+    dims = StationDimensions(
+        x_length        = STATION_X_LENGTH,   
+        y_length        = STATION_Y_LENGTH,    
+        floor_height    = STATION_FLOOR_HEIGHT,   
+        num_floors      = STATION_NUM_FLOORS,
+    )
 
     station = Station(
         station_id                  = station_id,
