@@ -65,6 +65,11 @@ class TestInit:
         train = make_train(density=1.0)
         assert all(s['vm'] is not None for s in train.slots)
 
+    def test_slots_start_with_empty_colliding_vms(self):
+        """Cada slot nace con colliding_vms=[] — nunca None, siempre lista vacía."""
+        train = make_train()
+        assert all(s['colliding_vms'] == [] for s in train.slots)
+
 # ─── ADVANCE ──────────────────────────────────────────────────────────────────
 
 class TestAdvance:
@@ -245,3 +250,75 @@ class TestQueries:
         train = make_train(total_length=100.0)
         train.tail_x = 5.0
         assert abs(train.get_slot_belt_x(49) - 3.0) < 1e-9
+
+# ─── COLISIONES ─────────────────────────────────────────────────────────────
+
+class TestCollisions:
+    """
+    place_vm no debe sobreescribir un slot ocupado — debe apilar el VM entrante
+    en 'colliding_vms' y dejar el original intacto (choque diagnosticable en
+    vez de un VM perdido en silencio).
+    """
+
+    def test_place_vm_on_empty_slot_has_no_collision(self):
+        """Caso normal: colliding_vms se queda vacío."""
+        train = make_train()
+        train.place_vm(FakeVehicle(1), 0)
+        assert train.slots[0]['vm'].vehicle_id == 1
+        assert train.slots[0]['colliding_vms'] == []
+
+    def test_place_vm_on_occupied_slot_does_not_overwrite_original(self):
+        """El VM que ya estaba en el slot se queda ahí — no se pierde."""
+        train = make_train()
+        original = FakeVehicle(1)
+        train.place_vm(original, 0)
+        train.place_vm(FakeVehicle(2), 0)
+        assert train.slots[0]['vm'] is original
+
+    def test_place_vm_on_occupied_slot_appends_to_colliding_vms(self):
+        """El VM entrante queda registrado como choque, no perdido."""
+        train = make_train()
+        train.place_vm(FakeVehicle(1), 0)
+        intruder = FakeVehicle(2)
+        train.place_vm(intruder, 0)
+        assert train.slots[0]['colliding_vms'] == [intruder]
+
+    def test_place_vm_collision_logs_critical(self, caplog):
+        """El choque debe quedar registrado para diagnóstico."""
+        import logging
+        train = make_train()
+        train.place_vm(FakeVehicle(1), 0)
+        with caplog.at_level(logging.CRITICAL):
+            train.place_vm(FakeVehicle(2), 0)
+        assert any("CHOQUE" in r.message for r in caplog.records
+                   if r.levelno == logging.CRITICAL)
+
+    def test_third_vm_stacks_on_existing_collision(self):
+        """Un tercer VM en el mismo slot se agrega a la lista, no reemplaza nada."""
+        train = make_train()
+        train.place_vm(FakeVehicle(1), 0)
+        train.place_vm(FakeVehicle(2), 0)
+        train.place_vm(FakeVehicle(3), 0)
+        ids = [vm.vehicle_id for vm in train.slots[0]['colliding_vms']]
+        assert ids == [2, 3]
+
+    def test_get_colliding_vm_count_zero_when_no_collisions(self):
+        train = make_train(density=1.0)
+        assert train.get_colliding_vm_count() == 0
+
+    def test_get_colliding_vm_count_counts_original_plus_extras(self):
+        """Un choque simple (2 VMs en 1 slot) cuenta como 2, no como 1."""
+        train = make_train()
+        train.place_vm(FakeVehicle(1), 0)
+        train.place_vm(FakeVehicle(2), 0)
+        assert train.get_colliding_vm_count() == 2
+
+    def test_get_colliding_vm_count_sums_across_multiple_slots(self):
+        """Dos choques independientes se suman: 2 (slot 0) + 3 (slot 1) = 5."""
+        train = make_train()
+        train.place_vm(FakeVehicle(1), 0)
+        train.place_vm(FakeVehicle(2), 0)          # slot 0: choque de 2
+        train.place_vm(FakeVehicle(3), 1)
+        train.place_vm(FakeVehicle(4), 1)
+        train.place_vm(FakeVehicle(5), 1)          # slot 1: choque de 3
+        assert train.get_colliding_vm_count() == 5

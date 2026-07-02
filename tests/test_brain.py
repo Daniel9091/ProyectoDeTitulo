@@ -1471,6 +1471,26 @@ class TestCrossingHandler:
         assert slot['destination_station_id'] is None
         assert slot['demand_station_id'] is None
 
+    def test_colliding_slot_is_frozen_no_crossing_processed(self):
+        """
+        Un slot en choque se congela por completo: ningún label se procesa,
+        ningún VM sale del belt, aunque tenga reserved/dest/demand activos.
+        """
+        brain, train, network, stations = make_brain_fixture()
+        original = _make_vm(vm_id=0)
+        intruder = _make_vm(vm_id=1)
+        train.slots[5]['vm'] = original
+        train.slots[5]['colliding_vms'] = [intruder]
+        train.slots[5]['reserved_station_id'] = STATION_ID  # forzaría salida si no estuviera congelado
+
+        junction = network.get_junction_up(STATION_ID)
+        with patch.object(junction, 'add_vm', return_value=True) as mock_add:
+            brain._handle_crossings([(5, STATION_ID, 0.0)])
+
+        mock_add.assert_not_called()
+        assert train.slots[5]['vm'] is original
+        assert train.slots[5]['colliding_vms'] == [intruder]
+
 # ─── LABEL COMBINATIONS ──────────────────────────────────────────────────────
 
 class TestLabelCompatibility:
@@ -1969,6 +1989,22 @@ class TestDemandSystem:
         assert train.slots[3]['demand_station_id'] == STATION_ID
         assert station.pending_demand == 1
 
+    def test_demand_never_selects_colliding_slot(self):
+        """
+        _range_search_demand nunca marca un slot en choque, aunque tenga VM
+        y esté limpio de otras etiquetas.
+        """
+        brain, train, network, stations = make_brain_fixture()
+        junction_up = network.get_junction_up(STATION_ID)
+
+        with patch.object(brain, '_would_saturate', return_value=False):
+            train.slots[5]['vm'] = _make_vm()
+            train.slots[5]['colliding_vms'] = [_make_vm(vm_id=99)]
+
+            result = brain._range_search_demand(STATION_ID, junction_up)
+
+        assert result != 5, "Nunca debe marcar un slot en choque con demanda"
+
 # ─── RESERVATION MATH ────────────────────────────────────────────────────────
 
 class TestReservationMath:
@@ -2125,6 +2161,31 @@ class TestReservationMath:
         assert vm_b.vehicle_id in brain._reserved_slots        # el otro sigue activo
         assert train.slots[SLOT_A]['vm'] is vm_a
         assert train.slots[SLOT_B]['vm'] is None               # vm_b aún no llegó
+
+    def test_pase2_does_not_set_destination_on_colliding_slot(self):
+        """
+        Pase 2 (destino adquirido después del commit) nunca escribe
+        destination_station_id en un slot que ya está en choque.
+        """
+        brain, train, network, stations = make_brain_fixture()
+        vm = _make_vm(vm_id=0)
+        vm.destination_station_id = STATION_ID
+        SLOT = 7
+        
+        brain._reserved_slots[vm.vehicle_id] = SLOT
+        train.slots[SLOT]['vm'] = _make_vm(vm_id=1)               # ocupante original
+        train.slots[SLOT]['colliding_vms'] = [_make_vm(vm_id=2)]  # ya está en choque
+
+        lane = network.get_track(LANE_ID)
+        lane.vehicles[vm.vehicle_id] = {
+            'vehicle': vm, 'distance': 0.5 * LANE_LENGTH,
+            'velocity': BOARDING_LANE_SPEED, 'passengers': [], 'boarding_committed': True,
+        }
+
+        brain._process_reservations()
+
+        assert train.slots[SLOT]['destination_station_id'] is None
+
 
 # ─── RANGE SEARCH PRIORITIES ─────────────────────────────────────────────────
 
@@ -2313,6 +2374,22 @@ class TestRangeSearchPriorities:
             result = brain._range_search_reservation(2, STATION_ID, junction_up)
 
         assert result == 48, "Debe encontrar el slot envuelto (48 = -2 % 50)"
+
+    def test_reservation_never_selects_colliding_slot(self):
+        """
+        Un slot en choque nunca es elegible para una nueva reserva, aunque
+        esté vacío de etiquetas — es tan inválido como uno ya reservado.
+        """
+        brain, train, network, stations = make_brain_fixture()
+        junction_up = network.get_junction_up(STATION_ID)
+
+        with patch.object(brain, '_would_saturate', return_value=False):
+            train.slots[22]['vm'] = _make_vm()
+            train.slots[22]['colliding_vms'] = [_make_vm(vm_id=99)]  # único candidato, pero chocando
+
+            result = brain._range_search_reservation(22, STATION_ID, junction_up)
+
+        assert result != 22, "Nunca debe elegir un slot en choque"
 
 # ─── BELT PLACEMENT ──────────────────────────────────────────────────────────
 
