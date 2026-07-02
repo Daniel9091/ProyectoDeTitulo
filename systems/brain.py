@@ -185,7 +185,9 @@ class Brain:
             slot = self._train.slots[slot_idx]
             if slot['vm'] is None:
                 continue
-            
+            if slot['colliding_vms']:
+                continue  # slot en choque: se congela, ningún VM sale hasta corregir el bug a mano
+
             reserved = slot['reserved_station_id']
             dest = slot['destination_station_id']
             demand = slot['demand_station_id']
@@ -329,8 +331,10 @@ class Brain:
                 elif vm.vehicle_id in self._reserved_slots and vm.has_destination:
                     # Pase 2: el VM ya tiene reserva pero adquirió destino después del commit
                     slot_idx = self._reserved_slots[vm.vehicle_id]
-                    if self._train.slots[slot_idx]['destination_station_id'] is None:
+                    slot = self._train.slots[slot_idx]
+                    if not slot['colliding_vms'] and slot['destination_station_id'] is None:
                         self._train.set_destination(slot_idx, vm.destination_station_id)
+
 
     def _get_down_tree_for_lane(self, lane_id: int):
         """
@@ -519,6 +523,8 @@ class Brain:
 
         for candidate in candidates:
             slot = self._train.slots[candidate]
+            if slot['colliding_vms']:
+                continue  # slot en choque: nunca elegible para una nueva reserva
             res_lbl = slot['reserved_station_id']
             if res_lbl is not None:
                 if res_lbl != station_id:
@@ -607,6 +613,8 @@ class Brain:
             
             if slot['vm'] is None:
                 continue
+            if slot['colliding_vms']:
+                continue  # slot en choque: nunca elegible para nueva demanda        
             res_lbl = slot['reserved_station_id']
             if res_lbl is not None and res_lbl != station_id:
                 continue

@@ -14,6 +14,7 @@ SPEEDS = [1, 2, 5, 10]
 def main():
     print("Construyendo escenario...")
     brain, stations = inicial.build(seed=42)
+    # brain._process_reservations = lambda: None   # ← LÍNEA TEMPORAL: apaga reservas para forzar choques
     sim   = Simulation(brain, stations)
     train = brain._train
 

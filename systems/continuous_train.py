@@ -23,6 +23,7 @@ Estructura de cada slot (dict en self.slots):
     }
 """
 
+import logging
 import math
 import random
 from typing import Callable
@@ -30,6 +31,7 @@ from objects.math3d import Vector3
 from objects.modular_vehicle import ModularVehicle
 from config.constants import TRAIN_SPEED, TRAIN_SPACING
 
+logger = logging.getLogger(__name__)
 
 class ContinuousTrain:
     """
@@ -155,10 +157,23 @@ class ContinuousTrain:
         """
         Coloca un VM en el slot indicado.
         Brain llama esto cuando un VM termina de desender para un arbol y toma su slot.
+
+        Si el slot YA tiene un VM — nunca debería pasar en operación correcta, indica
+        que la reserva falló o llegó tarde — el VM entrante NO sobreescribe al que ya
+        está: se agrega a 'colliding_vms' para que el choque quede visible y
+        diagnosticable en vez de perder un VM en silencio.
         """
-        self.slots[slot_idx]['reserved_station_id'] = None
-        self.slots[slot_idx]['reserved_vm_id'] = None
-        self.slots[slot_idx]['vm'] = vm
+        slot = self.slots[slot_idx]
+        slot['reserved_station_id'] = None
+        slot['reserved_vm_id'] = None
+        if slot['vm'] is not None:
+            slot['colliding_vms'].append(vm)
+            logger.critical(
+                f"CHOQUE: VM {vm.vehicle_id} llegó al slot {slot_idx}, ya ocupado por "
+                f"VM {slot['vm'].vehicle_id} — reserva falló o llegó tarde"
+            )
+        else:
+            slot['vm'] = vm
 
     def remove_vm(self, slot_idx: int) -> ModularVehicle:
         """
@@ -244,6 +259,17 @@ class ContinuousTrain:
             if s['vm'] is None and s['reserved_station_id'] is None
         )
 
+    def get_colliding_vm_count(self) -> int:
+        """
+        Cantidad total de VMs actualmente en choque (el ocupante original +
+        todos los que cayeron encima). Cada slot en choque aporta 1 + len(colliding_vms).
+        """
+        return sum(
+            1 + len(s['colliding_vms'])
+            for s in self.slots
+            if s['colliding_vms']
+        )
+
     # ─── INICIALIZACIÓN ───────────────────────────────────────────────────
 
     def _init_slots(self, density: float, vm_factory: Callable, rng: random.Random) -> None:
@@ -260,6 +286,7 @@ class ContinuousTrain:
                 'reserved_vm_id':         None,
                 'destination_station_id': None,
                 'demand_station_id':      None,
+                'colliding_vms':          [],
             }
             if rng.random() < density:
                 slot['vm'] = vm_factory(next_vm_id)

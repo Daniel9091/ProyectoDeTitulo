@@ -40,6 +40,7 @@ VM_DEST       = ( 40, 230, 110)    # verde menta
 VM_RESERVED   = (210, 130, 255)    # violeta
 VM_TRANSIT    = (255, 220,  60)    # amarillo dorado
 VM_TRANSIT_GL = ( 60,  50,   0)    # glow dorado oscuro
+VM_COLLISION  = (255,   0,   0)    # rojo puro — choque: 2+ VMs en el mismo slot
 VM_WIRE       = ( 70,  80,  95)    # aristas cuando no hay etiqueta
 VM_PASSENGERS = (255, 255, 255)    # indicador interior cuando hay pasajeros
 JUNCTION_DOT  = (255, 220,   0)    # punto amarillo de junction
@@ -71,7 +72,7 @@ class Renderer:
                         current_time, fps, speed, paused)
     """
 
-    HUD_H = 112   # altura reservada para el panel HUD en píxeles
+    HUD_H = 134   # altura reservada para el panel HUD en píxeles
 
     def __init__(self, font_sm: pygame.font.Font, font_md: pygame.font.Font):
         self._font_sm = font_sm
@@ -167,6 +168,11 @@ class Renderer:
             if center is None:
                 continue
             sx, sy, depth = center
+            if slot['colliding_vms']:
+                # Choque: siempre caja completa, nunca punto ni invisible por LOD
+                drawn += 1
+                self._draw_collision_stack(surface, camera, slot, bx, by, bz, depth)
+                continue
             if depth > 1200:
                 continue
             drawn += 1
@@ -243,6 +249,22 @@ class Renderer:
             if cp:
                 r = max(1, int(400 / max(depth, 10)))
                 pygame.draw.circle(surface, VM_PASSENGERS, (cp[0], cp[1]), r)
+
+    def _draw_collision_stack(
+        self, surface, camera, slot, cx, cy, cz, depth
+    ) -> None:
+        """
+        Dibuja todos los VMs de un slot en choque como una torre de cajas rojas
+        apiladas en Z — visualiza que más de un VM cayó en el mismo slot.
+        """
+        all_vms = [slot['vm']] + slot['colliding_vms']
+        for i, vm in enumerate(all_vms):
+            stacked_slot = {**slot, 'vm': vm}
+            self._draw_vm_box(
+                surface, camera, stacked_slot,
+                cx, cy, cz + i * VM_RENDER_HEIGHT,
+                depth, [VM_COLLISION],
+            )
 
     @staticmethod
     def _draw_split_edge(
@@ -431,16 +453,16 @@ class Renderer:
         on      = sum(1 for s in train.slots if s['vm'] is not None)
         total   = train.max_slots
         transit = total - on
+        collisions = train.get_colliding_vm_count()
         vel_str = "PAUSADO" if paused else f"{speed}×"
 
-        # Columna izquierda
-        # Columna izquierda
         # Columna izquierda
         for i, line in enumerate([
             f"t = {current_time:>9.1f} s",
             f"FPS: {fps:>4.0f}     Vel: {vel_str}",
             f"Belt: {on}/{total}    Tránsito: {transit}",
             f"Visibles: {belt_drawn + transit_drawn}  (belt {belt_drawn}/{on}  ·  tránsito {transit_drawn}/{transit})",
+            f"Colisiones: {collisions}",
         ]):
 
 
@@ -458,6 +480,7 @@ class Renderer:
             ("Destino",      VM_DEST),
             ("Reserva",      VM_RESERVED),
             ("En tránsito",  VM_TRANSIT),
+            ("Choque",       VM_COLLISION),
         ]):
             cy = hud_y + 26 + i * 13
             pygame.draw.circle(surface, color, (lx + 6, cy + 5), 5)
