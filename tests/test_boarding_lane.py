@@ -35,6 +35,21 @@ class FakeVehicle:
     def __init__(self, vehicle_id: int, capacity: int = 1):
         self.vehicle_id = vehicle_id
         self.capacity = capacity
+        self.passengers_on_board = []
+        self.destination_station_id = None
+
+    @property
+    def is_full(self) -> bool:
+        return len(self.passengers_on_board) >= self.capacity
+
+    def board(self, passenger) -> bool:
+        if self.is_full:
+            return False
+        self.passengers_on_board.append(passenger)
+        return True
+
+    def assign_destination(self, station_id: int) -> None:
+        self.destination_station_id = station_id
     
 def make_passenger(passenger_id: int, destination: int = 1, spawn_time: float = 0.0) -> Passenger:
     """
