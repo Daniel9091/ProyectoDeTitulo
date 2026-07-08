@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import pygame
 from simulation_builder import inicial
 from simulation.simulation import Simulation
+from simulation.inspector import Inspector
 from simulation.camera   import Camera
 from simulation.renderer import Renderer
 from config.constants    import FPS, SCREEN_WIDTH, SCREEN_HEIGHT
@@ -22,8 +23,9 @@ def main():
     pygame.display.set_caption("NSim — Sistema de Transporte Modular")
     screen   = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
     clock    = pygame.time.Clock()
-    font_sm  = pygame.font.SysFont("monospace", 12)
-    font_md  = pygame.font.SysFont("monospace", 15, bold=True)
+    font_sm  = pygame.font.SysFont("dejavusansmono,consolas,couriernew,monospace", 16)
+    font_md  = pygame.font.SysFont("dejavusansmono,consolas,couriernew,monospace", 20, bold=True)
+
 
     is_fullscreen = False
     windowed_size = (SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -32,6 +34,7 @@ def main():
     camera   = Camera(SCREEN_WIDTH, SCREEN_HEIGHT,
                       pos=[1500.0, -600.0, 250.0], yaw=90.0, pitch=-20.0)
     renderer = Renderer(font_sm, font_md)   # ← ya no recibe camera
+    inspector = Inspector(font_sm, font_md)
 
     speed_idx = 0
     paused    = False
@@ -71,6 +74,13 @@ def main():
                 elif event.key == pygame.K_2:     speed_idx = 1
                 elif event.key == pygame.K_3:     speed_idx = 2
                 elif event.key == pygame.K_4:     speed_idx = 3
+
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                inspector.handle_click(
+                    event.pos, camera, train, brain._network, stations,
+                    screen.get_width(),
+                )
+
             camera.handle_event(event)
 
 
@@ -86,6 +96,11 @@ def main():
             sim.current_time, clock.get_fps(),
             SPEEDS[speed_idx], paused,
         )
+        inspector.render(
+            screen, camera, train, brain._network, stations,
+            screen.get_width(),
+        )
+
         pygame.display.flip()
 
     pygame.quit()

@@ -223,6 +223,9 @@ class Brain:
                     if vm.has_destination and vm.destination_station_id != station_id:
                         logger.warning(f"Pasajeros de VM {vm.vehicle_id} iban a estación "
                             f"{vm.destination_station_id}, bajaron en estación {station_id}")
+                    vm.disembark(station_id)
+                    if vm.passenger_count == 0:
+                        vm.clear_destination()
                     if demand is not None and demand != station_id:
                         demand_station = self._stations.get(demand)
                         if demand_station:

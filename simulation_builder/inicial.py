@@ -44,7 +44,8 @@ RATE_S2 = 0.6          # 3 andenes × 0.2 = 0.6 pasajeros/s
 RATE_S3 = 0.2
 
 VM_RATE_S1 = RATE_S1 / VM_CAPACITY   # ~1 VM cada 30 s
-VM_RATE_S2 = RATE_S2 / VM_CAPACITY
+VM_RATE_S2 = 2
+# VM_RATE_S2 = RATE_S2 / VM_CAPACITY
 VM_RATE_S3 = RATE_S3 / VM_CAPACITY
 
 
@@ -73,7 +74,7 @@ def build(seed: int = 42) -> tuple[Brain, dict[int, Station]]:
     connect_station_to_network(network, up1, l1, dn1, j_up_1, j_dn_1)
     stations[1] = s1
 
-    # ── Estación 2 — hub central, 3 andenes ──────────────────────────────────
+    # ── Estación 2 — hub central, 4 andenes ──────────────────────────────────
     s2, up2, l2, dn2, j_up_2, j_dn_2 = create_station(
         station_id=2,
         station_origin=Vector3(X_S2, STATION_Y, STATION_Z),

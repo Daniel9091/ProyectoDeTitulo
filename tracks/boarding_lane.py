@@ -70,10 +70,12 @@ class BoardingLane(BaseTrack):
             while group and len(passengers) < vehicle.capacity:
                 p = group.popleft()
                 p.start_boarding()
+                vehicle.board(p)
                 passengers.append(p)
             if not group:
                 del self.passenger_groups[priority_dest]
-        
+            vehicle.assign_destination(priority_dest)
+
         self.vehicles[vehicle.vehicle_id] = {
             'vehicle': vehicle,
             'distance': initial_distance,
@@ -121,7 +123,6 @@ class BoardingLane(BaseTrack):
             self.remove_vehicle(vm.vehicle_id)
         
         return completed
-
 
     def _select_priority_group(self) -> int | None:
         """
