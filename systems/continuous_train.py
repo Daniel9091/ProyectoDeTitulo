@@ -58,9 +58,13 @@ class ContinuousTrain:
             vm_factory: Callable,
             rng: random.Random,
             junction_points: dict,
+            recorder,
     ):
         self.start_pos  = start_pos
         self.end_pos    = end_pos
+
+        recorder = recorder
+
         dx = end_pos.x - start_pos.x
         dy = end_pos.y - start_pos.y
         dz = end_pos.z - start_pos.z

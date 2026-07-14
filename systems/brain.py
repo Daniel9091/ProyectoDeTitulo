@@ -59,10 +59,12 @@ class Brain:
         train: ContinuousTrain,
         network: Network,
         stations: dict,
+        recorder,
     ):
         self._train =       train
         self._network =     network
         self._stations =    stations
+        self._recorder =    recorder
 
         # (Promesas activas hasta que el VM aterriza en el belt)
         self._reserved_slots: dict[int, int] =  {} 
@@ -713,150 +715,4 @@ class Brain:
         """Retorna si el slot s esta marcado con demanda o con destino"""
         s = self._train.slots[idx % self._train.max_slots]
         return s['destination_station_id'] == station_id or s['demand_station_id'] == station_id
-
-
-
-
-
-
-
-
-
-
-
-
-## Preguntas luego de entender ##
-
-
-# Pregunta 21:
-# me quedeo muy claro como es que funciona el codigo completo de brain menos las funciones de saturacion, no las logro entender todavia y creo que esta es una de las genialidades mas grandes 
-# de la sim asi que es presiso que lo entienda bien de ser nesestario dieme algun video o algo para aprender el algoridmo que estas ocupando, dieme como buscarlo en internet o algo 
-# para saber como se hace
-##
-                    
-
-
-
-
-
- 
-# Preguntas abordadas:
-# Pregunta 15:
-# Quiero aclarar lo del contador de las estaciones, cuando cuenta cuando descuenta, etc, me parece que en el bucle no esta
-# tan claro, incluso propenso a errores
-# para aclarar;
-# Las estaciones tienen un contador que acumula x cada segundo, cada vez que este numero llega a un numero entero, cada numero
-# entero se debe combertir en una peticion a un vm para cumplir la demanda de la estacion, a este sistema que incluy eel contador
-# y el sistema de peticion para suplir la demanda de la estacion se le conoce como sistema de taza
-# el sistema de taza se encarga de etiquetar a los vms con muy baja prioridad para que suban a la estacion, la ida principal de este
-# sistema es lograr que suban demanda vms a la estacion para que satisfaga la demanda.
-# Es importante mencionar que a ojos de la estacion cualquier vm que este subiendo por la estacion esta aportando a suplir la demanda
-# de la estacion, da lo mismo si tiene o no la etiqueta de demanda, cualquier vm que este subiendo debe estar contado en el contador
-# por que esta ayudando a suplir la demanda, por lo tanto hay considerar un patron especial para que el contador contabilize bien
-# los vms que estan entrando a la estacion.
-# este patron conciste en;
-# como dije anteriormente cualqueir el sistema de taza intenta etiquetar vms con baja prioridad para que suban a la estacion, una etiquta
-# de taza hace que la juntion de manera no forzosa lo pueda incorporar a algun arbol de la estacion.
-# existen distintas situaciones que deben estar cubirtas;
-# la primera es que un vm tenga la etiqueta de taza, en tal caso cuando se va a poner la etiqueta, se descuenta uno del contador, vale decir
-# estacion solictia sistema de taza y se descuenta 1, el sistema de taza intenta etiquetar a alguien, si no logra etiquetar vuleve a decirle
-# a la estacion, no logre etiquetar por lo tanto voy a reponer la solicitud que no puede cumplir (de esta manera no se contabiliza una peticion 
-# que no se pudo cumplir), si es que el vm es etiquetado, entonces ya desconto del contador por lo tanto cuano pase por junction y suba a un arbol
-# no se debe contabilizar de nuevo en el contador (desconto cuando se puso la etiqueta), en el caso de que por algun motivo, no suba a ningun arbol
-# como ya desconto al contador se tiene que reponer el contador por que falto a su promesa de que iba a ir a la estacion por lo tanto debe habisar
-# a la estacion que recomponga su peticion (se debe revisar cada vm que pasa por la juntion y comprobar que no tenga o que si tenga etiqutea de taza
-# para ver si hay que restaurar contador, restar al contador o mantener)
-# para los casos de destino o de reserva, no se descuenta al contador cuando se agrega la etiqueta por lo tanto, en la junction si por algun motivo
-# entran a algun arbol como van a una estacion, se debe considerar en la demana (si un vm que no tiene etiqueta de taza entra a la estacion, en ese mismo 
-# momento debe descontar al contador por que no habia sido considerado), si por el contrario sigue de largo como nunca fue considerado en el contador de taza
-# no se tiene la nesesidad de actualizar el contador por que no fue considerado y no entro#
-# Preunta 1:
-# En update me hace mas sentido que el paso 8b sea antes que el 8a, por que el sistema de reserva
-# es SIEMPRE es mas urgente que el sistema de taza. Cabe destacar que ambos sistemas deben preferir
-# slots con etiquetas previas tanto el de reserva como el de taza, pero el de taza se debe adaptar al
-# de reserva, no al revez, comenta que te parece, dieme si hay algun problema con cambiar ese orden,
-# o dieme si es que habria alguna consecuencia si te parece bien o mal.
-
-# esta pregunta surge por el docstring de la la lienea 89, por que de hecho deberia ser al revez, los
-# dos sistemas deberian buscar con mas prioridad a los que ya estan etiquetados de parte de la misma
-# estacion
-# Pregunta 2:
-# En handle crossing tengo un punto con el parrafito 2 del docstring, dice que para 
-# destination_station_id si el vm no entra a ningun arbol (vm con pasajeros que van a la estacion pero
-# no pueden hacerlo por que los arboles estan saturados), dice que ese vm debe darse la vuelta compelta
-# al circuito y despues volver a intentarlo en la misma estacion.
-# no se si eso me parece correcto, lo correcto es que el vm continue y intente subir a la siguiente
-# estacion eso equibala a que si una persona no se alcanza a subir en la estacion se baja en la siguiente
-# tiene que caminar un par de cuadras de vuelta, pero lo que propones es que se de la vuelta completa que
-# es demasiado. para arreglar este problema, creo que seria prudente camgiar la etiqueta de taza por el id
-# de la siguente estacion y ponner un wraning que diga que como no subio este vm a la estacion a la que iba
-# se le pueso la etiquta de la esacion que sigue y despues cuando los parsajesro lleguen a la estacion
-# reviar si iban efectivamte a la estacion los pasajeros y si no es asi que salga un wuarnig de nuevo o no se
-# como expersarlo, que diga se bajaron pasajerso que iban a esta estacion en la estacion tal, para eso es
-# cosa de revisar a que estaicon iban lso pasajeros que llegan a sus destinos al llegar
-# Pregunta 12:
-# Veo muchos prints repartidos por ahi, no se si es buena practica, tengo entendido que ibamos a hacer un archvio en 
-# algun momento donde van a estar todos los logs para que este mas ordenado y podamos modificar los prints en algun 
-# lugar, no se si es correcto pero la ida es que los prints los podamos apagar y prender e pendiendo que estemos 
-# debugeando de manera facil y ademas podeamos refactorizarlos facil tambien
-# Pregunta 13:
-# pregunto lo mismo que en seciones anteriores, por que se difinen funciones dentro de funciones, en la ultima funcion
-# se ocupa dos veces una funcion con el mismo nombre, explicate 
-
-
-## Preguntas de test ##
-# Pregunta 10:
-# Ahora que tenemos el circuto cerrado quiero revisar que no tengamos ningun bug silencioso, como lo puedo hacer
-# me peudes decir como es que se hacen los test de integracion para revisar que todo funcione como deberia
-# me gustaria revisar el ciclo de las etiquetas, saber cuando nacen y cuando mueren o se limpia cada una y todas
-# las combinaciones posibles dignas de evaluar
-# me gustaria testear el bucle pricipal para verificar que tan verdad es que debe comportarse de esa manera y que pasa
-# si unna parte del ciclo se adelata a otra
-# me gustaria testear que pasa en situaciones de saturacion, como se comportan las etiquetas y los VMs etc
-# me gustaria testear los sistemas de demanda de destino y de reserva si funcionan bien en diferentes casos
-# situaciones si son compatibles etc
-# si hacern bien los calculos
-# Pregunta 11:
-# me gustan las prioridades que pusiste pero es sumamente importante tenerles un ojo espcial por que se nos pueden
-# estar escapando algunos casos o estamos dejando pasar casos no optimos asi que vale la pena saber donde estan y como
-# y como podemos mejorarlos y si hay algo mas que explorar, queiro  que me ayudes a ver posibilidades para todas las
-# busquedas con rango y que nesesten de una priorisacion
-# Pregunta 16:
-# Nos falta testear las etiquetas de continous train para asegur la reserva (a que slot va a llegar el vm) y para la etiqueta
-# de reserva (asegura reserva del vm)
-
-
-## Preguntas de Explcaciones ##
-# Pregunta 4:
-# no entiendo que esta pasando en la funcion de handle crossing nesesito que me la expliques y debemos comentarla            
-# Pregunta 5:
-# cuando se utiliza handle desicions? estoy perdido el encargado en una juntion de ver a que arbol le llega el vm
-# es junction no brain puede ser?, y si ese es el caso entonces por que esta funcion, es para un esenario distinto
-# quien determino que el vm va por el camino menos saturado?
-# Pregunta 7:
-# yo se que ahora esta todo mucho mas documentado pero de todas maneras me cuesta entender que hace cada funcion
-# y en que caso se ocupa, me encantaria repasar cada fucion y ver por que se estan haciendo asi las cosas
-# Pregunta 9:
-# Todavia no entiendo muy bien como es que el sistema entiene la ventana en la que hay que buscaer en rango para no
-# saturar la junction, se que la ventana mira x cantidad de vms que corresponde a un calculo matematico que revisa
-# para que no halla saturacion pero me esta constando ver como es que te das cuenta para que no se sature
-
-# Pregunta 19:
-# en la funcion make_reservation tengo una duda
-# el pasajero aborda en la mitad de la lene, esta fucnion se ejecuta mas o menos al pricipio de la lane, como es que registra el destino si para que se suba un pasajero hay que
-# esperar mucho tiempo mitad de la lene no al principio, esta fucion de definir el destino del vm no deberia impulsarla el pasajero al subirse al vm que le dice al vm para donde va
-# y posteriormente el vm le dice al slot?
-
-# Pregunta 17:
-# en la funcion _handle crossings
-# el punto 1 que se toca "Si había demanda para otra estación (demand != None and demand != S), esa promesa se rompe → on_commitment_broken() para la otra estación"
-# para nuetro caso de uso sirve pero en verdad no esta bien pensado, por que claro, yo se que el up de la estacion siguiete est despues que el down de la estacion
-# anterior por como puse yo las estaciones, pero en un futuro se podria pensar en poner el el UP de la siguiente antes del DOWN de la anteror, en tal caso eso que dices
-# que quieres romper la promesa es super peligroso, asi que me gustria dejarlo super documentado como que siempre tiene que haber un UP - DOWN y no una cobinacion, por 
-# que si no pueden pasar estas cosas, en el fondo esto se mantiene por que siempre una reserva se produce entre los arboles de la etacion, pero podria pasar que qeu enre
-# los arboles hubiera otro arbol de otra estacion, la otra solucion a eso es "si una reserva de cierta estacion x continua vigente aunque el arbol DOWN de dicha estacion 
-# ya paso quiere decir que esta reserva fue incumplida.
-# no se si se entiende lo que digo pero por ultimo si es que no es posible implementar esto hay que dejarlo super documentado para que a nadie se le ocurra poner la situacion
-# mencionada, y lo mejor en un futuro lo podemos arreglar con lo que te comente
-
 

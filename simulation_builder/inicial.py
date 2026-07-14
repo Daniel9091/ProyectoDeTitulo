@@ -11,6 +11,7 @@ from systems.network import Network
 from systems.continuous_train import ContinuousTrain
 from systems.brain import Brain
 from simulation.station_factory import TrackIdAllocator, create_station, connect_station_to_network
+from telemetry.recorder import NullRecorder
 from config.constants import TREE_DZ
 
 
@@ -49,11 +50,14 @@ VM_RATE_S2 = 2
 VM_RATE_S3 = RATE_S3 / VM_CAPACITY
 
 
-def build(seed: int = 42) -> tuple[Brain, dict[int, Station]]:
+def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     """
     Construye el escenario base.
     Retorna (brain, stations) listo para llamar brain.update(dt, current_time).
     """
+    if recorder is None:
+        recorder = NullRecorder()
+    
     rng     = random.Random(seed)
     pid_gen = PassengerIdGenerator()
     alloc   = TrackIdAllocator(start=1)
@@ -70,6 +74,7 @@ def build(seed: int = 42) -> tuple[Brain, dict[int, Station]]:
         destination_probabilities=DEST_FROM_1,
         vm_request_rate=VM_RATE_S1,
         rng=rng, id_generator=pid_gen, id_alloc=alloc,
+        recorder = recorder,
     )
     connect_station_to_network(network, up1, l1, dn1, j_up_1, j_dn_1)
     stations[1] = s1
@@ -83,6 +88,7 @@ def build(seed: int = 42) -> tuple[Brain, dict[int, Station]]:
         destination_probabilities=DEST_FROM_2,
         vm_request_rate=VM_RATE_S2,
         rng=rng, id_generator=pid_gen, id_alloc=alloc,
+        recorder = recorder,
     )
     connect_station_to_network(network, up2, l2, dn2, j_up_2, j_dn_2)
     stations[2] = s2
@@ -96,6 +102,7 @@ def build(seed: int = 42) -> tuple[Brain, dict[int, Station]]:
         destination_probabilities=DEST_FROM_3,
         vm_request_rate=VM_RATE_S3,
         rng=rng, id_generator=pid_gen, id_alloc=alloc,
+        recorder = recorder,
     )
     connect_station_to_network(network, up3, l3, dn3, j_up_3, j_dn_3)
     stations[3] = s3
@@ -114,7 +121,8 @@ def build(seed: int = 42) -> tuple[Brain, dict[int, Station]]:
             2: j_up_2.belt_x,
             3: j_up_3.belt_x,
         },
+        recorder = recorder,
     )
 
-    brain = Brain(train=train, network=network, stations=stations)
+    brain = Brain(train=train, network=network, stations=stations, recorder=recorder)
     return brain, stations

@@ -62,3 +62,7 @@ STATION_X_LENGTH        = 100.0         # largo de la estacion  dx  (m)
 STATION_Y_LENGTH        = 30.0          # ancho de la estacion  dy  (m)
 STATION_FLOOR_HEIGHT    = 5.0           # altura de los pisos   dz  (m)
 STATION_NUM_FLOORS      = 1             # Canitdad de pisos
+
+# CTE. LOGS
+
+TELEMETRY_ENABLED:  bool    = True      # True: guarda logs, False no guarda logs

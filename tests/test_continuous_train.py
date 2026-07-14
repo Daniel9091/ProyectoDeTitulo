@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from systems.continuous_train import ContinuousTrain
 from objects.math3d import Vector3
+from telemetry.recorder import NullRecorder
 
 
 class FakeVehicle:
@@ -42,6 +43,7 @@ def make_train(total_length: float = 100.0,
         vm_factory=lambda vm_id: FakeVehicle(vm_id),
         rng=rng,
         junction_points=junction_points or {},
+        recorder=NullRecorder(),
     )
 
 # ─── INIT ─────────────────────────────────────────────────────────────────────

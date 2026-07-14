@@ -99,6 +99,7 @@ def _make_train(junction_up_x: float = JUNCTION_UP_X) -> ContinuousTrain:
         vm_factory=lambda vid: ModularVehicle(vehicle_id=vid, capacity=4),
         rng=rng,
         junction_points={STATION_ID: junction_up_x},
+        recorder = NullRecorder(),
     )
 
 def _make_network() -> Network:
@@ -192,7 +193,7 @@ def make_brain_fixture():
     network  = _make_network()
     station  = _make_station_mock()
     stations = {STATION_ID: station}
-    brain    = Brain(train=train, network=network, stations=stations)
+    brain    = Brain(train=train, network=network, stations=stations, recorder = NullRecorder())
     return brain, train, network, stations
 
 def _wrong_order_8ab(brain, dt: float, current_time: float) -> None:
