@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from tracks.acceleration_tree import AccelerationTree
 from objects.math3d import Vector3
 from objects.types import TreeDirection, ModularVehicleState
+from telemetry.recorder import NullRecorder
 from config.constants import (
     TRAIN_SPEED, BOARDING_LANE_SPEED,
     ACCEL_RANGE_MIN, ACCEL_RANGE_MAX, TRAIN_SPACING, GRAVITY
@@ -47,7 +48,7 @@ def make_up_tree(
 ) -> AccelerationTree:
     return AccelerationTree(
         1, Vector3(0, 0, 0), _slanted_end_pos(length, acceleration),
-        TreeDirection.UP, separation,
+        TreeDirection.UP, separation, NullRecorder(),
     )
 
 def make_down_tree(
@@ -58,7 +59,7 @@ def make_down_tree(
     end = _slanted_end_pos(length, acceleration)
     return AccelerationTree(
         2, end, Vector3(0, 0, 0),
-        TreeDirection.DOWN, separation,
+        TreeDirection.DOWN, separation, NullRecorder(),
     )
 
 class Test_init:
@@ -124,7 +125,7 @@ class Test_init:
         """
         
         tree = AccelerationTree(1, Vector3(0, 0, 0), _slanted_end_pos(30.0, 5.0),
-                                TreeDirection.UP, 3.0)
+                                TreeDirection.UP, 3.0, NullRecorder())
         v_exit = math.sqrt(max(0.0, 20.0**2 - 2.0 * 5.0 * 30.0))          # 10.0
         dt_min = (-v_exit + math.sqrt(v_exit**2 + 2.0 * 5.0 * 3.0)) / 5.0 # ≈ 0.2804
         raw = dt_min * 20.0 / 2.0                                           # ≈ 2.804

@@ -84,6 +84,7 @@ class Station:
         platforms:                  list,
         rng:                        random.Random,
         id_generator:               PassengerIdGenerator,
+        recorder,
     ):
         """
         Inicialisacion de una estación.
@@ -96,6 +97,7 @@ class Station:
         self.vm_request_rate            = vm_request_rate
         self._rng                       = rng
         self._id_generator              = id_generator
+        self._recorder                  = recorder
         
 
         # Cada dict recibido se copia añadiendo 'state': ACTIVE por defecto

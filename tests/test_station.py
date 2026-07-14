@@ -21,6 +21,7 @@ from objects.station import Station, StationDimensions
 from objects.passenger_id_generator import PassengerIdGenerator
 from objects.math3d import Vector3
 from objects.types import AndenState, PassengerState
+from telemetry.recorder import NullRecorder
 from config.constants import PASSENGER_WALK_SPEED
 
 # ─── STUBS ────────────────────────────────────────────────────────────────
@@ -58,6 +59,7 @@ def make_station(
     vm_request_rate: float = 0.0,
     lane_y_offset: float = 5.0,
     id_generator: PassengerIdGenerator = None,
+    recorder = NullRecorder(),
 ) -> Station:
     """
     Crea una Station con origen en (0,0,0).
@@ -87,6 +89,7 @@ def make_station(
         platforms =                     platforms,
         rng =                           rng,
         id_generator =                  id_generator,
+        recorder =                      recorder,
 
     )
 

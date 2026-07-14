@@ -79,6 +79,7 @@ class AccelerationTree(BaseTrack):
             end_pos: Vector3,
             direction: TreeDirection,
             min_vm_separation: float,
+            recorder,
             station_id : int | None = None
     ):
         super().__init__(track_id, start_pos, end_pos)
@@ -90,6 +91,8 @@ class AccelerationTree(BaseTrack):
         self.min_slot_gap: int = 0
         if direction == TreeDirection.UP:
             self._init_saturation(min_vm_separation)
+
+        self._recorder = recorder
 
     def _compute_effective_acceleration(self) -> float:
 

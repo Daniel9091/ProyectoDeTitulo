@@ -35,12 +35,13 @@ class BoardingLane(BaseTrack):
     Atributos propios:
         passenger_queue list[Passenger]         # pasageros esperand un VM (FIFO)
     """
-    def __init__(self,track_id: int, start_pos: Vector3, end_pos: Vector3):
+    def __init__(self,track_id: int, start_pos: Vector3, end_pos: Vector3, recorder):
         """
         Inicialisacion utiliza __init__ de BaseTrack
         """
         super().__init__(track_id, start_pos, end_pos)
         self.passenger_groups: dict[int, deque[Passenger]] = {}
+        self._recorder = recorder
 
     def enqueue_passenger(self, passenger: Passenger) -> None:
         """

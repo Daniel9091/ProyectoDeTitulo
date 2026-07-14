@@ -24,6 +24,7 @@ from tracks.boarding_lane import BoardingLane
 from objects.math3d import Vector3
 from objects.passenger import Passenger
 from objects.types import PassengerState
+from telemetry.recorder import NullRecorder
 from config.constants import BOARDING_LANE_SPEED, BOARDING_COMMIT_PROGRESS
 
 # HELPERS
