@@ -30,6 +30,7 @@ from simulation.station_factory import (
     connect_station_to_network,
     _lane_y_offsets,
 )
+from telemetry.recorder import NullRecorder
 from config.constants import TREE_LENGTH, TREE_DZ, STATION_X_LENGTH, STATION_Y_LENGTH
 
 # ─── FIXTURES ────────────────────────────────────────────────────────────────
@@ -51,6 +52,7 @@ def make_components(num_lanes: int = 1, station_id: int = 1):
         rng                        = rng,
         id_generator               = pid_gen,
         id_alloc                   = alloc,
+        recorder                   = NullRecorder(),
     )
 
 # ─── TEST CLASES ─────────────────────────────────────────────────────────────
@@ -209,6 +211,7 @@ class Test_CreateStation:
             rng                       = rng,
             id_generator              = pid_gen,
             id_alloc                  = alloc,
+            recorder                  = NullRecorder(),
         )
         _, up1, l1, dn1, ju1, jd1 = create_station(station_id=1, **kwargs)
         _, up2, l2, dn2, ju2, jd2 = create_station(station_id=2, **kwargs)
@@ -265,6 +268,7 @@ class Test_ConnectStationToNetwork:
             rng                       = rng,
             id_generator              = pid_gen,
             id_alloc                  = alloc,
+            recorder                  = NullRecorder(),
         )
         network = Network()
         connect_station_to_network(network, *rest)
@@ -348,6 +352,7 @@ class Test_Geometry:
             rng=rng,
             id_generator=pid_gen,
             id_alloc=alloc,
+            recorder=NullRecorder(),
         )
         for tree, y_i in zip(up_trees, _lane_y_offsets(3, STATION_Y_LENGTH)):
             assert tree.end_pos.y == pytest.approx(origin_y + y_i)

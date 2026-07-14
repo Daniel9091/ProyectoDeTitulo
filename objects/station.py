@@ -64,6 +64,7 @@ class Station:
         platforms                   list[dict]              lista de dicts (ver estructura en módulo)
         rng                         random.Random           generador compartido con semilla fija
         id_generator                PassengerIdGenerator    generador de IDs para pasajeros (el mismo para todas las estaciones)
+        recorder                    Recorder                Para que la estacion genere logs
     
     Estado interno:
         _passenger_accumulator      float                   acumula produccion de pasajeros

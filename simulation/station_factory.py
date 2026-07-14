@@ -79,7 +79,8 @@ def create_station(
     vm_request_rate:            float,                  # Tasa de solicitudes de VMs (s)
     rng:                        random.Random,          # Generador de numeros aleatorios
     id_generator:               PassengerIdGenerator,   # Generador de IDs de pasajeros
-    id_alloc:                   TrackIdAllocator,       # Generador de IDs de tracks        
+    id_alloc:                   TrackIdAllocator,       # Generador de IDs de tracks  
+    recorder,      
 ) -> tuple[Station, list, list, list, Junction, Junction]:
     """
     Construye estación completa con geometría 3D calculada automáticamente.
@@ -144,11 +145,13 @@ def create_station(
             direction           = TreeDirection.UP,     # Indica arbol de subida
             min_vm_separation   = MIN_VM_SEPARATION,    # Minima separacion entre vm en el arbol (anti colicion)
             station_id          = None,                 # ID de la etacion a la que pertenece
+            recorder            = recorder   
         ))
         lanes.append(BoardingLane(
             track_id    = lane_id,      # ID
             start_pos   = extraction,   # Coordenada de inicio de lane
             end_pos     = discharge,    # Coordenada de fin de lane
+            recorder    = recorder
         ))
         down_trees.append(AccelerationTree(
             track_id            = down_id,                # ID
@@ -157,6 +160,7 @@ def create_station(
             direction           = TreeDirection.DOWN,   # Indica arbol de bajada
             min_vm_separation   = MIN_VM_SEPARATION,    # Minima separacion entre vm en el arbol (anti colicion)
             station_id          = station_id,           # ID de la etacion a la que pertenece
+            recorder            = recorder
         ))
         platforms.append({
             'lane'            : lanes[-1],
@@ -191,6 +195,7 @@ def create_station(
         platforms                   = platforms,
         rng                         = rng,
         id_generator                = id_generator,
+        recorder                    = recorder,
     )
 
     return station, up_trees, lanes, down_trees, junction_up, junction_down
