@@ -40,6 +40,7 @@ from tracks.junction import Junction
 from systems.continuous_train import ContinuousTrain
 from systems.network import Network
 from systems.brain import Brain
+from telemetry.recorder import NullRecorder
 from config.constants import (
     TRAIN_SPACING, MIN_VM_SEPARATION,
     TRAIN_SPEED, BOARDING_LANE_SPEED, GRAVITY
@@ -119,12 +120,14 @@ def _make_network() -> Network:
         end_pos=_slanted_end_pos(up_start, TREE_LENGTH, TREE_ACCELERATION),
         direction=TreeDirection.UP,
         min_vm_separation=MIN_VM_SEPARATION,
+        recorder=NullRecorder(),
         station_id=STATION_ID,
     )
     lane = BoardingLane(
         track_id=LANE_ID,
         start_pos=Vector3(0, 0, 0),
         end_pos=Vector3(LANE_LENGTH, 0, 0),
+        recorder=NullRecorder(),
     )
     down_start = Vector3(0, 0, 0)
     down_tree = AccelerationTree(
@@ -133,6 +136,7 @@ def _make_network() -> Network:
         end_pos=_slanted_end_pos(down_start, TREE_LENGTH, TREE_ACCELERATION),
         direction=TreeDirection.DOWN,
         min_vm_separation=MIN_VM_SEPARATION,
+        recorder=NullRecorder(),
         station_id=STATION_ID,
     )
     junction_up = Junction(

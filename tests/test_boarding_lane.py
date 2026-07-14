@@ -73,7 +73,7 @@ class Test_init:
         El Diccionario de de grupos debe iniciar vacio
         No debe haber VMs al inicialisar
         """
-        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
 
         assert lane.length == pytest.approx(10.0)
         assert lane.passenger_groups == {}
@@ -87,7 +87,7 @@ class Test_EnqueuePassenger:
         """
         Al encolar el primer pasajero hacia un destino, se crea su grupo.
         """
-        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         p = make_passenger(1,2)
         lane.enqueue_passenger(p)
         assert 2 in lane.passenger_groups
@@ -97,7 +97,7 @@ class Test_EnqueuePassenger:
         """
         Dos pasajeros al mismo destino deben qudar en el mismo grupo.
         """
-        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         p1 = make_passenger(1,3)
         p2 = make_passenger(2,3)
         lane.enqueue_passenger(p1)
@@ -108,7 +108,7 @@ class Test_EnqueuePassenger:
         """
         Pasajeros a distintos destinos generan grupos separados.
         """
-        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         p1 = make_passenger(1,3)
         p2 = make_passenger(2,4)
         lane.enqueue_passenger(p1)
@@ -119,7 +119,7 @@ class Test_EnqueuePassenger:
         """
         El pasajero debe quedar en WAITING_AT_LANE_QUEUE tras encolar.
         """
-        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         p = make_passenger(1,2)
         lane.enqueue_passenger(p)
         assert p.state == PassengerState.WAITING_IN_LANE_QUEUE
@@ -128,7 +128,7 @@ class Test_EnqueuePassenger:
         """
         El orden dentro de un grupo debe ser FIFO (primero encolado, primero servido).
         """
-        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         p1 = make_passenger(1,1)
         p2 = make_passenger(2,1)
         lane.enqueue_passenger(p1)
@@ -144,14 +144,14 @@ class Test_SelectProrityGroup:
         """
         Sin pasageros debe retornar None
         """
-        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         assert lane._select_priority_group() is None
     
     def test_returns_only_destination_when_one_group(self):
         """
         Con un solo grupo debe retornar ese destination_id
         """
-        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         p = make_passenger(1,7)
         lane.enqueue_passenger(p)
         assert lane._select_priority_group() == 7
@@ -161,7 +161,7 @@ class Test_SelectProrityGroup:
         Con dos pasajeros, elige el que tiene el pasajero con menor spawn_time.
 
         """
-        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         # dest=2 tiene pasajero mas antiguo (spawn_time= 1.0)
         # dest=3 tiene pasajero mas reciente (spawn_time = 5.0)
         lane.enqueue_passenger(make_passenger(1,2,spawn_time=1.0))
@@ -176,7 +176,7 @@ class Test_AddVehicle:
         """
         El VM debe entrar exactamente a BOARDING_LANE_SPEED
         """
-        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         vm = FakeVehicle(1)
         lane.add_vehicle(vm)
         assert lane.vehicles[vm.vehicle_id]['velocity'] == pytest.approx(BOARDING_LANE_SPEED)
@@ -185,7 +185,7 @@ class Test_AddVehicle:
         """
         El VM aborda del grupo con el pasajero mas antiguo, no del primer encolado.
         """
-        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         p_old = make_passenger(1,2,spawn_time=1.0) # mas antiguo
         p_new = make_passenger(2,3,spawn_time=9.0)
         lane.enqueue_passenger(p_old)
@@ -199,7 +199,7 @@ class Test_AddVehicle:
         """
         VM con capacity=2 aborda exactamente 2 pasageros aunque hay mas.
         """
-        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         for i in range(4):
             lane.enqueue_passenger(make_passenger(i, destination=1))
         vm = FakeVehicle(1,capacity=2)
@@ -210,7 +210,7 @@ class Test_AddVehicle:
         """
         Si el grupo queda vacio tras el boarding, se elimina del diccionario.
         """
-        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         lane.enqueue_passenger(make_passenger(1,2))
         vm = FakeVehicle(1,capacity=2)
         lane.add_vehicle(vm)
@@ -221,7 +221,7 @@ class Test_AddVehicle:
         """
         Si quedan pasajeros en el grupo tras el boarding, el grupo persiste.
         """
-        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         lane.enqueue_passenger(make_passenger(1,1))
         lane.enqueue_passenger(make_passenger(2,1))
         vm = FakeVehicle(1,capacity=1)
@@ -233,7 +233,7 @@ class Test_AddVehicle:
         """
         Sin pasajeros, el VM entra con lista vacía.
         """
-        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         vm = FakeVehicle(1,capacity=1)
         lane.add_vehicle(vm)
         assert lane.vehicles[vm.vehicle_id]['passengers'] == []
@@ -242,7 +242,7 @@ class Test_AddVehicle:
         """
         Todos los pasajeros abordados deben pasar a estado BOARDING.
         """
-        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         p1 = make_passenger(1,1)
         p2 = make_passenger(2,1)
         lane.enqueue_passenger(p1)
@@ -256,7 +256,7 @@ class Test_AddVehicle:
         """
         La distancia inicial debe ser leftover_dt * BOARDING_lANE_SPEED
         """
-        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         vm = FakeVehicle(1)
         lane.add_vehicle(vm, leftover_dt=1.0)
         assert lane.vehicles[vm.vehicle_id]['distance'] == pytest.approx(1.0 * BOARDING_LANE_SPEED)
@@ -265,7 +265,7 @@ class Test_AddVehicle:
         """
         El flag boarding_committed debe iniciar en False.
         """
-        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1,Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         vm = FakeVehicle(1)
         lane.add_vehicle(vm)
         assert not lane.vehicles[vm.vehicle_id]['boarding_committed']
@@ -278,7 +278,7 @@ class Test_Update:
         """
         Tras update(1.0), la distancia debe aumentar en exactamente BOARDING_LANE_SPEED.
         """
-        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         vm = FakeVehicle(1)
         lane.add_vehicle(vm)
         lane.update(1.0)
@@ -288,7 +288,7 @@ class Test_Update:
         """
         Al alcanzar el 50% del recorrido, el pasajero debe pasar a IN_TRANSIT.
         """
-        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         p = make_passenger(1,1)
         lane.enqueue_passenger(p)
         vm = FakeVehicle(1)
@@ -300,7 +300,7 @@ class Test_Update:
         """
         Al comprometerse, todos los pasajeros del VM pasan a IN_TRANSIT.
         """
-        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         p1 = make_passenger(1, destination=1)
         p2 = make_passenger(2, destination=1)
         lane.enqueue_passenger(p1)
@@ -315,7 +315,7 @@ class Test_Update:
         """
         Al comprometerse, cada pasajero registra el vehicle_id correcto.
         """
-        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         p = make_passenger(1,1)
         lane.enqueue_passenger(p)
         vm = FakeVehicle(42)
@@ -327,7 +327,7 @@ class Test_Update:
         """
         complete_boarding no debe llamarse dos veces aunque el VM siga en el lane.
         """
-        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         p = make_passenger(1,1)
         lane.enqueue_passenger(p)
         vm = FakeVehicle(1)
@@ -339,7 +339,7 @@ class Test_Update:
         """
         VM que termina el lane debe ser removido de self.vehicles.
         """
-        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         vm = FakeVehicle(1)
         lane.add_vehicle(vm)
         lane.update(10.0)          # 20m > 10m → completa
@@ -349,7 +349,7 @@ class Test_Update:
         """
         update() debe retornar (vm, leftover_dt) con el tiempo sobrante exacto.
         """
-        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         vm = FakeVehicle(1)
         lane.add_vehicle(vm)
         # 10m a 2m/s = 5s para completar; dt=7s → leftover=2s
@@ -363,7 +363,7 @@ class Test_Update:
         """
         VM sin pasajeros debe completar el lane sin errores y retornar tupla.
         """
-        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         vm = FakeVehicle(1)
         lane.add_vehicle(vm)
         completed = lane.update(7.0)
@@ -378,7 +378,7 @@ class Test_RemoveVehicle:
         """
         Remover un VM debe reducir vehicle_count a 0
         """
-        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         vm = FakeVehicle(1)
         lane.add_vehicle(vm)
         lane.remove_vehicle(vm.vehicle_id)
@@ -388,7 +388,7 @@ class Test_RemoveVehicle:
         """
         El VM removido no debe aparecer en self.vehicles.
         """
-        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0))
+        lane = BoardingLane(1, Vector3(0,0,0), Vector3(10,0,0), NullRecorder())
         vm = FakeVehicle(1)
         lane.add_vehicle(vm)
         lane.remove_vehicle(vm.vehicle_id)

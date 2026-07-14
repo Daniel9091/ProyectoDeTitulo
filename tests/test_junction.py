@@ -20,6 +20,7 @@ from tracks.junction import Junction
 from tracks.acceleration_tree import AccelerationTree
 from objects.math3d import Vector3
 from objects.types import TreeDirection, ModularVehicleState
+from telemetry.recorder import NullRecorder
 
 class FakeVehicle:
     def __init__(self, vehicle_id: int):
@@ -29,11 +30,11 @@ class FakeVehicle:
 
 def make_up_tree(track_id: int = 1) -> AccelerationTree:
     return AccelerationTree(track_id, Vector3(0, 0, 0), Vector3(0, 0, 30.0),
-                            TreeDirection.UP, 2.0)
+                            TreeDirection.UP, 2.0, NullRecorder())
 
 def make_down_tree(track_id: int = 10) -> AccelerationTree:
     return AccelerationTree(track_id, Vector3(0, 0, 30.0), Vector3(0, 0, 0),
-                            TreeDirection.DOWN, 2.0)
+                            TreeDirection.DOWN, 2.0, NullRecorder())
 
 def make_up_junction(trees=None) -> Junction:
     if trees is None:
