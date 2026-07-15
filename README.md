@@ -11,6 +11,14 @@ python3 main.py
 ```
 ## Comandos para monitorear simulacion
 
+#### Analisis
+```bash
+# Ultima corrida de la simulacion
+python analysis.py
+# Corrida espesifica
+python analysis.py [run_id]
+```
+
 #### Conteo de lineas
 ```bash
 # En la carpeta NSim con abiente activado
