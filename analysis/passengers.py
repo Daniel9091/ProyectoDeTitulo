@@ -1,5 +1,5 @@
 """
-passengers.py — Ciclo de vida de pasajeros.
+Ciclo de vida de pasajeros.
 
 Preguntas que responde:
   1. ¿Cuántos pasajeros llegaron a destino? (tasa de completitud)
@@ -11,24 +11,28 @@ Uso individual:
   python -c "from analysis.passengers import run; run()"
 """
 import matplotlib.pyplot as plt
-from analysis._shared import resolve_run, connect, plot_style, save_fig
+from analysis._shared import resolve_run, connect, plot_style, get_output_dir, save_fig, Reporter
 
 
 def run(events_path=None):
     if events_path is None:
         events_path = resolve_run()
     con = connect(events_path)
+    out_dir = get_output_dir(events_path)
+    rep = Reporter(out_dir, "passengers")
     plot_style()
 
-    print("\n=== PASAJEROS ===")
-    _stats_generales(con)
-    _histogramas_tiempos(con)
-    _embudo_por_estacion(con)
-    _transit_stops(con)
+    rep.print("\n=== PASAJEROS ===")
+    _stats_generales(con, rep)
+    _histogramas_tiempos(con, out_dir)
+    _embudo_por_estacion(con, out_dir)
+    _transit_stops(con, rep, out_dir)
+
+    rep.save()
     con.close()
 
 
-def _stats_generales(con):
+def _stats_generales(con, rep: Reporter):
     row = con.execute("""
         SELECT
             COUNT(*) FILTER (WHERE type = 'passenger_spawned') AS spawned,
@@ -39,14 +43,14 @@ def _stats_generales(con):
         FROM events
     """).fetchone()
     spawned, boarded, arrived, avg_wait, avg_travel = row
-    print(f"  Generados:       {spawned}")
-    print(f"  Abordaron:       {boarded}  ({100 * boarded / spawned:.1f}%)")
-    print(f"  Llegaron:        {arrived}  ({100 * arrived / spawned:.1f}%)")
-    print(f"  Espera promedio: {avg_wait:.1f}s")
-    print(f"  Viaje promedio:  {avg_travel:.1f}s")
+    rep.print(f"  Generados:       {spawned}")
+    rep.print(f"  Abordaron:       {boarded}  ({100 * boarded / spawned:.1f}%)")
+    rep.print(f"  Llegaron:        {arrived}  ({100 * arrived / spawned:.1f}%)")
+    rep.print(f"  Espera promedio: {avg_wait:.1f}s")
+    rep.print(f"  Viaje promedio:  {avg_travel:.1f}s")
 
 
-def _histogramas_tiempos(con):
+def _histogramas_tiempos(con, out_dir):
     wait   = con.execute("""
         SELECT t - spawn_time AS v FROM events WHERE type = 'passenger_boarded'
     """).df()["v"]
@@ -70,11 +74,11 @@ def _histogramas_tiempos(con):
     ax2.grid(True)
 
     plt.tight_layout()
-    save_fig("passengers_tiempos")
+    save_fig("passengers_tiempos", out_dir)
     plt.show()
 
 
-def _embudo_por_estacion(con):
+def _embudo_por_estacion(con, out_dir):
     df = con.execute("""
         SELECT
             origin_station_id AS station,
@@ -106,11 +110,11 @@ def _embudo_por_estacion(con):
     ax.legend()
     ax.grid(True, axis="y")
     plt.tight_layout()
-    save_fig("passengers_embudo_estaciones")
+    save_fig("passengers_embudo_estaciones", out_dir)
     plt.show()
 
 
-def _transit_stops(con):
+def _transit_stops(con, rep: Reporter, out_dir):
     df = con.execute("""
         SELECT passenger_id, COUNT(*) AS stops
         FROM events WHERE type = 'passenger_transit'
@@ -118,12 +122,12 @@ def _transit_stops(con):
     """).df()
 
     if df.empty:
-        print("  Sin eventos passenger_transit registrados.")
+        rep.print("  Sin eventos passenger_transit registrados.")
         return
 
-    print(f"\n  Pasajeros con tránsito intermedio: {len(df)}")
-    print(f"  Máx. estaciones intermedias:       {int(df['stops'].max())}")
-    print(f"  Promedio:                          {df['stops'].mean():.1f}")
+    rep.print(f"\n  Pasajeros con tránsito intermedio: {len(df)}")
+    rep.print(f"  Máx. estaciones intermedias:       {int(df['stops'].max())}")
+    rep.print(f"  Promedio:                          {df['stops'].mean():.1f}")
 
     fig, ax = plt.subplots(figsize=(7, 4))
     fig.suptitle("Estaciones intermedias visitadas por pasajero")
@@ -135,5 +139,5 @@ def _transit_stops(con):
     ax.set_xticks(range(1, max_stops + 1))
     ax.grid(True, axis="y")
     plt.tight_layout()
-    save_fig("passengers_transit")
+    save_fig("passengers_transit", out_dir)
     plt.show()

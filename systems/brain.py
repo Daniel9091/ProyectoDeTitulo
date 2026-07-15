@@ -213,7 +213,18 @@ class Brain:
                         demand_station.on_commitment_broken()
                 vm = self._train.remove_vm(slot_idx)
 
-                # Logs
+                # Si el destino del slot coincide, bajar a los pasajeros que llegaron
+                if dest == station_id:
+                    departed = vm.disembark(station_id)
+                    for p in departed:
+                        p.arrive(self._current_time)
+                        self._recorder.passenger_arrived(
+                            t=self._current_time,
+                            passenger_id=p.passenger_id,
+                            station_id=station_id,
+                            spawn_time=p.spawn_time,
+                        )
+                # Los que quedan (otro destino) van en tránsito
                 for p in vm.passengers_on_board:
                     self._recorder.passenger_transit(
                         t=self._current_time,
@@ -221,6 +232,7 @@ class Brain:
                         vm_id=vm.vehicle_id,
                         station_id=station_id,
                     )
+
 
                 if dest != station_id and vm.has_destination:
                     logger.warning(f"VM {vm.vehicle_id} eviccionado en estación {station_id}, destino era {dest}")

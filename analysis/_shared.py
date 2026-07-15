@@ -6,8 +6,6 @@ import duckdb
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-OUTPUT_DIR = Path(__file__).parent / "output"
-
 
 def resolve_run(run_arg: str | None = None) -> Path:
     """
@@ -26,13 +24,11 @@ def resolve_run(run_arg: str | None = None) -> Path:
         return Path(run_arg) / "events.jsonl"
     return Path("runs") / run_arg / "events.jsonl"
 
-
 def connect(events_path: Path) -> duckdb.DuckDBPyConnection:
     """Abre DuckDB en memoria con el JSONL registrado como vista 'events'."""
     con = duckdb.connect()
     con.execute(f"CREATE VIEW events AS SELECT * FROM read_ndjson_auto('{events_path}')")
     return con
-
 
 def plot_style():
     """Estilo oscuro consistente para todos los gráficos."""
@@ -49,10 +45,30 @@ def plot_style():
         "grid.alpha":       0.5,
     })
 
+def get_output_dir(events_path: Path) -> Path:
+    """Carpeta de salida para esta corrida: analysis/output/<run_id>/"""
+    run_id = events_path.parent.name
+    out = Path(__file__).parent / "output" / run_id
+    out.mkdir(parents=True, exist_ok=True)
+    return out
 
-def save_fig(name: str):
-    """Guarda la figura activa en analysis/output/<name>.png."""
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    path = OUTPUT_DIR / f"{name}.png"
+def save_fig(name: str, output_dir: Path):
+    """Guarda la figura activa en output_dir/<name>.png."""
+    path = output_dir / f"{name}.png"
     plt.savefig(path, dpi=150, bbox_inches="tight")
     print(f"  → guardado: {path}")
+
+class Reporter:
+    """Imprime a terminal y acumula líneas para guardar en un .txt al final."""
+
+    def __init__(self, output_dir: Path, name: str):
+        self._lines: list[str] = []
+        self._path = output_dir / f"{name}.txt"
+
+    def print(self, text: str = ""):
+        print(text)
+        self._lines.append(text)
+
+    def save(self):
+        self._path.write_text("\n".join(self._lines), encoding="utf-8")
+        print(f"  → guardado: {self._path}")
