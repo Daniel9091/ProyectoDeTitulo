@@ -40,7 +40,7 @@ class FakeTrack(BaseTrack):
     def remove_vehicle(self, vehicle_id: int):
         self.vehicles.pop(vehicle_id, None)
 
-    def update(self, dt: float) -> list[tuple]:
+    def update(self, dt, current_time=0.0) -> list[tuple]:
         return list(self._completions)
 
 def make_down_tree(track_id: int = 1, station_id: int | None = None) -> AccelerationTree:

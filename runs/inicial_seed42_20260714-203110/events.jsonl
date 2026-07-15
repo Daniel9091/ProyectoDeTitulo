@@ -1,0 +1,4 @@
+{"schema_version": 1, "seq": 0, "t": 0.0, "type": "run_started", "config": {"seed": 42, "scenario_name": "inicial"}}
+{"schema_version": 1, "seq": 1, "t": 1.633333333333335, "type": "passenger_spawned", "passenger_id": 0, "origin_station_id": 2, "destination_station_id": 3}
+{"schema_version": 1, "seq": 2, "t": 3.299999999999998, "type": "passenger_spawned", "passenger_id": 1, "origin_station_id": 2, "destination_station_id": 3}
+{"schema_version": 1, "seq": 3, "t": 4.333333333333328, "type": "run_ended", "summary": {"simulated_seconds": 4.333333333333328}}

@@ -91,7 +91,7 @@ class BoardingLane(BaseTrack):
         """
         del self.vehicles[vehicle_id]
 
-    def update(self, dt: float) -> list[tuple]:
+    def update(self, dt: float, current_time: float = 0.0) -> list[tuple]:
         """
         Avansa todos los VMs dt segundos a BOARDING_LANE_SPEED.
 
@@ -112,6 +112,13 @@ class BoardingLane(BaseTrack):
                 data['boarding_committed'] = True
                 for passenger in data['passengers']:
                     passenger.complete_boarding(vehicle_id)
+                    # Logs
+                    self._recorder.passenger_boarded(
+                        t=current_time,
+                        passenger_id=passenger.passenger_id,
+                        vm_id=vehicle_id,
+                        spawn_time=passenger.spawn_time,
+                    )
 
             # Calculo del tiempo faltante para terminar el track 
             # para que el siguente track sepa cuanto avansar

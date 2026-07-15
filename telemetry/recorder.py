@@ -76,6 +76,46 @@ class Recorder:
         """
         self._emit("run_ended", t, {"summary": summary})
 
+    # ── Passengers ─────────────────────────────────────────────────────────
+
+    def passenger_spawned(self, t: float, passenger_id: int,
+                        origin_station_id: int, destination_station_id: int) -> None:
+        """Pasajero creado en la estación origen."""
+        self._emit("passenger_spawned", t, {
+            "passenger_id":             passenger_id,
+            "origin_station_id":        origin_station_id,
+            "destination_station_id":   destination_station_id,
+        })
+
+    def passenger_boarded(self, t: float, passenger_id: int,
+                        vm_id: int, spawn_time: float) -> None:
+        """Embarque comprometido (BOARDING_COMMIT_PROGRESS alcanzado). spawn_time permite calcular wait_time."""
+        self._emit("passenger_boarded", t, {
+            "passenger_id": passenger_id,
+            "vm_id":        vm_id,
+            "spawn_time":   spawn_time,
+        })
+
+    def passenger_transit(self, t: float, passenger_id: int,
+                        vm_id: int, station_id: int) -> None:
+        """VM del pasajero entró a una estación intermedia; el pasajero no bajó."""
+        self._emit("passenger_transit", t, {
+            "passenger_id": passenger_id,
+            "vm_id":        vm_id,
+            "station_id":   station_id,
+        })
+
+    def passenger_arrived(self, t: float, passenger_id: int,
+                        station_id: int, spawn_time: float) -> None:
+        """Pasajero llegó a su destino y bajó del VM. spawn_time permite calcular travel_time."""
+        self._emit("passenger_arrived", t, {
+            "passenger_id": passenger_id,
+            "station_id":   station_id,
+            "spawn_time":   spawn_time,
+        })
+
+
+
     def close(self) -> None:
         """
         Vuelca el buffer pendiente a disco y cierra el archivo.
@@ -127,7 +167,8 @@ class NullRecorder:
     `if recorder:` en el dominio — el código llama igual a los métodos y
     simplemente no pasa nada.
     """
-
+    # ── Generales ─────────────────────────────────────────────────────────
+    
     def run_started(self, t: float, config: dict) -> None:
         pass
 
@@ -136,5 +177,19 @@ class NullRecorder:
 
     def close(self) -> None:
         pass
+
+    # ── Pasajeros ─────────────────────────────────────────────────────────
+
+    def passenger_spawned(self, t: float, passenger_id: int,
+                      origin_station_id: int, destination_station_id: int) -> None: pass
+
+    def passenger_boarded(self, t: float, passenger_id: int,
+                        vm_id: int, spawn_time: float) -> None: pass
+
+    def passenger_transit(self, t: float, passenger_id: int,
+                        vm_id: int, station_id: int) -> None: pass
+
+    def passenger_arrived(self, t: float, passenger_id: int,
+                        station_id: int, spawn_time: float) -> None: pass
 
 

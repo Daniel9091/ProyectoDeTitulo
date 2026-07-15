@@ -194,7 +194,7 @@ class AccelerationTree(BaseTrack):
         self.vehicles[vehicle_id]['vehicle'].state = ModularVehicleState.MOVING
         del self.vehicles[vehicle_id]
 
-    def update(self, dt: float) -> list[tuple]:
+    def update(self, dt: float, current_time: float = 0.0) -> list[tuple]:
         """
         Avanza todos los VMs dt segundos con física MRUA.
 

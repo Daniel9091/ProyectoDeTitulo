@@ -102,12 +102,14 @@ class Brain:
 
         """
 
+        self._current_time = current_time
+
         # 1. Avanzar el belt: tail_x avanza, se detectan qué slots cruzaron juntions UP
         crossings = self._train.advance(dt)
 
         # 2. avanzar todos los tracks superiores (árboles y lanes): cada VM se mueve dt segundos.
         #   Los VMs que terminaron su track quedan en 'completitions'  para procesar despúes.
-        completions = self._network.update_all_tracks(dt)
+        completions = self._network.update_all_tracks(dt, current_time)
 
         # 3. Separar completions en dos categorías
         #   - decisions: adyacencia len>1, Brain elige el siguiente track
@@ -210,6 +212,16 @@ class Brain:
                     if demand_station:
                         demand_station.on_commitment_broken()
                 vm = self._train.remove_vm(slot_idx)
+
+                # Logs
+                for p in vm.passengers_on_board:
+                    self._recorder.passenger_transit(
+                        t=self._current_time,
+                        passenger_id=p.passenger_id,
+                        vm_id=vm.vehicle_id,
+                        station_id=station_id,
+                    )
+
                 if dest != station_id and vm.has_destination:
                     logger.warning(f"VM {vm.vehicle_id} eviccionado en estación {station_id}, destino era {dest}")
                 if demand != station_id:
@@ -225,7 +237,25 @@ class Brain:
                     if vm.has_destination and vm.destination_station_id != station_id:
                         logger.warning(f"Pasajeros de VM {vm.vehicle_id} iban a estación "
                             f"{vm.destination_station_id}, bajaron en estación {station_id}")
-                    vm.disembark(station_id)
+                        
+                    # Logs
+                    departed = vm.disembark(station_id)
+                    for p in departed:
+                        p.arrive(self._current_time)
+                        self._recorder.passenger_arrived(
+                            t=self._current_time,
+                            passenger_id=p.passenger_id,
+                            station_id=station_id,
+                            spawn_time=p.spawn_time,
+                        )
+                    for p in vm.passengers_on_board:
+                        self._recorder.passenger_transit(
+                            t=self._current_time,
+                            passenger_id=p.passenger_id,
+                            vm_id=vm.vehicle_id,
+                            station_id=station_id,
+                        )
+
                     if vm.passenger_count == 0:
                         vm.clear_destination()
                     if demand is not None and demand != station_id:

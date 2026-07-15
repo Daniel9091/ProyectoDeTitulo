@@ -99,7 +99,7 @@ class Network:
     # LOOP PRINCIPAL — llamado por Brain en orden fijo
     # -------------------------------------------------------------------------
 
-    def update_all_tracks(self, dt: float) -> list[tuple[ModularVehicle, int, float]]:
+    def update_all_tracks(self, dt: float, current_time: float = 0.0) -> list[tuple[ModularVehicle, int, float]]:
         """
         Avanza todos los tracks dt segundos y recolecta completions.
 
@@ -113,7 +113,7 @@ class Network:
         """
         completions: list[tuple[ModularVehicle, int, float]] = []
         for track_id, track in self.tracks.items():
-            finished = track.update(dt)
+            finished = track.update(dt, current_time)
             for vm, leftover in finished:
                 completions.append((vm, track_id, leftover))
         return completions

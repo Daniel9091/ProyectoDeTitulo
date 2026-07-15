@@ -265,6 +265,14 @@ class Station:
             destination_station_id =    destination,
             spawn_time =                current_time,
         )
+        # Logs de recorder
+        self._recorder.passenger_spawned(
+            t=current_time,
+            passenger_id=passenger.passenger_id,
+            origin_station_id=self.station_id,
+            destination_station_id=destination,
+        )
+        
 
         passenger.start_moving_to_lane()
 
