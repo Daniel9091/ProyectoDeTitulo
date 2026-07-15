@@ -1,2 +1,0 @@
-{"schema_version": 1, "seq": 0, "t": 0.0, "type": "run_started", "config": {"seed": 42, "scenario_name": "inicial"}}
-{"schema_version": 1, "seq": 1, "t": 0.0, "type": "run_ended", "summary": {"simulated_seconds": 0.0}}
