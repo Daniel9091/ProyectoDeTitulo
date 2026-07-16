@@ -112,6 +112,16 @@ class ModularVehicle:
         self.passengers_on_board = staying
         return leaving
 
+    def disembark_all(self) -> list[Passenger]:
+        """
+        Retira TODOS los pasajeros del VM sin distinción de destino.
+        Usado cuando el VM entra a una estación aunque no sea el destino de todos.
+        """
+        departed = list(self.passengers_on_board)
+        self.passengers_on_board = []
+        return departed
+
+
     # GESTION DE DESTINO
     def assign_destination(self, station_id: int) -> None:
         """"

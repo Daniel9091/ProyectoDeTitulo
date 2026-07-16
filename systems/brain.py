@@ -65,9 +65,20 @@ class Brain:
         self._network =     network
         self._stations =    stations
         self._recorder =    recorder
+        self.all_vms: dict[int,"ModularVehicle"] = {}
+        self._register_initial_vms()
+
 
         # (Promesas activas hasta que el VM aterriza en el belt)
         self._reserved_slots: dict[int, int] =  {} 
+
+    def _register_initial_vms(self) -> None:
+        for slot in self._train.slots:
+            if slot['vm'] is not None:
+                vm = slot['vm']
+                self.all_vms[vm.vehicle_id] = vm
+                self._recorder.vm_created(0.0, vm.vehicle_id)
+
 
     # ─── LOOP PRINCIPAL ───────────────────────────────────────────────────────
 
@@ -213,17 +224,26 @@ class Brain:
                         demand_station.on_commitment_broken()
                 vm = self._train.remove_vm(slot_idx)
 
-                # Si el destino del slot coincide, bajar a los pasajeros que llegaron
-                if dest == station_id:
-                    departed = vm.disembark(station_id)
-                    for p in departed:
-                        p.arrive(self._current_time)
+                # Bajar todos los pasajeros — correctos a su destino, incorrectos a otra estación
+                departed = vm.disembark_all()
+                for p in departed:
+                    p.arrive(self._current_time)
+                    if p.destination_station_id == station_id:
                         self._recorder.passenger_arrived(
                             t=self._current_time,
                             passenger_id=p.passenger_id,
                             station_id=station_id,
                             spawn_time=p.spawn_time,
                         )
+                    else:
+                        self._recorder.passenger_arrived_wrong(
+                            t=self._current_time,
+                            passenger_id=p.passenger_id,
+                            station_id=station_id,
+                            expected_station_id=p.destination_station_id,
+                            spawn_time=p.spawn_time,
+                        )
+
                 # Los que quedan (otro destino) van en tránsito
                 for p in vm.passengers_on_board:
                     self._recorder.passenger_transit(
@@ -250,23 +270,25 @@ class Brain:
                         logger.warning(f"Pasajeros de VM {vm.vehicle_id} iban a estación "
                             f"{vm.destination_station_id}, bajaron en estación {station_id}")
                         
-                    # Logs
-                    departed = vm.disembark(station_id)
+                    # Bajar todos los pasajeros — correctos a su destino, incorrectos a otra estación
+                    departed = vm.disembark_all()
                     for p in departed:
                         p.arrive(self._current_time)
-                        self._recorder.passenger_arrived(
-                            t=self._current_time,
-                            passenger_id=p.passenger_id,
-                            station_id=station_id,
-                            spawn_time=p.spawn_time,
-                        )
-                    for p in vm.passengers_on_board:
-                        self._recorder.passenger_transit(
-                            t=self._current_time,
-                            passenger_id=p.passenger_id,
-                            vm_id=vm.vehicle_id,
-                            station_id=station_id,
-                        )
+                        if p.destination_station_id == station_id:
+                            self._recorder.passenger_arrived(
+                                t=self._current_time,
+                                passenger_id=p.passenger_id,
+                                station_id=station_id,
+                                spawn_time=p.spawn_time,
+                            )
+                        else:
+                            self._recorder.passenger_arrived_wrong(
+                                t=self._current_time,
+                                passenger_id=p.passenger_id,
+                                station_id=station_id,
+                                expected_station_id=p.destination_station_id,
+                                spawn_time=p.spawn_time,
+                            )
 
                     if vm.passenger_count == 0:
                         vm.clear_destination()
@@ -343,6 +365,7 @@ class Brain:
                     continue
                 slot_idx, _ = self._train.find_neartest_slot_to_belt_x(junction_down.belt_x)
             self._train.place_vm(vm, slot_idx)
+            self.all_vms[vm.vehicle_id] = vm
     
     # ─── RESERVAS ────────────────────────────────────────────────────────────
 
@@ -381,7 +404,6 @@ class Brain:
                     slot = self._train.slots[slot_idx]
                     if not slot['colliding_vms'] and slot['destination_station_id'] is None:
                         self._train.set_destination(slot_idx, vm.destination_station_id)
-
 
     def _get_down_tree_for_lane(self, lane_id: int):
         """
@@ -757,4 +779,15 @@ class Brain:
         """Retorna si el slot s esta marcado con demanda o con destino"""
         s = self._train.slots[idx % self._train.max_slots]
         return s['destination_station_id'] == station_id or s['demand_station_id'] == station_id
+
+    def emit_vm_summaries(self, t: float) -> None:
+        for vm in self.all_vms.values():
+            self._recorder.vm_run_summary(
+                t=t,
+                vm_id=vm.vehicle_id,
+                total_distance=vm.total_distance_traveled,
+                operational_time=vm.operational_time,
+            )
+
+
 

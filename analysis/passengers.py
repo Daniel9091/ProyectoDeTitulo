@@ -25,30 +25,33 @@ def run(events_path=None):
     rep.print("\n=== PASAJEROS ===")
     _stats_generales(con, rep)
     _histogramas_tiempos(con, out_dir)
-    _embudo_por_estacion(con, out_dir)
+    _embudo_por_estacion(con, rep, out_dir)
     _transit_stops(con, rep, out_dir)
 
     rep.save()
     con.close()
 
-
 def _stats_generales(con, rep: Reporter):
     row = con.execute("""
         SELECT
-            COUNT(*) FILTER (WHERE type = 'passenger_spawned') AS spawned,
-            COUNT(*) FILTER (WHERE type = 'passenger_boarded') AS boarded,
-            COUNT(*) FILTER (WHERE type = 'passenger_arrived') AS arrived,
-            AVG(t - spawn_time) FILTER (WHERE type = 'passenger_boarded')  AS avg_wait,
-            AVG(t - spawn_time) FILTER (WHERE type = 'passenger_arrived')  AS avg_travel
+            COUNT(*) FILTER (WHERE type = 'passenger_spawned')        AS spawned,
+            COUNT(*) FILTER (WHERE type = 'passenger_boarded')        AS boarded,
+            COUNT(*) FILTER (WHERE type = 'passenger_arrived')        AS arrived_correct,
+            COUNT(*) FILTER (WHERE type = 'passenger_arrived_wrong')  AS arrived_wrong,
+            AVG(t - spawn_time) FILTER (WHERE type = 'passenger_boarded')       AS avg_wait,
+            AVG(t - spawn_time) FILTER (WHERE type = 'passenger_arrived')       AS avg_travel
         FROM events
     """).fetchone()
-    spawned, boarded, arrived, avg_wait, avg_travel = row
-    rep.print(f"  Generados:       {spawned}")
-    rep.print(f"  Abordaron:       {boarded}  ({100 * boarded / spawned:.1f}%)")
-    rep.print(f"  Llegaron:        {arrived}  ({100 * arrived / spawned:.1f}%)")
-    rep.print(f"  Espera promedio: {avg_wait:.1f}s")
-    rep.print(f"  Viaje promedio:  {avg_travel:.1f}s")
-
+    spawned, boarded, correct, wrong, avg_wait, avg_travel = row
+    arrived = correct + wrong
+    in_transit = spawned - arrived
+    rep.print(f"  Generados:              {spawned}")
+    rep.print(f"  Abordaron:              {boarded}   ({100 * boarded / spawned:.1f}%)")
+    rep.print(f"  Llegaron a destino:     {correct}   ({100 * correct / spawned:.1f}%)")
+    rep.print(f"  Llegaron mal:           {wrong}   ({100 * wrong / spawned:.1f}%)")
+    rep.print(f"  En tránsito al cerrar:  {in_transit}   ({100 * in_transit / spawned:.1f}%)")
+    rep.print(f"  Espera promedio:        {avg_wait:.1f}s")
+    rep.print(f"  Viaje promedio:         {avg_travel:.1f}s")
 
 def _histogramas_tiempos(con, out_dir):
     wait   = con.execute("""
@@ -77,34 +80,48 @@ def _histogramas_tiempos(con, out_dir):
     save_fig("passengers_tiempos", out_dir)
     plt.show()
 
-
-def _embudo_por_estacion(con, out_dir):
+def _embudo_por_estacion(con, rep: Reporter, out_dir):
     df = con.execute("""
         SELECT
-            origin_station_id AS station,
-            COUNT(*) FILTER (WHERE type = 'passenger_spawned') AS spawned,
-            COUNT(*) FILTER (WHERE type = 'passenger_arrived') AS arrived
-        FROM (
-            SELECT type, origin_station_id FROM events WHERE type = 'passenger_spawned'
-            UNION ALL
-            SELECT e2.type, e1.origin_station_id
-            FROM events e1
-            JOIN events e2 ON e1.passenger_id = e2.passenger_id
-            WHERE e1.type = 'passenger_spawned' AND e2.type = 'passenger_arrived'
-        )
-        GROUP BY origin_station_id
+            s.origin_station_id                                          AS station,
+            COUNT(*)                                                     AS spawned,
+            COUNT(a.passenger_id)  FILTER (WHERE a.type = 'passenger_arrived')       AS correct,
+            COUNT(a.passenger_id)  FILTER (WHERE a.type = 'passenger_arrived_wrong') AS wrong
+        FROM events s
+        LEFT JOIN events a ON s.passenger_id = a.passenger_id
+            AND a.type IN ('passenger_arrived', 'passenger_arrived_wrong')
+        WHERE s.type = 'passenger_spawned'
+        GROUP BY s.origin_station_id
         ORDER BY station
     """).df()
 
-    stations  = [f"S{int(s)}" for s in df["station"]]
-    x         = range(len(stations))
-    width     = 0.35
+    rep.print("\n  Embudo por estación origen:")
+    rep.print(f"  {'Estación':>10}  {'Generados':>10}  {'Dest OK':>10}  {'Dest MAL':>10}  {'En tránsito':>12}")
+    for _, row in df.iterrows():
+        s = int(row["station"])
+        sp = int(row["spawned"])
+        ok = int(row["correct"])
+        mal = int(row["wrong"])
+        transit = sp - ok - mal
+        rep.print(f"  S{s:>9}  {sp:>10}  {ok:>10}  {mal:>10}  {transit:>12}")
 
-    fig, ax = plt.subplots(figsize=(8, 5))
-    fig.suptitle("Generados vs. Llegaron por estación origen", fontsize=13)
-    ax.bar([i - width/2 for i in x], df["spawned"], width, label="generados",  color="#89b4fa")
-    ax.bar([i + width/2 for i in x], df["arrived"], width, label="llegaron",   color="#a6e3a1")
-    ax.set_xticks(list(x))
+    # Gráfico
+    stations = [f"S{int(s)}" for s in df["station"]]
+    x     = list(range(len(stations)))
+    w     = 0.35
+
+    fig, ax = plt.subplots(figsize=(9, 5))
+    fig.suptitle("Generados vs llegadas por estación origen", fontsize=13)
+
+    ax.bar([i - w/2 for i in x], df["spawned"], w,
+           label="generados", color="#89b4fa")
+    ax.bar([i + w/2 for i in x], df["correct"], w,
+           label="llegaron a destino", color="#a6e3a1")
+    ax.bar([i + w/2 for i in x], df["wrong"], w,
+           bottom=df["correct"],
+           label="llegaron mal", color="#fab387")
+
+    ax.set_xticks(x)
     ax.set_xticklabels(stations)
     ax.set_ylabel("pasajeros")
     ax.legend()
@@ -112,7 +129,6 @@ def _embudo_por_estacion(con, out_dir):
     plt.tight_layout()
     save_fig("passengers_embudo_estaciones", out_dir)
     plt.show()
-
 
 def _transit_stops(con, rep: Reporter, out_dir):
     df = con.execute("""

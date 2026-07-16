@@ -1,6 +1,4 @@
 """
-Tests de telemetry/recorder.py.
-
 Qué se verifica aquí:
     - Que cada evento queda escrito con los campos base correctos
     - Que seq sube uno por evento
@@ -202,6 +200,23 @@ class TestPassenerEvents:
         assert event["station_id"] == 3
         assert event["spawn_time"] == 5.0
 
+    def test_passenger_arrived_wrong_writes_fields(self, tmp_path):
+        """
+        passenger_arrived_wrong debe incluir la estación real donde bajó
+        y expected_station_id para saber adónde debía ir.
+        """
+        recorder = Recorder(run_dir=tmp_path, run_id="test_run")
+        recorder.passenger_arrived_wrong(t=78.0, passenger_id=1,
+                                        station_id=2, expected_station_id=3,
+                                        spawn_time=5.0)
+        recorder.close()
+
+        event = _read_lines(tmp_path / "events.jsonl")[0]
+        assert event["type"] == "passenger_arrived_wrong"
+        assert event["passenger_id"] == 1
+        assert event["station_id"] == 2
+        assert event["expected_station_id"] == 3
+        assert event["spawn_time"] == 5.0
 
 
 

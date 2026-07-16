@@ -38,6 +38,8 @@ class FakeVehicle:
         self.capacity = capacity
         self.passengers_on_board = []
         self.destination_station_id = None
+        self.total_distance_traveled = 0.0
+        self.operational_time = 0.0
 
     @property
     def is_full(self) -> bool:

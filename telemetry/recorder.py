@@ -76,7 +76,7 @@ class Recorder:
         """
         self._emit("run_ended", t, {"summary": summary})
 
-    # ── Passengers ─────────────────────────────────────────────────────────
+    # ── Passengers ───────────────────────────────────────────────────────
 
     def passenger_spawned(self, t: float, passenger_id: int,
                         origin_station_id: int, destination_station_id: int) -> None:
@@ -114,6 +114,40 @@ class Recorder:
             "spawn_time":   spawn_time,
         })
 
+    def passenger_arrived_wrong(self, t: float, passenger_id: int,
+                                 station_id: int, expected_station_id: int,
+                                 spawn_time: float) -> None:
+        """Pasajero bajó en una estación que NO era su destino (VM redirigido)."""
+        self._emit("passenger_arrived_wrong", t, {
+            "passenger_id":          passenger_id,
+            "station_id":            station_id,
+            "expected_station_id":   expected_station_id,
+            "spawn_time":            spawn_time,
+        })
+
+    # ── Modular Vehicles ────────────────────────────────────────────────────
+
+    def vm_run_summary(self, t: float, vm_id: int,
+                        total_distance: float, operational_time: float) -> None:
+        """Métricas acumuladas del VM al cierre de la corrida."""
+        self._emit("vm_run_summary", t, {
+            "vm_id":             vm_id,
+            "total_distance":    total_distance,
+            "operational_time":  operational_time,
+        })
+
+    def vm_created(self, t: float, vm_id: int) -> None:
+        """VM registrado en la flota al construirse la simulación."""
+        self._emit("vm_created", t, {"vm_id": vm_id})
+
+    def vm_trip_completed(self, t: float, vm_id: int,
+                        passenger_count: int, lane_length: float) -> None:
+        """VM completó el boarding lane. passenger_count=0 significa que pasó vacío."""
+        self._emit("vm_trip_completed", t, {
+            "vm_id":            vm_id,
+            "passenger_count":  passenger_count,
+            "lane_length":      lane_length,
+        })
 
 
     def close(self) -> None:
@@ -169,14 +203,11 @@ class NullRecorder:
     """
     # ── Generales ─────────────────────────────────────────────────────────
     
-    def run_started(self, t: float, config: dict) -> None:
-        pass
+    def run_started(self, t: float, config: dict) -> None: pass
+        
+    def run_ended(self, t: float, summary: dict) -> None: pass
 
-    def run_ended(self, t: float, summary: dict) -> None:
-        pass
-
-    def close(self) -> None:
-        pass
+    def close(self) -> None: pass
 
     # ── Pasajeros ─────────────────────────────────────────────────────────
 
@@ -192,4 +223,17 @@ class NullRecorder:
     def passenger_arrived(self, t: float, passenger_id: int,
                         station_id: int, spawn_time: float) -> None: pass
 
+    def passenger_arrived_wrong(self, t: float, passenger_id: int,
+                                 station_id: int, expected_station_id: int,
+                                 spawn_time: float) -> None: pass
+
+    # ── Modular Vehicles ────────────────────────────────────────────────────
+
+    def vm_run_summary(self, t: float, vm_id: int,
+                        total_distance: float, operational_time: float) -> None: pass
+
+    def vm_created(self, t: float, vm_id: int) -> None: pass
+
+    def vm_trip_completed(self, t: float, vm_id: int,
+                        passenger_count: int, lane_length: float) -> None: pass
 

@@ -126,6 +126,7 @@ def main():
 
     finally:
         summary = {"simulated_seconds": sim.current_time}
+        brain.emit_vm_summaries(sim.current_time)
         recorder.run_ended(t=sim.current_time, summary=summary)
         recorder.close()
 

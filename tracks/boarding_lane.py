@@ -62,6 +62,10 @@ class BoardingLane(BaseTrack):
         """
         velocity = BOARDING_LANE_SPEED
         initial_distance = self._compute_advance(velocity, leftover_dt)
+
+        vehicle.total_distance_traveled += initial_distance
+        vehicle.operational_time        += leftover_dt
+
         
         passengers = []
         priority_dest = self._select_priority_group()
@@ -103,16 +107,15 @@ class BoardingLane(BaseTrack):
         completed = []
         for vehicle_id, data in list(self.vehicles.items()):
             old_distance = data['distance']
-            data['distance'] += self._compute_advance(data['velocity'], dt)
 
+            advance = self._compute_advance(data['velocity'], dt)
+            data['distance'] += advance
             progress = data['distance'] / self.length
 
-            # finaliza el abordaje de los pasageros que estaban abordando
             if not data['boarding_committed'] and progress >= BOARDING_COMMIT_PROGRESS:
                 data['boarding_committed'] = True
                 for passenger in data['passengers']:
                     passenger.complete_boarding(vehicle_id)
-                    # Logs
                     self._recorder.passenger_boarded(
                         t=current_time,
                         passenger_id=passenger.passenger_id,
@@ -120,12 +123,22 @@ class BoardingLane(BaseTrack):
                         spawn_time=passenger.spawn_time,
                     )
 
-            # Calculo del tiempo faltante para terminar el track 
-            # para que el siguente track sepa cuanto avansar
             if data['distance'] >= self.length:
-                time_to_complete = (self.length - old_distance) / data['velocity']
+                remaining = self.length - old_distance
+                time_to_complete = remaining / data['velocity']
                 leftover = dt - time_to_complete
+                data['vehicle'].total_distance_traveled += remaining
+                data['vehicle'].operational_time        += time_to_complete
+                self._recorder.vm_trip_completed(
+                    current_time, vehicle_id,
+                    len(data['passengers']), self.length
+                )
                 completed.append((data['vehicle'], leftover))
+
+            else:
+                data['vehicle'].total_distance_traveled += advance
+                data['vehicle'].operational_time        += dt
+
         
         for vm, _ in completed:
             self.remove_vehicle(vm.vehicle_id)

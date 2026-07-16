@@ -30,6 +30,9 @@ class FakeVehicle:
         self.vehicle_id = vehicle_id
         self.state = ModularVehicleState.MOVING
         self.reserved_tree_acceleration = None  # accel del proximo arbol DOWN
+        self.total_distance_traveled = 0.0
+        self.operational_time = 0.0
+        
 
 def _slanted_end_pos(length: float, target_accel: float) -> Vector3:
     """

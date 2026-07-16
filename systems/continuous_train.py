@@ -104,6 +104,12 @@ class ContinuousTrain:
         movement = TRAIN_SPEED * dt
         self.tail_x = (self.tail_x + movement)% self.total_length
 
+        # Actualizacion de ditancia recorrida en el continuous_train
+        for slot in self.slots:
+            if slot['vm'] is not None:
+                slot['vm'].total_distance_traveled += movement
+                slot['vm'].operational_time += dt
+
         crossings = []
         for station_id, junction_x in self.junction_points.items():
             # Slot que estaba más cerca de juntion_x ANTES del avance

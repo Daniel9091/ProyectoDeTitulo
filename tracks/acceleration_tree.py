@@ -207,20 +207,26 @@ class AccelerationTree(BaseTrack):
             old_velocity = data['velocity']
             accel = self._signed_acceleration(data['target_acceleration'])
 
-            advance = max(0.0, self._compute_advance(old_velocity,dt, accel))
+            advance = max(0.0, self._compute_advance(old_velocity, dt, accel))
             data['distance'] += advance
             data['velocity'] = max(0.0, old_velocity + accel * dt)
             data['time_in_track'] += dt
 
             if data['distance'] >= self.length:
                 remaining = self.length - old_distance
-                if abs(accel) <1e-9:
-                    time_to_complete = remaining /old_velocity if old_velocity > 0 else 0.0
+                if abs(accel) < 1e-9:
+                    time_to_complete = remaining / old_velocity if old_velocity > 0 else 0.0
                 else:
                     disciminant = old_velocity ** 2 + 2.0 * accel * remaining
-                    time_to_complete = (-old_velocity + math.sqrt(max(0.0,disciminant))) / accel
+                    time_to_complete = (-old_velocity + math.sqrt(max(0.0, disciminant))) / accel
                 leftover = max(0.0, dt - time_to_complete)
+                data['vehicle'].total_distance_traveled += remaining
+                data['vehicle'].operational_time        += time_to_complete
                 completed.append((data['vehicle'], leftover))
+            else:
+                data['vehicle'].total_distance_traveled += advance
+                data['vehicle'].operational_time        += dt
+
             
         for vm, _ in completed:
             self.remove_vehicle(vm.vehicle_id)
@@ -260,8 +266,11 @@ class AccelerationTree(BaseTrack):
             entry_velocity = TRAIN_SPEED if self.direction == TreeDirection.UP else BOARDING_LANE_SPEED
         
         accel = self._signed_acceleration(self.base_acceleration)
-        initial_distance = max(0.0, self._compute_advance(entry_velocity, leftover_dt, accel))
+        initial_distance = max(0.0, self._compute_advance(entry_velocity, leftover_dt, accel))       
         initial_velocity = max(0.0, entry_velocity + accel * leftover_dt)
+
+        vehicle.total_distance_traveled += initial_distance
+        vehicle.operational_time        += leftover_dt
 
         vehicle.state = (
             ModularVehicleState.ACCELERATING_UP
