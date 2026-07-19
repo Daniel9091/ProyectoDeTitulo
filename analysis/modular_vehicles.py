@@ -42,7 +42,7 @@ def run(events_path=None):
         rep.print("  [sin datos] Sin registro de flota.")
 
     if 'vm_run_summary' in types:
-        _distance_time_metrics(con, rep)
+        _distance_time_metrics(con, rep, types)
 
     if 'vm_run_summary' in types and 'vm_trip_completed' in types:
         _km_efficiency(con, rep, out_dir)
@@ -101,7 +101,7 @@ def _fleet_overview(con, rep, out_dir):
     save_fig("modular_vehicles_fleet_overview", out_dir)
     plt.show()
 
-def _distance_time_metrics(con, rep):
+def _distance_time_metrics(con, rep, types):
     """
     Distance and time efficiency metrics for the fleet.
 
@@ -122,10 +122,11 @@ def _distance_time_metrics(con, rep):
     dist_total, dist_prom, dist_pax_total, dist_pax_prom, tiempo_total, tiempo_prom = r
 
 
-    total_viajes = con.execute("""
-        SELECT COUNT(*) FROM events
-        WHERE type = 'vm_trip_completed' AND passenger_count > 0
-    """).fetchone()[0] or 0
+    if 'vm_trip_completed' in types:
+        total_viajes = con.execute("""
+            SELECT COUNT(*) FROM events
+            WHERE type = 'vm_trip_completed' AND passenger_count > 0
+        """).fetchone()[0] or 0
 
     pct_util = 100.0 * dist_pax_total / dist_total if dist_total > 0 else 0.0
 
@@ -139,7 +140,8 @@ def _distance_time_metrics(con, rep):
     rep.print(f"\n[ Tiempos de operación ]")
     rep.print(f"  Tiempo total de la flota:    {tiempo_total/3600:.2f} h")
     rep.print(f"  Tiempo promedio por VM:      {tiempo_prom:.0f} s  (~{tiempo_prom/3600:.1f} h)")
-    rep.print(f"  Viajes completados (boarding lane con ≥1 pax):  {total_viajes}")
+    if 'vm_trip_completed' in types:
+        rep.print(f"  Viajes completados (boarding lane con ≥1 pax):  {total_viajes}")
 
 def _km_efficiency(con, rep, out_dir):
     """
