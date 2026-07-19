@@ -29,6 +29,7 @@ class FakeVehicle:
         self.vehicle_id = vehicle_id
         self.total_distance_traveled = 0.0
         self.operational_time = 0.0
+        self.passengers_on_board = []
 
 def make_train(total_length: float = 100.0,
                junction_points: dict | None = None,

@@ -3,8 +3,8 @@ Utilidades compartidas para los módulos de análisis.
 """
 import json
 import duckdb
-import matplotlib.pyplot as plt
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 
 def resolve_run(run_arg: str | None = None) -> Path:
@@ -27,23 +27,8 @@ def resolve_run(run_arg: str | None = None) -> Path:
 def connect(events_path: Path) -> duckdb.DuckDBPyConnection:
     """Abre DuckDB en memoria con el JSONL registrado como vista 'events'."""
     con = duckdb.connect()
-    con.execute(f"CREATE VIEW events AS SELECT * FROM read_ndjson_auto('{events_path}')")
+    con.execute(f"CREATE VIEW events AS SELECT * FROM read_ndjson_auto('{events_path}', sample_size=-1)")
     return con
-
-def plot_style():
-    """Estilo oscuro consistente para todos los gráficos."""
-    plt.rcParams.update({
-        "figure.facecolor": "#1e1e2e",
-        "axes.facecolor":   "#1e1e2e",
-        "axes.edgecolor":   "#cdd6f4",
-        "axes.labelcolor":  "#cdd6f4",
-        "xtick.color":      "#cdd6f4",
-        "ytick.color":      "#cdd6f4",
-        "text.color":       "#cdd6f4",
-        "grid.color":       "#313244",
-        "grid.linestyle":   "--",
-        "grid.alpha":       0.5,
-    })
 
 def get_output_dir(events_path: Path) -> Path:
     """Carpeta de salida para esta corrida: analysis/output/<run_id>/"""
@@ -57,6 +42,46 @@ def save_fig(name: str, output_dir: Path):
     path = output_dir / f"{name}.png"
     plt.savefig(path, dpi=150, bbox_inches="tight")
     print(f"  → guardado: {path}")
+
+def read_manifest(events_path: Path) -> set[str] | None:
+    """
+    Lee la última línea del JSONL para obtener los tipos de evento disponibles.
+    Retorna set de tipos si hay manifest, None si no hay (fallback a scan completo).
+    O(longitud de la última línea) — esencialmente O(1).
+    """
+    try:
+        with open(events_path, 'rb') as f:
+            f.seek(0, 2)
+            end = f.tell()
+            if end == 0:
+                return set()
+            pos = end - 1
+            f.seek(pos)
+            if f.read(1) == b'\n':
+                pos -= 1
+            while pos > 0:
+                f.seek(pos)
+                if f.read(1) == b'\n':
+                    break
+                pos -= 1
+            last_line = f.read().decode('utf-8').strip()
+        event = json.loads(last_line)
+        if event.get('type') == 'run_manifest':
+            return set(event['event_types'])
+    except Exception:
+        pass
+    return None
+
+def get_event_types(events_path: Path, con) -> set[str]:
+    """Intenta leer manifest; si falla, hace scan completo como fallback."""
+    types = read_manifest(events_path)
+    if types is not None:
+        return types
+    # fallback: simulación sin manifest (crash o JSONL antiguo)
+    print("  [aviso] Sin manifest — escaneando tipos (más lento).")
+    return {row[0] for row in con.execute(
+        "SELECT DISTINCT type FROM events"
+    ).fetchall()}
 
 class Reporter:
     """Imprime a terminal y acumula líneas para guardar en un .txt al final."""

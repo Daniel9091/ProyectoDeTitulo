@@ -29,6 +29,8 @@ class FakeVehicle:
         self.reserved_tree_acceleration = None
         self.total_distance_traveled = 0.0
         self.operational_time = 0.0
+        self.distance_carrying_passengers = 0.0
+        self.passengers_on_board = []
 
 def make_up_tree(track_id: int = 1) -> AccelerationTree:
     return AccelerationTree(track_id, Vector3(0, 0, 0), Vector3(0, 0, 30.0),

@@ -56,6 +56,7 @@ class Recorder:
         self._seq = 0
         self._closed = False
 
+        self._event_types_seen: set[str] = set()
         self._run_dir.mkdir(parents=True, exist_ok=True)
         self._events_path = self._run_dir / "events.jsonl"
         self._file = open(self._events_path, "a", encoding="utf-8")
@@ -128,12 +129,14 @@ class Recorder:
     # ── Modular Vehicles ────────────────────────────────────────────────────
 
     def vm_run_summary(self, t: float, vm_id: int,
-                        total_distance: float, operational_time: float) -> None:
+                        total_distance: float, operational_time: float,
+                        distance_carrying_passengers: float) -> None:
         """Métricas acumuladas del VM al cierre de la corrida."""
         self._emit("vm_run_summary", t, {
             "vm_id":             vm_id,
             "total_distance":    total_distance,
             "operational_time":  operational_time,
+            "distance_carrying_passengers": distance_carrying_passengers,
         })
 
     def vm_created(self, t: float, vm_id: int) -> None:
@@ -155,8 +158,18 @@ class Recorder:
         Vuelca el buffer pendiente a disco y cierra el archivo.
         Seguro llamarlo más de una vez — las llamadas extra no hacen nada.
         """
-        if self._closed:
-            return
+        if self._closed: return
+        
+        manifest = {
+            "schema_version": SCHEMA_VERSION,
+            "seq":            self._seq,
+            "t":              -1,
+            "type":           "run_manifest",
+            "event_types":    sorted(self._event_types_seen),
+        }
+        self._buffer.append(manifest)
+        self._seq += 1
+
         self._flush()
         self._file.close()
         self._closed = True
@@ -178,6 +191,7 @@ class Recorder:
         }
         self._seq += 1
         self._buffer.append(event)
+        self._event_types_seen.add(event_type)
         if len(self._buffer) >= self._flush_every:
             self._flush()
 
@@ -230,7 +244,8 @@ class NullRecorder:
     # ── Modular Vehicles ────────────────────────────────────────────────────
 
     def vm_run_summary(self, t: float, vm_id: int,
-                        total_distance: float, operational_time: float) -> None: pass
+                        total_distance: float, operational_time: float,
+                        distance_carrying_passengers: float) -> None: pass
 
     def vm_created(self, t: float, vm_id: int) -> None: pass
 

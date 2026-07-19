@@ -43,7 +43,7 @@ class TestRecorderMechanism:
         recorder.close()
 
         lines = _read_lines(tmp_path / "events.jsonl")
-        assert len(lines) == 1
+        assert len(lines) == 2
         event = lines[0]
         assert event["schema_version"] == 1
         assert event["seq"] == 0
@@ -63,8 +63,8 @@ class TestRecorderMechanism:
         recorder.close()
 
         lines = _read_lines(tmp_path / "events.jsonl")
-        assert [e["seq"] for e in lines] == [0, 1]
-        assert [e["type"] for e in lines] == ["run_started", "run_ended"]
+        assert [e["seq"] for e in lines] == [0, 1, 2]
+        assert [e["type"] for e in lines] == ["run_started", "run_ended", "run_manifest"]
 
     def test_flushes_to_disk_at_threshold(self, tmp_path):
         """
@@ -92,7 +92,7 @@ class TestRecorderMechanism:
         recorder.run_started(t=0.0, config={})
         recorder.close()
 
-        assert len(_read_lines(tmp_path / "events.jsonl")) == 1
+        assert len(_read_lines(tmp_path / "events.jsonl")) == 2
 
     def test_close_is_safe_to_call_twice(self, tmp_path):
         """
@@ -105,7 +105,7 @@ class TestRecorderMechanism:
         recorder.close()
         recorder.close()  # no debe lanzar excepcion
 
-        assert len(_read_lines(tmp_path / "events.jsonl")) == 1
+        assert len(_read_lines(tmp_path / "events.jsonl")) == 2
 
     def test_enum_field_serializes_to_its_value(self, tmp_path):
         """

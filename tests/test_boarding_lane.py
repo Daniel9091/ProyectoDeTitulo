@@ -40,6 +40,7 @@ class FakeVehicle:
         self.destination_station_id = None
         self.total_distance_traveled = 0.0
         self.operational_time = 0.0
+        self.distance_carrying_passengers = 0.0
 
     @property
     def is_full(self) -> bool:

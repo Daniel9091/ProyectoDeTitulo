@@ -109,6 +109,8 @@ class ContinuousTrain:
             if slot['vm'] is not None:
                 slot['vm'].total_distance_traveled += movement
                 slot['vm'].operational_time += dt
+                if slot['vm'].passengers_on_board:
+                    slot['vm'].distance_carrying_passengers += movement
 
         crossings = []
         for station_id, junction_x in self.junction_points.items():

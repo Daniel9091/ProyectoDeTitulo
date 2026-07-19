@@ -62,6 +62,8 @@ class BoardingLane(BaseTrack):
         """
         velocity = BOARDING_LANE_SPEED
         initial_distance = self._compute_advance(velocity, leftover_dt)
+        if vehicle.passengers_on_board:
+            vehicle.distance_carrying_passengers += initial_distance
 
         vehicle.total_distance_traveled += initial_distance
         vehicle.operational_time        += leftover_dt
@@ -129,6 +131,10 @@ class BoardingLane(BaseTrack):
                 leftover = dt - time_to_complete
                 data['vehicle'].total_distance_traveled += remaining
                 data['vehicle'].operational_time        += time_to_complete
+
+                if data['vehicle'].passengers_on_board:
+                    data['vehicle'].distance_carrying_passengers += remaining
+
                 self._recorder.vm_trip_completed(
                     current_time, vehicle_id,
                     len(data['passengers']), self.length
@@ -138,6 +144,8 @@ class BoardingLane(BaseTrack):
             else:
                 data['vehicle'].total_distance_traveled += advance
                 data['vehicle'].operational_time        += dt
+                if data['vehicle'].passengers_on_board:
+                    data['vehicle'].distance_carrying_passengers += advance
 
         
         for vm, _ in completed:

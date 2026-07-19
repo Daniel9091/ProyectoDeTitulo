@@ -54,6 +54,7 @@ class ModularVehicle:
         # METRICAS INTERNAS
         self.operational_time: float = 0.0
         self.total_distance_traveled: float = 0.0
+        self.distance_carrying_passengers: float = 0.0
 
     # PROPIEDADES DE ESTADO
     @property
@@ -120,7 +121,6 @@ class ModularVehicle:
         departed = list(self.passengers_on_board)
         self.passengers_on_board = []
         return departed
-
 
     # GESTION DE DESTINO
     def assign_destination(self, station_id: int) -> None:

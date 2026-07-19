@@ -787,6 +787,7 @@ class Brain:
                 vm_id=vm.vehicle_id,
                 total_distance=vm.total_distance_traveled,
                 operational_time=vm.operational_time,
+                distance_carrying_passengers=vm.distance_carrying_passengers,
             )
 
 

@@ -222,12 +222,16 @@ class AccelerationTree(BaseTrack):
                 leftover = max(0.0, dt - time_to_complete)
                 data['vehicle'].total_distance_traveled += remaining
                 data['vehicle'].operational_time        += time_to_complete
+                if data['vehicle'].passengers_on_board:
+                    data['vehicle'].distance_carrying_passengers += remaining
+                
                 completed.append((data['vehicle'], leftover))
             else:
                 data['vehicle'].total_distance_traveled += advance
                 data['vehicle'].operational_time        += dt
-
-            
+                if data['vehicle'].passengers_on_board:
+                    data['vehicle'].distance_carrying_passengers += advance
+                
         for vm, _ in completed:
             self.remove_vehicle(vm.vehicle_id)
         
@@ -271,6 +275,8 @@ class AccelerationTree(BaseTrack):
 
         vehicle.total_distance_traveled += initial_distance
         vehicle.operational_time        += leftover_dt
+        if vehicle.passengers_on_board:
+            vehicle.distance_carrying_passengers += initial_distance
 
         vehicle.state = (
             ModularVehicleState.ACCELERATING_UP

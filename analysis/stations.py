@@ -1,9 +1,20 @@
 """
-Análisis de estaciones.
+Station analysis.
 
-Con SP2: demanda generada y llegadas por estación.
-Pendiente SP6 (snapshots): cola en andén a lo largo del tiempo.
+Questions answered:
+  1. How many passengers were generated per station?    → _demand_and_arrivals
+  2. How many completed their journey from each origin? → _demand_and_arrivals
+
+Report: stations.txt
+Charts: (none — SP6 snapshots pending)
+
+Required event types: passenger_spawned, passenger_arrived
+
+Usage:
+  python -c "from analysis.stations import run; run()"
 """
+
+
 from analysis._shared import resolve_run, connect, get_output_dir, Reporter
 
 
@@ -15,13 +26,21 @@ def run(events_path=None):
     rep = Reporter(out_dir, "stations")
 
     rep.print("\n=== ESTACIONES ===")
-    _demanda_y_llegadas(con, rep)
+    _demand_and_arrivals(con, rep)
+
 
     rep.save()
     con.close()
 
 
-def _demanda_y_llegadas(con, rep: Reporter):
+def _demand_and_arrivals(con, rep: Reporter):
+    """
+    Demand and arrival summary per origin station.
+
+    Questions: How many passengers were generated per station? How many arrived?
+    Text: per-station table (generated, arrived)
+    Needs: passenger_spawned, passenger_arrived
+    """
     df = con.execute("""
         SELECT
             origin_station_id AS station,
@@ -39,6 +58,9 @@ def _demanda_y_llegadas(con, rep: Reporter):
         ORDER BY station
     """).df()
 
+    rep.print("\n[ Demanda generada por estación ]")
+    rep.print("  Pasajeros generados en cada estación y cuántos llegaron a destino correcto.")
     rep.print(f"  {'Estación':>10}  {'Generados':>10}  {'Llegaron':>10}")
+
     for _, row in df.iterrows():
         rep.print(f"  S{int(row['station']):>9}  {int(row['generados']):>10}  {int(row['llegaron']):>10}")

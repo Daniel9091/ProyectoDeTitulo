@@ -32,7 +32,8 @@ class FakeVehicle:
         self.reserved_tree_acceleration = None  # accel del proximo arbol DOWN
         self.total_distance_traveled = 0.0
         self.operational_time = 0.0
-        
+        self.distance_carrying_passengers = 0.0
+        self.passengers_on_board = []  
 
 def _slanted_end_pos(length: float, target_accel: float) -> Vector3:
     """
