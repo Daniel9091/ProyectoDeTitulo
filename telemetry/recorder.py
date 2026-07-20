@@ -152,6 +152,100 @@ class Recorder:
             "lane_length":      lane_length,
         })
 
+    # ── Etiquetas de slot ───────────────────────────────────────────────────
+
+    def slot_reserved(self, t: float, slot_idx: int, station_id: int, vm_id: int,
+                      target_idx: int, slot_offset: int, priority: str,
+                      T_total: float, accel: float, prev_labels: dict) -> None:
+        """Slot marcado como destino de aterrizaje para un VM que viene bajando."""
+        self._emit("slot_reserved", t, {
+            "slot_idx":    slot_idx,
+            "station_id":  station_id,
+            "vm_id":       vm_id,
+            "target_idx":  target_idx,
+            "slot_offset": slot_offset,
+            "priority":    priority,
+            "T_total":     round(T_total, 4),
+            "accel":       round(accel, 4),
+            "prev_labels": prev_labels,
+        })
+
+    def slot_reservation_cleared(self, t: float, slot_idx: int,
+                                  station_id: int, reason: str) -> None:
+        """Reserva liberada. reason: 'vm_arrived' | 'missed_junction'."""
+        self._emit("slot_reservation_cleared", t, {
+            "slot_idx":   slot_idx,
+            "station_id": station_id,
+            "reason":     reason,
+        })
+
+    def slot_demand_set(self, t: float, slot_idx: int, station_id: int,
+                        priority: str, prev_labels: dict) -> None:
+        """Slot marcado para satisfacer demanda de una estación."""
+        self._emit("slot_demand_set", t, {
+            "slot_idx":    slot_idx,
+            "station_id":  station_id,
+            "priority":    priority,
+            "prev_labels": prev_labels,
+        })
+
+    def slot_demand_cleared(self, t: float, slot_idx: int,
+                             station_id: int, reason: str) -> None:
+        """Etiqueta de demanda limpiada. reason: 'vm_entered_tree' | 'commitment_broken'."""
+        self._emit("slot_demand_cleared", t, {
+            "slot_idx":   slot_idx,
+            "station_id": station_id,
+            "reason":     reason,
+        })
+
+    def slot_destination_set(self, t: float, slot_idx: int, station_id: int,
+                              vm_id: int | None, source: str, prev_dest: int | None) -> None:
+        """Destino del VM escrito en el slot. source: 'boarding_commit' | 'reservations_pass' | 'redirect'."""
+        self._emit("slot_destination_set", t, {
+            "slot_idx":   slot_idx,
+            "station_id": station_id,
+            "vm_id":      vm_id,
+            "source":     source,
+            "prev_dest":  prev_dest,
+        })
+
+    def slot_destination_cleared(self, t: float, slot_idx: int, station_id: int) -> None:
+        """Destino limpiado cuando el VM sale del carril hacia el árbol UP."""
+        self._emit("slot_destination_cleared", t, {
+            "slot_idx":   slot_idx,
+            "station_id": station_id,
+        })
+
+    def junction_vm_entered(self, t: float, station_id: int, vm_id: int,
+                             slot_idx: int, forced: bool) -> None:
+        """VM entró al árbol UP de la estación. forced=True si fue force_add_vm."""
+        self._emit("junction_vm_entered", t, {
+            "station_id": station_id,
+            "vm_id":      vm_id,
+            "slot_idx":   slot_idx,
+            "forced":     forced,
+        })
+
+    def junction_commitment_broken(self, t: float, station_id: int,
+                                    vm_id: int, slot_idx: int) -> None:
+        """Árbol rechazó VM de demanda — compromiso roto, VM sigue en belt."""
+        self._emit("junction_commitment_broken", t, {
+            "station_id": station_id,
+            "vm_id":      vm_id,
+            "slot_idx":   slot_idx,
+        })
+
+    def slot_collision(self, t: float, slot_idx: int,
+                       vm_arriving_id: int, vm_occupying_id: int,
+                       prev_labels: dict) -> None:
+        """Dos VMs en el mismo slot — reserva falló o llegó tarde."""
+        self._emit("slot_collision", t, {
+            "slot_idx":       slot_idx,
+            "vm_arriving_id": vm_arriving_id,
+            "vm_occupying_id": vm_occupying_id,
+            "prev_labels":    prev_labels,
+        })
+
 
     def close(self) -> None:
         """
@@ -251,4 +345,18 @@ class NullRecorder:
 
     def vm_trip_completed(self, t: float, vm_id: int,
                         passenger_count: int, lane_length: float) -> None: pass
+
+    # ── Etiquetas de slot ───────────────────────────────────────────────────
+
+    def slot_reserved(self, t, slot_idx, station_id, vm_id, target_idx,
+                      slot_offset, priority, T_total, accel, prev_labels): pass
+    def slot_reservation_cleared(self, t, slot_idx, station_id, reason): pass
+    def slot_demand_set(self, t, slot_idx, station_id, priority, prev_labels): pass
+    def slot_demand_cleared(self, t, slot_idx, station_id, reason): pass
+    def slot_destination_set(self, t, slot_idx, station_id, vm_id, source, prev_dest): pass
+    def slot_destination_cleared(self, t, slot_idx, station_id): pass
+    def junction_vm_entered(self, t, station_id, vm_id, slot_idx, forced): pass
+    def junction_commitment_broken(self, t, station_id, vm_id, slot_idx): pass
+    def slot_collision(self, t, slot_idx, vm_arriving_id, vm_occupying_id, prev_labels): pass
+
 

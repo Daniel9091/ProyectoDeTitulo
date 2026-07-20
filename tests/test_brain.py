@@ -1825,7 +1825,7 @@ class TestSaturationCheck:
         with patch.object(brain, '_would_saturate', return_value=True):
             with patch.object(brain, '_saturation_count', side_effect=fake_sat_count):
                 with caplog.at_level(logging.CRITICAL, logger='systems.brain'):
-                    result = brain._range_search_reservation(BEST_SLOT, STATION_ID, junction_up)
+                    result,_ = brain._range_search_reservation(BEST_SLOT, STATION_ID, junction_up)
 
         assert result == BEST_SLOT
         assert any(r.levelno == logging.CRITICAL for r in caplog.records)
@@ -1898,7 +1898,7 @@ class TestDemandSystem:
 
         junction_up = network.get_junction_up(STATION_ID)
         with patch.object(brain, '_would_saturate', return_value=False):
-            result = brain._range_search_demand(STATION_ID, junction_up)
+            result,_ = brain._range_search_demand(STATION_ID, junction_up)
 
         assert result == 2
 
@@ -1916,7 +1916,7 @@ class TestDemandSystem:
 
         junction_up = network.get_junction_up(STATION_ID)
         with patch.object(brain, '_would_saturate', return_value=False):
-            result = brain._range_search_demand(STATION_ID, junction_up)
+            result,_ = brain._range_search_demand(STATION_ID, junction_up)
 
         assert result == 2
         assert train.slots[3]['demand_station_id'] is None
@@ -1934,7 +1934,7 @@ class TestDemandSystem:
 
         junction_up = network.get_junction_up(STATION_ID)
         with patch.object(brain, '_would_saturate', return_value=False):
-            result = brain._range_search_demand(STATION_ID, junction_up)
+            result,_ = brain._range_search_demand(STATION_ID, junction_up)
 
         assert result == 2
 
@@ -2006,7 +2006,7 @@ class TestDemandSystem:
             train.slots[5]['vm'] = _make_vm()
             train.slots[5]['colliding_vms'] = [_make_vm(vm_id=99)]
 
-            result = brain._range_search_demand(STATION_ID, junction_up)
+            result,_ = brain._range_search_demand(STATION_ID, junction_up)
 
         assert result != 5, "Nunca debe marcar un slot en choque con demanda"
 
@@ -2240,7 +2240,7 @@ class TestRangeSearchPriorities:
             train.slots[25]['vm'] = _make_vm()
             train.set_destination(25, STATION_ID)     # P1a
 
-            result = brain._range_search_reservation(22, STATION_ID, junction_up)
+            result,_ = brain._range_search_reservation(22, STATION_ID, junction_up)
 
         assert result == 25, "dest=S (P1a) debe ganar sobre demand=S (P1b)"
 
@@ -2254,7 +2254,7 @@ class TestRangeSearchPriorities:
         with patch.object(brain, '_would_saturate', return_value=False):
             train.slots[25]['vm'] = _make_vm()  # único VM en el rango → P3
 
-            result = brain._range_search_reservation(22, STATION_ID, junction_up)
+            result,_ = brain._range_search_reservation(22, STATION_ID, junction_up)
 
         assert result != 25, "No debe elegir el VM limpio cuando hay slots vacíos"
         assert train.slots[result]['vm'] is None, "Debe elegir un slot vacío (P2)"
@@ -2274,7 +2274,7 @@ class TestRangeSearchPriorities:
 
             train.slots[25]['demand_station_id'] = None  # slot 25 queda limpio → P3
 
-            result = brain._range_search_reservation(22, STATION_ID, junction_up)
+            result,_ = brain._range_search_reservation(22, STATION_ID, junction_up)
 
         assert result == 25, "VM limpio (P3) debe ganar sobre demand=OTRA (P4)"
 
@@ -2295,7 +2295,7 @@ class TestRangeSearchPriorities:
             train.slots[25]['destination_station_id'] = None
             train.set_demand_supply(25, OTHER)
 
-            result = brain._range_search_reservation(22, STATION_ID, junction_up)
+            result,_ = brain._range_search_reservation(22, STATION_ID, junction_up)
 
         assert result == 25, "demand=OTRA (P4) debe ganar sobre dest=OTRA (P5)"
         assert not any("otra estación" in r.message for r in caplog.records
@@ -2317,7 +2317,7 @@ class TestRangeSearchPriorities:
                 train.set_destination(i, OTHER)  # todos P5
 
             with caplog.at_level(logging.WARNING, logger="systems.brain"):
-                result = brain._range_search_reservation(22, STATION_ID, junction_up)
+                result,_ = brain._range_search_reservation(22, STATION_ID, junction_up)
 
         assert result is not None, "Debe elegir algún slot aunque sea P5"
         assert train.slots[result]['destination_station_id'] == OTHER
@@ -2340,7 +2340,7 @@ class TestRangeSearchPriorities:
             # slot 22: vacío, sin reserva → único candidato válido
 
             with caplog.at_level(logging.CRITICAL, logger="systems.brain"):
-                result = brain._range_search_reservation(22, STATION_ID, junction_up)
+                result,_ = brain._range_search_reservation(22, STATION_ID, junction_up)
 
         assert result == 22, "Único slot no reservado debe ser elegido"
         assert any("riesgo de colisión" in r.message for r in caplog.records
@@ -2358,7 +2358,7 @@ class TestRangeSearchPriorities:
                     train.slots[i]['reserved_station_id'] = STATION_ID
 
             with caplog.at_level(logging.CRITICAL, logger="systems.brain"):
-                result = brain._range_search_reservation(22, STATION_ID, junction_up)
+                result,_ = brain._range_search_reservation(22, STATION_ID, junction_up)
 
         assert result == 22, "El único slot sin reserva debe elegirse"
         assert not any(r.levelno == logging.CRITICAL for r in caplog.records), \
@@ -2376,7 +2376,7 @@ class TestRangeSearchPriorities:
             train.slots[48]['vm'] = _make_vm()
             train.set_destination(48, STATION_ID)  # P1a en slot envuelto
 
-            result = brain._range_search_reservation(2, STATION_ID, junction_up)
+            result,_ = brain._range_search_reservation(2, STATION_ID, junction_up)
 
         assert result == 48, "Debe encontrar el slot envuelto (48 = -2 % 50)"
 
@@ -2392,7 +2392,7 @@ class TestRangeSearchPriorities:
             train.slots[22]['vm'] = _make_vm()
             train.slots[22]['colliding_vms'] = [_make_vm(vm_id=99)]  # único candidato, pero chocando
 
-            result = brain._range_search_reservation(22, STATION_ID, junction_up)
+            result,_ = brain._range_search_reservation(22, STATION_ID, junction_up)
 
         assert result != 22, "Nunca debe elegir un slot en choque"
 

@@ -212,7 +212,6 @@ def _km_efficiency(con, rep, out_dir):
     save_fig("modular_vehicles_km_efficiency", out_dir)
     plt.show()
 
-
 def _vm_reuse(con, rep, out_dir):
     """
     How many trips each active VM made.
