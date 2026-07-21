@@ -38,7 +38,7 @@ from tracks.boarding_lane import BoardingLane
 from tracks.acceleration_tree import AccelerationTree
 from systems.continuous_train import ContinuousTrain
 from systems.network import Network
-from config.constants import TRAIN_SPEED, BOARDING_LANE_SPEED, TRAIN_SPACING, SLOT_SEARCH_RANGE
+from config.constants import TRAIN_SPEED, BOARDING_LANE_SPEED, TRAIN_SPACING, SLOT_SEARCH_RANGE_RESERVATION, SLOT_SEARCH_RANGE_DEMAND, BURST_WINDOW_SAFETY_MARGIN
 
 class Brain:
     """
@@ -226,7 +226,12 @@ class Brain:
                         t=self._current_time, slot_idx=slot_idx,
                         station_id=demand, reason="commitment_broken",
                     )
-
+                elif demand == station_id:                          # ← esto falta
+                    self._recorder.slot_demand_cleared(
+                        t=self._current_time, slot_idx=slot_idx,
+                        station_id=station_id, reason="vm_entered_tree",
+                    )
+                
                 if dest is not None:
                     self._recorder.slot_destination_cleared(
                         t=self._current_time, slot_idx=slot_idx,
@@ -319,6 +324,11 @@ class Brain:
                         self._recorder.slot_demand_cleared(
                             t=self._current_time, slot_idx=slot_idx,
                             station_id=demand, reason="commitment_broken",
+                        )
+                    elif demand == station_id:
+                        self._recorder.slot_demand_cleared(
+                            t=self._current_time, slot_idx=slot_idx,
+                            station_id=station_id, reason="vm_entered_tree",
                         )
                     if demand != station_id:
                         station.on_unplanned_vm_at_tree()
@@ -697,9 +707,14 @@ class Brain:
             reserved=OTHER → colisión física garantizada (dos VMs al mismo slot).
             En ambos casos: skip. Para reserved=OTHER se emite log CRITICAL.
         """
-        half = SLOT_SEARCH_RANGE // 2
+        half = SLOT_SEARCH_RANGE_RESERVATION // 2
         max_slots = self._train.max_slots
-        candidates = [(target_idx+ offset) % max_slots for offset in range(-half,half +1)]
+        offsets = [0]
+        for i in range(1, half + 1):
+            offsets.append(i)
+            offsets.append(-i)
+        candidates = [(target_idx + offset) % max_slots for offset in offsets]
+
 
         best_priority = 7
         best_priority_label ="none"
@@ -794,7 +809,7 @@ class Brain:
         best_priority_label = "none"
         best_slot = None
 
-        for offset in range(SLOT_SEARCH_RANGE+1):
+        for offset in range(SLOT_SEARCH_RANGE_DEMAND + 1):
             candidate = (safe_start - offset) % max_slots
             slot = self._train.slots[candidate]
             
@@ -852,7 +867,7 @@ class Brain:
         Para junctions DOWN: burst_window == 0 -> siempre retorna False (DOWN no satura).
         """
         N = junction.burst_capacity
-        G = junction.burst_window
+        G = junction.burst_window + BURST_WINDOW_SAFETY_MARGIN
         if G == 0 or N == 0:
             return False
         
@@ -878,7 +893,7 @@ class Brain:
         el menor conteo (el que menos empeora la saturación).
         """
         N = junction.burst_capacity
-        G = junction.burst_window
+        G = junction.burst_window + BURST_WINDOW_SAFETY_MARGIN
         if G == 0 or N == 0:
             return 0
         

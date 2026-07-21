@@ -59,16 +59,18 @@ TREE_LENGTH         = 10.0      # longitud de cada AccelerationTree
 LANE_LENGTH         = 20.0      # longitud del BoardingLane
 TREE_ACCELERATION   = 2.5       # acceleracion de los arboles de test
 
-TEST_SLOT_SEARCH_RANGE = 10     # ancho fijo para tests — independiente de config/constants.py
+# después
+TEST_SLOT_SEARCH_RANGE_RESERVATION = 10   # half=5 → rango ±5 alrededor del target
+TEST_SLOT_SEARCH_RANGE_DEMAND      = 10   # 10 slots hacia atrás desde junction_up
+
 @pytest.fixture(autouse=True)
 def _fixed_slot_search_range():
     """
-    Todos los tests de este archivo corren con SLOT_SEARCH_RANGE=10 sin importar
-    qué valor tenga config/constants.py para la simulación real.
-    Los tests fueron diseñados asumiendo half=5 (offsets -5..+5); cambiar el valor
-    de producción para tunear la simulación no debe romper ningún test.
+    Todos los tests corren con rangos fijos de búsqueda, independientes de config/constants.py.
+    RESERVATION: half=5 (offsets -5..+5). DEMAND: 10 slots atrás.
     """
-    with patch('systems.brain.SLOT_SEARCH_RANGE', TEST_SLOT_SEARCH_RANGE):
+    with patch('systems.brain.SLOT_SEARCH_RANGE_RESERVATION', TEST_SLOT_SEARCH_RANGE_RESERVATION), \
+         patch('systems.brain.SLOT_SEARCH_RANGE_DEMAND',      TEST_SLOT_SEARCH_RANGE_DEMAND):
         yield
 
 # ─── HELPERS DE FIXTURE ───────────────────────────────────────────────────────
@@ -1852,7 +1854,7 @@ class TestDemandSystem:
     y respeta las restricciones de reserva, destino, saturación y double-commit.
 
     _range_search_demand busca HACIA ATRÁS desde junction_up (slot 5 = belt_x 10.0)
-    hasta SLOT_SEARCH_RANGE=10 posiciones. Solo slots CON VM.
+    hasta SLOT_SEARCH_RANGE_DEMAND=10 posiciones. Solo slots CON VM.
 
     Reglas de exclusión:
         reserved para otra estación → skip (VM será eviccionado antes de llegar)

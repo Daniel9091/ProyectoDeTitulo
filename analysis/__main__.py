@@ -3,7 +3,7 @@ Punto de entrada del paquete: python -m analysis [run_id]
 """
 import sys
 from analysis._shared import resolve_run
-from analysis import passengers, modular_vehicles, stations
+from analysis import passengers, modular_vehicles, slot_labels, stations
 
 
 def main():
@@ -13,6 +13,7 @@ def main():
 
     passengers.run(events_path)
     modular_vehicles.run(events_path)
+    slot_labels.run(events_path)
     stations.run(events_path)
     print("\nAnálisis completo.")
 
