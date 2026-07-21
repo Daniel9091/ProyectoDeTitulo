@@ -59,25 +59,27 @@ class Junction:
         Para DOWN siempre True (DOWN trees no saturan).
         """
         return any(tree.can_accept() for tree in self.trees)
-    
-    def add_vm(self, vehicle, leftover_dt:float = 0.0) -> bool:
+
+    def add_vm(self, vehicle, leftover_dt: float = 0.0) -> tuple[bool, int | None]:
         """
         Enruta el VM al árbol disponible con menor carga.
-        Retorna False si todos los árboles UP están saturados.
-        Para DOWN siempre retorna True.
+        Retorna (True, tree_idx) si entró, (False, None) si todos saturados.
+        Para DOWN siempre retorna (True, tree_idx).
         """
-        for tree in sorted(self.trees, key = lambda t: t.vehicle_count):
+        for tree in sorted(self.trees, key=lambda t: t.vehicle_count):
             if tree.add_vehicle(vehicle, leftover_dt=leftover_dt):
-                return True
-        return False
-    
-    def force_add_vm(self, vehicle, leftover_dt:float = 0.0) -> None:
+                return True, self.trees.index(tree)
+        return False, None
+
+    def force_add_vm(self, vehicle, leftover_dt: float = 0.0) -> int:
         """
         Fuerza la entrada del VM al árbol menos saturado, ignorando can_accept().
         Brain llama esto cuando add_vm retorno False y el VM tiene reserva.
-        Delega el [ADVERTENCIA] al AccelerationTree correspondiente.
+        Retorna tree_idx del árbol que absorbió el VM.
         """
-        self._least_saturated_tree().force_add_vehicle(vehicle, leftover_dt=leftover_dt)
+        tree = self._least_saturated_tree()
+        tree.force_add_vehicle(vehicle, leftover_dt=leftover_dt)
+        return self.trees.index(tree)
 
     # ── CAPACIDAD DE ABSORCIÓN ───────────────────────────────────────────
 

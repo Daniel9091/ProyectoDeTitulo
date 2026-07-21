@@ -71,6 +71,7 @@ class Brain:
         # (Promesas activas hasta que el VM aterriza en el belt)
         self._reserved_slots: dict[int, int] =  {} 
         self._current_time: float = 0.0
+        self._active_track_collisions: dict[int, set] = {}
 
     def _register_initial_vms(self) -> None:
         for slot in self._train.slots:
@@ -125,6 +126,7 @@ class Brain:
         # 3. Separar completions en dos categorías
         #   - decisions: adyacencia len>1, Brain elige el siguiente track
         #   - belt_placementes: track terminal (DOWN tree sin siguiente), VM va al belt
+    
         decisions, belt_placements = self._network.process_transitions(completions)
         # 4. Para cada slot que cruzo una juntion UP este frame: decidir si el VM sube,
         #   y si el obligatorio (reserva) o condicional (destino, demanda).
@@ -913,7 +915,7 @@ class Brain:
     def _is_slot_marked_for(self, idx: int, station_id: int) -> bool:
         """Retorna si el slot s esta marcado con demanda o con destino"""
         s = self._train.slots[idx % self._train.max_slots]
-        return s['destination_station_id'] == station_id or s['demand_station_id'] == station_id
+        return s['destination_station_id'] == station_id or s['demand_station_id'] == station_id or s['reserved_station_id'] == station_id
 
     def emit_vm_summaries(self, t: float) -> None:
         for vm in self.all_vms.values():

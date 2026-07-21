@@ -31,7 +31,7 @@ TREE_LENGTH = 400                           # Largo de los arboles de aceleracio
 # CTE. PREDICCION DE COLICIONES
 
 
-SLOT_SEARCH_RANGE_RESERVATION = 40   # ±15 slots — reservas necesitan mucho margen
+SLOT_SEARCH_RANGE_RESERVATION = 40   # ±20 slots — reservas necesitan mucho margen
 SLOT_SEARCH_RANGE_DEMAND      = 10   # 10 slots atrás
 
 SLOT_SEARCH_RANGE = 30          # rango de busqueda bidireccional de slots 
