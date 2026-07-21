@@ -1,4 +1,5 @@
 import sys, os
+import importlib
 from setproctitle import setproctitle
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -6,7 +7,6 @@ import json
 import pygame
 from pathlib import Path
 from datetime import datetime
-from simulation_builder import inicial
 from simulation.simulation import Simulation
 from simulation.inspector import Inspector
 from simulation.camera   import Camera
@@ -22,6 +22,8 @@ def main():
 
     seed = 42
     scenario_name = "inicial"
+    scenario = importlib.import_module(f"simulation_builder.{scenario_name}")
+
 
     run_id  = f"{scenario_name}_seed{seed}_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     run_dir = Path("runs") / run_id
@@ -29,7 +31,7 @@ def main():
 
 
     print(f"Construyendo escenario... (run_id={run_id})")
-    brain, stations = inicial.build(seed=seed, recorder=recorder)
+    brain, stations = scenario.build(seed=seed, recorder=recorder)
     recorder.run_started(t=0.0, config={"seed": seed, "scenario_name": scenario_name})
 
     # brain._process_reservations = lambda: None   # ← LÍNEA TEMPORAL: apaga reservas para forzar choques
