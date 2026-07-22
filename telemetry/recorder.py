@@ -250,7 +250,7 @@ class Recorder:
 
     def tree_vm_entered(self, t: float, station_id: int, tree_idx: int,
                         vm_id: int, forced: bool, reason: str,
-                        vehicle_count_after: int, youngest_distance_after) -> None:
+                        vehicle_count_after: int, nearest_existing_distance) -> None:
         """VM entró a un árbol UP. tree_idx = índice del andén elegido dentro del junction."""
         self._emit("tree_vm_entered", t, {
             "station_id":              station_id,
@@ -259,7 +259,7 @@ class Recorder:
             "forced":                  forced,
             "reason":                  reason,
             "vehicle_count_after":     vehicle_count_after,
-            "youngest_distance_after": youngest_distance_after,
+            "nearest_existing_distance": nearest_existing_distance,
         })
 
     def track_collision_started(self, t: float, track_id: int,
@@ -409,7 +409,7 @@ class NullRecorder:
     # ── Árboles y colisiones en track ──────────────────────────────────────────
 
     def tree_vm_entered(self, t, station_id, tree_idx, vm_id, forced, reason,
-                        vehicle_count_after, youngest_distance_after): pass
+                        vehicle_count_after, nearest_existing_distance): pass
     def track_collision_started(self, t, track_id, vm_id_1, vm_id_2,
                                  separation, pos_x, pos_y, pos_z): pass
     def track_collision_ended(self, t, track_id, vm_id_1, vm_id_2,

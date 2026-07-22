@@ -73,6 +73,7 @@ class Brain:
         self._reserved_slots: dict[int, int] =  {} 
         self._current_time: float = 0.0
         self._active_track_collisions: dict[int, set] = {}
+        self._forced_vm_ids: set[int] = set()                   # VMs que entraron por force; se revisan cada tick en UP trees
 
     def _register_initial_vms(self) -> None:
         for slot in self._train.slots:
@@ -123,6 +124,7 @@ class Brain:
         # 2. avanzar todos los tracks superiores (árboles y lanes): cada VM se mueve dt segundos.
         #   Los VMs que terminaron su track quedan en 'completitions'  para procesar despúes.
         completions = self._network.update_all_tracks(dt, current_time)
+        self._check_forced_vm_collisions()
         self._check_collision_ends()
 
         # 3. Separar completions en dos categorías
@@ -282,7 +284,7 @@ class Brain:
                 forced = not ok
                 if forced:
                     tree_idx = junction.force_add_vm(vm, leftover_dt)
-                    self._check_force_add_collision(junction.trees[tree_idx], vm.vehicle_id)
+                    self._forced_vm_ids.add(vm.vehicle_id)
                 self._recorder.junction_vm_entered(
                     t=self._current_time, station_id=station_id,
                     vm_id=vm.vehicle_id, slot_idx=slot_idx, forced=forced,
@@ -405,7 +407,10 @@ class Brain:
         'reason' viene del contexto del branch; 'forced' indica si se usó force_add_vm.
         """
         chosen = junction.trees[tree_idx]
-        yd = min((d['distance'] for d in chosen.vehicles.values()), default=None)
+        yd = min(
+            (d['distance'] for vid, d in chosen.vehicles.items() if vid != vm_id),
+            default=None,
+        )
         self._recorder.tree_vm_entered(
             t=self._current_time,
             station_id=junction.station_id,
@@ -414,31 +419,42 @@ class Brain:
             forced=forced,
             reason=reason,
             vehicle_count_after=chosen.vehicle_count,
-            youngest_distance_after=yd,
+            nearest_existing_distance=yd,
         )
 
-    def _check_force_add_collision(self, tree, forced_vm_id: int) -> None:
+    def _check_forced_vm_collisions(self) -> None:
         """
-        Detecta colisiones producidas por force_add_vm en un árbol UP.
-        Solo compara el VM forzado contra los demás VMs del mismo árbol — no hace O(n²)
-        global. Colisiones en árboles UP solo nacen por force_add: can_accept() rechazado
-        implica que el VM más cercano ya está a menos de _min_safe_distance de la entrada.
-        Agrega pares nuevos a _active_track_collisions y emite track_collision_started.
+        Cada tick, revisa si algún VM que entró por force_add_vm y sigue en un
+        árbol UP está chocando con sus vecinos inmediatos (adelante y atrás en
+        distancia). La colisión no ocurre en el instante de force_add — ocurre
+        en los ticks siguientes cuando el VM forzado (entra a TRAIN_SPEED) alcanza
+        al VM de adelante (que ya lleva tiempo decelerando y está lento).
+        Solo revisa UP trees: en DOWN los VMs aceleran → se separan, no se acercan.
         """
-        if forced_vm_id not in tree.vehicles:
-            return
-        forced_dist = tree.vehicles[forced_vm_id]['distance']
-        track_id = tree.track_id
-        active = self._active_track_collisions.setdefault(track_id, set())
-        for other_id, other_data in tree.vehicles.items():
-            if other_id == forced_vm_id:
+        for track_id, track in self._network.tracks.items():
+            if not (isinstance(track, AccelerationTree) and track.direction == TreeDirection.UP):
                 continue
-            if abs(other_data['distance'] - forced_dist) < TRAIN_VM_LENGTH:
-                pair = frozenset({forced_vm_id, other_id})
-                if pair not in active:
-                    active.add(pair)
-                    a, b = sorted(pair)
-                    self._emit_track_collision("started", track_id, tree, a, b)
+            forced_in_tree = [vid for vid in self._forced_vm_ids if vid in track.vehicles]
+            if not forced_in_tree:
+                continue
+            sorted_ids = sorted(track.vehicles, key=lambda vid: track.vehicles[vid]['distance'])
+            active = self._active_track_collisions.setdefault(track_id, set())
+            for forced_id in forced_in_tree:
+                idx = sorted_ids.index(forced_id)
+                neighbors = []
+                if idx > 0:
+                    neighbors.append(sorted_ids[idx - 1])
+                if idx < len(sorted_ids) - 1:
+                    neighbors.append(sorted_ids[idx + 1])
+                forced_dist = track.vehicles[forced_id]['distance']
+                for neighbor_id in neighbors:
+                    sep = abs(track.vehicles[neighbor_id]['distance'] - forced_dist)
+                    if sep < TRAIN_VM_LENGTH:
+                        a, b = min(forced_id, neighbor_id), max(forced_id, neighbor_id)
+                        pair = frozenset({a, b})
+                        if pair not in active:
+                            active.add(pair)
+                            self._emit_track_collision("started", track_id, track, a, b)
 
     def _check_collision_ends(self) -> None:
         """
@@ -453,6 +469,10 @@ class Brain:
         for track_id, pairs in list(self._active_track_collisions.items()):
             track = self._network.tracks.get(track_id)
             if track is None:
+                for pair in list(pairs):
+                    a, b = min(pair), max(pair)
+                    pairs.discard(pair)
+                    self._emit_track_collision("ended", track_id, None, a, b, "vm_exited")
                 continue
             for pair in list(pairs):
                 a, b = sorted(pair)
@@ -474,7 +494,7 @@ class Brain:
         Si alguno de los dos VMs ya salió del track, pos_x/y/z y separation quedan None.
         """
         pos_x = pos_y = pos_z = sep = None
-        if vm_id_1 in track.vehicles and vm_id_2 in track.vehicles:
+        if track is not None and vm_id_1 in track.vehicles and vm_id_2 in track.vehicles:
             d1 = track.vehicles[vm_id_1]['distance']
             d2 = track.vehicles[vm_id_2]['distance']
             p1 = track.position_at_progress(d1 / track.length)
