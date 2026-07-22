@@ -246,6 +246,17 @@ class Recorder:
             "prev_labels":    prev_labels,
         })
 
+    def slot_search_completed(self, t: float, context: str, station_id: int,
+                            selected_slot_idx, selected_priority: str,
+                            window: list) -> None:
+        self._emit("slot_search_completed", t, {
+            "context":            context,
+            "station_id":         station_id,
+            "selected_slot_idx":  selected_slot_idx,
+            "selected_priority":  selected_priority,
+            "window":             window,
+        })
+
     # ── Árboles y colisiones en track ──────────────────────────────────────────
 
     def tree_vm_entered(self, t: float, station_id: int, tree_idx: int,
@@ -290,6 +301,18 @@ class Recorder:
             "pos_y":      pos_y,
             "pos_z":      pos_z,
             "reason":     reason,
+        })
+
+    # ── Station ────────────────────────────────────────────────────────────────
+
+    def station_snapshot(self, t: float, station_id: int,
+                        active_anden_count: int, pending_demand: int,
+                        andenes: list) -> None:
+        self._emit("station_snapshot", t, {
+            "station_id":          station_id,
+            "active_anden_count":  active_anden_count,
+            "pending_demand":      pending_demand,
+            "andenes":             andenes,
         })
 
 
@@ -397,22 +420,39 @@ class NullRecorder:
 
     def slot_reserved(self, t, slot_idx, station_id, vm_id, target_idx,
                       slot_offset, priority, T_total, accel, prev_labels): pass
+    
     def slot_reservation_cleared(self, t, slot_idx, station_id, reason): pass
+
     def slot_demand_set(self, t, slot_idx, station_id, priority, prev_labels): pass
+
     def slot_demand_cleared(self, t, slot_idx, station_id, reason): pass
+
     def slot_destination_set(self, t, slot_idx, station_id, vm_id, source, prev_dest): pass
+
     def slot_destination_cleared(self, t, slot_idx, station_id): pass
+
     def junction_vm_entered(self, t, station_id, vm_id, slot_idx, forced): pass
+
     def junction_commitment_broken(self, t, station_id, vm_id, slot_idx): pass
+
     def slot_collision(self, t, slot_idx, vm_arriving_id, vm_occupying_id, prev_labels): pass
+
+    def slot_search_completed(self, t, context, station_id,
+                          selected_slot_idx, selected_priority, window): pass
 
     # ── Árboles y colisiones en track ──────────────────────────────────────────
 
     def tree_vm_entered(self, t, station_id, tree_idx, vm_id, forced, reason,
                         vehicle_count_after, nearest_existing_distance): pass
+    
     def track_collision_started(self, t, track_id, vm_id_1, vm_id_2,
                                  separation, pos_x, pos_y, pos_z): pass
+    
     def track_collision_ended(self, t, track_id, vm_id_1, vm_id_2,
                                separation, pos_x, pos_y, pos_z, reason): pass
+
+    # ── Station ──────────────────────────────────────────────────────────────
+
+    def station_snapshot(self, t, station_id, active_anden_count, pending_demand, andenes): pass
 
 

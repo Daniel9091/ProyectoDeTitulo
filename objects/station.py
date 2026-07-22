@@ -350,6 +350,38 @@ class Station:
             'vm_request_rate':      self.vm_request_rate,
             'destinations':         self.destination_probabilities,
         }
+
+    def platform_snapshot_data(self) -> list[dict]:
+        result = []
+        for i, platform in enumerate(self._platforms):
+            lane = platform['lane']
+            vehicles = lane.vehicles
+
+            queue_total = sum(len(q) for q in lane.passenger_groups.values())
+            queues = [
+                {'destination_station_id': dest, 'waiting_count': len(q)}
+                for dest, q in lane.passenger_groups.items() if q
+            ]
+
+            vm_count            = len(vehicles)
+            vms_boarding        = sum(1 for d in vehicles.values() if not d['boarding_committed'] and len(d['passengers']) > 0)
+            vms_committed_pax   = sum(1 for d in vehicles.values() if     d['boarding_committed'] and len(d['passengers']) > 0)
+            vms_empty_pre       = sum(1 for d in vehicles.values() if not d['boarding_committed'] and len(d['passengers']) == 0)
+            vms_empty_post      = sum(1 for d in vehicles.values() if     d['boarding_committed'] and len(d['passengers']) == 0)
+
+            result.append({
+                'anden_idx':        i,
+                'active':           platform['state'] == AndenState.ACTIVE,
+                'queue_total':      queue_total,
+                'queues':           queues,
+                'vm_count':         vm_count,
+                'vms_boarding':     vms_boarding,
+                'vms_committed_pax': vms_committed_pax,
+                'vms_empty_pre':    vms_empty_pre,
+                'vms_empty_post':   vms_empty_post,
+            })
+        return result
+
     
     def __repr__(self) -> str:
         active = len(self.get_active_platforms())

@@ -60,6 +60,9 @@ def run(events_path=None):
     _destination_flow(con, rep, out_dir, types)
     _forced_entries(con, rep, out_dir, types)
     _integrity_checks(con, rep, types)
+    _search_priority_distribution(con, rep, out_dir, types)
+    _search_skip_reasons(con, rep, out_dir, types)
+    _fallback_analysis(con, rep, out_dir, types)
 
     rep.save()
     con.close()
@@ -510,3 +513,175 @@ def _integrity_checks(con, rep, types):
         ).fetchone()[0]
         pct = n_brk / n_dem * 100 if n_dem else 0
         rep.print(f"  commitment_broken: {n_brk} / {n_dem} demandas = {pct:.1f}% tasa de rotura")
+
+
+# ── 7. Prioridades de búsqueda de slots ───────────────────────────────────────
+
+def _search_priority_distribution(con, rep, out_dir, types):
+    """
+    Grouped bar: qué prioridad eligió el sistema en demand vs reservation.
+    Muestra si el sistema opera cómodo (P1-P3) o bajo estrés (P4-fallback).
+    """
+    if 'slot_search_completed' not in types:
+        return
+
+    rows = con.execute("""
+        SELECT context, selected_priority, COUNT(*) AS cnt
+        FROM events WHERE type = 'slot_search_completed'
+        GROUP BY context, selected_priority
+        ORDER BY context, cnt DESC
+    """).fetchall()
+
+    by_ctx = defaultdict(list)
+    for ctx, pri, cnt in rows:
+        by_ctx[ctx].append((pri, cnt))
+
+    rep.print("\n[ Prioridades elegidas en búsqueda de slots ]")
+    for ctx, items in sorted(by_ctx.items()):
+        total = sum(c for _, c in items)
+        rep.print(f"\n  Contexto: {ctx}  ({total} búsquedas)")
+        for pri, cnt in items:
+            rep.print(f"    {pri:<30} {cnt:>6}  ({cnt/total*100:.1f}%)")
+
+    all_priorities = sorted({p for _, p, _ in rows})
+    contexts = sorted(by_ctx.keys())
+    x = np.arange(len(all_priorities))
+    w = 0.35
+
+    fig, ax = plt.subplots(figsize=FIG_BAR)
+    ctx_colors = {"demand": PALETTE["azul"], "reservation": PALETTE["violeta"]}
+    for i, ctx in enumerate(contexts):
+        d = dict(by_ctx[ctx])
+        vals = [d.get(p, 0) for p in all_priorities]
+        offset = (i - len(contexts) / 2 + 0.5) * w
+        ax.bar(x + offset, vals, w, label=ctx,
+               color=ctx_colors.get(ctx, PALETTE["naranja"]), alpha=0.85, **BAR_KWARGS)
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(all_priorities, rotation=25, ha='right', fontsize=8)
+    ax.set_title("Prioridad elegida en búsqueda de slots", size=TITLE_SIZE)
+    ax.set_ylabel("Búsquedas")
+    ax.legend()
+    ax.yaxis.grid(True)
+    ax.set_axisbelow(True)
+    plt.tight_layout()
+    save_fig("slot_labels_search_priorities", out_dir)
+    plt.close()
+
+
+# ── 8. Razones de descarte en ventana ────────────────────────────────────────
+
+def _search_skip_reasons(con, rep, out_dir, types):
+    """
+    Grouped bar: por qué se descartaron candidatos en la ventana de búsqueda.
+    Muestra qué limita la selección: saturación, falta de VM, conflictos de reserva.
+    """
+    if 'slot_search_completed' not in types:
+        return
+
+    rows = con.execute("""
+        SELECT context, "window"
+        FROM events WHERE type = 'slot_search_completed'
+    """).fetchall()
+
+    skip_counts = defaultdict(lambda: defaultdict(int))
+    total_candidates = defaultdict(int)
+
+    for ctx, window in rows:
+        for entry in window:
+            total_candidates[ctx] += 1
+            reason = entry.get('skipped_reason')
+            if reason is not None:
+                skip_counts[ctx][reason] += 1
+
+    rep.print("\n[ Razones de descarte de candidatos en ventana ]")
+    for ctx in sorted(skip_counts):
+        total = total_candidates[ctx]
+        skipped = sum(skip_counts[ctx].values())
+        rep.print(f"\n  Contexto: {ctx}  ({skipped}/{total} descartados = {skipped/total*100:.1f}%)")
+        for reason, cnt in sorted(skip_counts[ctx].items(), key=lambda x: -x[1]):
+            rep.print(f"    {reason:<25} {cnt:>6}  ({cnt/total*100:.1f}%)")
+
+    all_reasons = sorted({r for ctx in skip_counts for r in skip_counts[ctx]})
+    contexts = sorted(skip_counts.keys())
+    x = np.arange(len(all_reasons))
+    w = 0.35
+
+    ctx_colors = {"demand": PALETTE["azul"], "reservation": PALETTE["violeta"]}
+    fig, ax = plt.subplots(figsize=FIG_BAR)
+    for i, ctx in enumerate(contexts):
+        vals = [skip_counts[ctx].get(r, 0) for r in all_reasons]
+        offset = (i - len(contexts) / 2 + 0.5) * w
+        ax.bar(x + offset, vals, w, label=ctx,
+               color=ctx_colors.get(ctx, PALETTE["naranja"]), alpha=0.85, **BAR_KWARGS)
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(all_reasons, rotation=25, ha='right', fontsize=8)
+    ax.set_title("Razones de descarte de candidatos en ventana", size=TITLE_SIZE)
+    ax.set_ylabel("Candidatos descartados")
+    ax.legend()
+    ax.yaxis.grid(True)
+    ax.set_axisbelow(True)
+    plt.tight_layout()
+    save_fig("slot_labels_skip_reasons", out_dir)
+    plt.close()
+
+
+# ── 9. Análisis de fallback ───────────────────────────────────────────────────
+
+def _fallback_analysis(con, rep, out_dir, types):
+    """
+    Timeline scatter de cuándo ocurren fallback_critical.
+    Texto: qué había en la ventana cuando el sistema no encontró candidato normal.
+    """
+    if 'slot_search_completed' not in types:
+        return
+
+    fallback_rows = con.execute("""
+        SELECT t, context, station_id, "window"
+        FROM events
+        WHERE type = 'slot_search_completed'
+          AND (selected_priority = 'fallback_critical' OR selected_slot_idx IS NULL)
+        ORDER BY t
+    """).fetchall()
+
+    if not fallback_rows:
+        rep.print("\n[ Fallback en búsqueda ] Sin fallback_critical — sistema saludable.")
+        return
+
+    rep.print(f"\n[ Fallback en búsqueda ] {len(fallback_rows)} búsquedas en fallback_critical o sin resultado")
+
+    skip_in_fallback = defaultdict(int)
+    total_in_fallback = 0
+    for _, _, _, window in fallback_rows:
+        for entry in window:
+            total_in_fallback += 1
+            reason = entry.get('skipped_reason')
+            if reason is not None:
+                skip_in_fallback[reason] += 1
+
+    rep.print(f"  Candidatos en ventanas de fallback: {total_in_fallback}")
+    for reason, cnt in sorted(skip_in_fallback.items(), key=lambda x: -x[1]):
+        rep.print(f"    {reason:<25} {cnt:>6}  ({cnt/total_in_fallback*100:.1f}%)")
+
+    # Scatter: cuándo ocurren
+    from matplotlib.lines import Line2D
+    ctx_colors = {"demand": PALETTE["azul"], "reservation": PALETTE["violeta"]}
+    ts = [r[0] / 60 for r in fallback_rows]
+    colors = [ctx_colors.get(r[1], PALETTE["naranja"]) for r in fallback_rows]
+
+    fig, ax = plt.subplots(figsize=FIG_BAR)
+    ax.scatter(ts, [1] * len(ts), c=colors, s=50, alpha=0.7, zorder=3)
+    handles = [
+        Line2D([0], [0], marker='o', color='w', markerfacecolor=c, markersize=9, label=ctx)
+        for ctx, c in ctx_colors.items()
+    ]
+    ax.legend(handles=handles)
+    ax.set_xlabel("Tiempo (min)")
+    ax.set_yticks([])
+    ax.set_title("Búsquedas con fallback_critical en el tiempo", size=TITLE_SIZE)
+    ax.xaxis.grid(True)
+    ax.set_axisbelow(True)
+    plt.tight_layout()
+    save_fig("slot_labels_fallback_timeline", out_dir)
+    plt.close()

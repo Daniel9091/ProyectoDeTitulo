@@ -39,7 +39,7 @@ from tracks.acceleration_tree import AccelerationTree
 from systems.continuous_train import ContinuousTrain
 from systems.network import Network
 from objects.types import TreeDirection
-from config.constants import TRAIN_SPEED, BOARDING_LANE_SPEED, TRAIN_SPACING, SLOT_SEARCH_RANGE_RESERVATION, SLOT_SEARCH_RANGE_DEMAND, BURST_WINDOW_SAFETY_MARGIN, TRAIN_VM_LENGTH
+from config.constants import TRAIN_SPEED, BOARDING_LANE_SPEED, TRAIN_SPACING, SLOT_SEARCH_RANGE_RESERVATION, SLOT_SEARCH_RANGE_DEMAND, BURST_WINDOW_SAFETY_MARGIN, TRAIN_VM_LENGTH, SNAPSHOT_INTERVAL
 
 class Brain:
     """
@@ -74,6 +74,8 @@ class Brain:
         self._current_time: float = 0.0
         self._active_track_collisions: dict[int, set] = {}
         self._forced_vm_ids: set[int] = set()                   # VMs que entraron por force; se revisan cada tick en UP trees
+        self._last_snapshot_t: float = 0.0
+        
 
     def _register_initial_vms(self) -> None:
         for slot in self._train.slots:
@@ -153,6 +155,8 @@ class Brain:
 
         # 8b. Sistema de taza: marcar slots con demand_station_id para estaciones con demanda 
         self._process_demand()
+        self._maybe_emit_station_snapshots(current_time)
+
 
     # ─── CROSSING HANDLER ────────────────────────────────────────────────────
 
@@ -716,11 +720,17 @@ class Brain:
         target_idx = round(relative / TRAIN_SPACING) % self._train.max_slots
 
         junction_up = self._network.get_junction_up(station_id)
-        best_slot, reservation_priority = self._range_search_reservation(target_idx, station_id, junction_up)
+
+        best_slot, reservation_priority, window = self._range_search_reservation(target_idx, station_id, junction_up)
+        self._recorder.slot_search_completed(
+            t=self._current_time, context="reservation", station_id=station_id,
+            selected_slot_idx=best_slot, selected_priority=reservation_priority,
+            window=window,
+        )
         if best_slot is None:
             logger.critical(f"Sin slot disponible para reserva de VM {vm.vehicle_id}")
             return
-        
+
         half = self._train.max_slots // 2
         raw_offset = (best_slot - target_idx + half) % self._train.max_slots - half
         T_target = T_total - raw_offset * (TRAIN_SPACING / TRAIN_SPEED)
@@ -769,9 +779,14 @@ class Brain:
             if junction_up is None:
                 continue
             while stations.pending_demand > 0:
-                best_slot, demand_priority = self._range_search_demand(station_id, junction_up)
+                best_slot, demand_priority, window = self._range_search_demand(station_id, junction_up)
                 if best_slot is None:
                     break
+                self._recorder.slot_search_completed(
+                    t=self._current_time, context="demand", station_id=station_id,
+                    selected_slot_idx=best_slot, selected_priority=demand_priority,
+                    window=window,
+                )
 
                 prev = self._slot_snapshot(best_slot)
                 self._train.set_demand_supply(best_slot, station_id)
@@ -813,8 +828,7 @@ class Brain:
         return best_id
 
     # ─── BÚSQUEDA EN RANGO ───────────────────────────────────────────────────
-
-    def _range_search_reservation(self, target_idx: int, station_id: int, junction_up) -> tuple[int, str] | None:
+    def _range_search_reservation(self, target_idx: int, station_id: int, junction_up) -> tuple[int | None, str, list]:
         """
         Busca el mejor slot para una reserva en ±(SLOT_SEARCH_RANGE//2) del target.
 
@@ -850,10 +864,26 @@ class Brain:
         best_priority_label ="none"
         best_slot = None
 
+        window = []
+
         for candidate in candidates:
             slot = self._train.slots[candidate]
+
+            saturates = self._would_saturate(junction_up, candidate, station_id)
+            _w = {
+                'slot_idx':       candidate,
+                'offset':         (candidate - target_idx + max_slots // 2) % max_slots - max_slots // 2,
+                'has_vm':         slot['vm'] is not None,
+                'reserved_for':   slot['reserved_station_id'],
+                'destination':    slot['destination_station_id'],
+                'demand_for':     slot['demand_station_id'],
+                'would_saturate': saturates,
+                'skipped_reason': None,
+            }
+
             if slot['colliding_vms']:
-                continue  # slot en choque: nunca elegible para una nueva reserva
+                _w['skipped_reason'] = 'colliding'; window.append(_w); continue  # slot en choque: nunca elegible para una nueva reserva
+
             res_lbl = slot['reserved_station_id']
             if res_lbl is not None:
                 if res_lbl != station_id:
@@ -861,10 +891,10 @@ class Brain:
                         f"Slot {candidate} ya reservado para estación {res_lbl} — "
                         "riesgo de colisión si se sobreescribe, ignorando"
                     )
-                continue  # skip: doble reserva (=S) y colisión (=OTHER)
+                _w['skipped_reason'] = 'reserved'; window.append(_w); continue  # skip: doble reserva (=S) y colisión (=OTHER)
 
-            if self._would_saturate(junction_up, candidate, station_id):
-                continue
+            if saturates:
+                _w['skipped_reason'] = 'would_saturate'; window.append(_w); continue
 
             dest_lbl = slot['destination_station_id']
             dmd_lbl = slot['demand_station_id']
@@ -889,6 +919,8 @@ class Brain:
                 best_priority_label = label
                 best_slot = candidate
 
+            window.append(_w)
+
         if best_priority == 6 and best_slot is not None:
             dest = self._train.slots[best_slot]['destination_station_id']
             logger.warning(
@@ -912,9 +944,9 @@ class Brain:
                     f"Reserva forzada en slot saturado "
                     f"(estación {station_id}, slot {best_slot})"
                 )
-        return best_slot, best_priority_label
+        return best_slot, best_priority_label, window
 
-    def _range_search_demand(self, station_id: int, junction_up) -> tuple[int, str] | None:
+    def _range_search_demand(self, station_id: int, junction_up) -> tuple[int | None, str, list]:
         """
         Busca un slot con VM para marcar con demanda, mirando hasta SLOT_SEARCH_RANGE
         posiciones HACIA ATRÁS desde (junction_up − G slots) para evitar la zona ciega:
@@ -939,26 +971,40 @@ class Brain:
         best_priority_label = "none"
         best_slot = None
 
+        window = []
+
         for offset in range(SLOT_SEARCH_RANGE_DEMAND + 1):
             candidate = (safe_start - offset) % max_slots
             slot = self._train.slots[candidate]
-            
+
+            saturates = self._would_saturate(junction_up, candidate, station_id)
+            _w = {
+                'slot_idx':             candidate,
+                'offset_from_junction': -offset,
+                'has_vm':               slot['vm'] is not None,
+                'reserved_for':         slot['reserved_station_id'],
+                'destination':          slot['destination_station_id'],
+                'demand_for':           slot['demand_station_id'],
+                'would_saturate':       saturates,
+                'skipped_reason':       None,
+            }
+
             if slot['vm'] is None:
-                continue
+                _w['skipped_reason'] = 'no_vm'; window.append(_w); continue
             if slot['colliding_vms']:
-                continue  # slot en choque: nunca elegible para nueva demanda        
+                 _w['skipped_reason'] = 'colliding'; window.append(_w); continue    # slot en choque: nunca elegible para nueva demanda        
             res_lbl = slot['reserved_station_id']
             if res_lbl is not None and res_lbl != station_id:
-                continue
+                _w['skipped_reason'] = 'reserved_other'; window.append(_w); continue
             dest_lbl = slot['destination_station_id']
             if dest_lbl is not None and dest_lbl != station_id:
-                continue
-            if self._would_saturate(junction_up, candidate, station_id):
-                continue
+                _w['skipped_reason'] = 'dest_other'; window.append(_w); continue
+            if saturates:
+                _w['skipped_reason'] = 'would_saturate'; window.append(_w); continue
 
             dmd_lbl = slot['demand_station_id']
             if dmd_lbl == station_id:
-                continue  # ya comprometido con S → double-commit
+                _w['skipped_reason'] = 'already_committed'; window.append(_w); continue  # ya comprometido con S → double-commit
             if res_lbl == station_id:
                 priority, label = 1, "reserved_same_station"    # force_add_vm garantiza entrada → el más seguro
             elif dest_lbl == station_id:
@@ -971,8 +1017,10 @@ class Brain:
                 best_priority = priority
                 best_priority_label = label
                 best_slot = candidate
-        
-        return best_slot, best_priority_label
+
+            window.append(_w)
+
+        return best_slot, best_priority_label, window
 
     
     # ─── SATURACIÓN ──────────────────────────────────────────────────────────
@@ -1054,4 +1102,19 @@ class Brain:
                 operational_time=vm.operational_time,
                 distance_carrying_passengers=vm.distance_carrying_passengers,
             )
+
+    def _maybe_emit_station_snapshots(self, current_time: float) -> None:
+        if current_time - self._last_snapshot_t < SNAPSHOT_INTERVAL:
+            return
+        for station_id, station in self._stations.items():
+            active = station.get_active_platforms()
+            self._recorder.station_snapshot(
+                t=current_time,
+                station_id=station_id,
+                active_anden_count=len(active),
+                pending_demand=station.pending_demand,
+                andenes=station.platform_snapshot_data(),
+            )
+        self._last_snapshot_t = current_time
+
 
