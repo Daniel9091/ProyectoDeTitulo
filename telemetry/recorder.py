@@ -246,6 +246,53 @@ class Recorder:
             "prev_labels":    prev_labels,
         })
 
+    # ── Árboles y colisiones en track ──────────────────────────────────────────
+
+    def tree_vm_entered(self, t: float, station_id: int, tree_idx: int,
+                        vm_id: int, forced: bool, reason: str,
+                        vehicle_count_after: int, youngest_distance_after) -> None:
+        """VM entró a un árbol UP. tree_idx = índice del andén elegido dentro del junction."""
+        self._emit("tree_vm_entered", t, {
+            "station_id":              station_id,
+            "tree_idx":                tree_idx,
+            "vm_id":                   vm_id,
+            "forced":                  forced,
+            "reason":                  reason,
+            "vehicle_count_after":     vehicle_count_after,
+            "youngest_distance_after": youngest_distance_after,
+        })
+
+    def track_collision_started(self, t: float, track_id: int,
+                                 vm_id_1: int, vm_id_2: int,
+                                 separation, pos_x, pos_y, pos_z) -> None:
+        """Dos VMs en el mismo track se acercaron a menos de TRAIN_VM_LENGTH."""
+        self._emit("track_collision_started", t, {
+            "track_id":   track_id,
+            "vm_id_1":    vm_id_1,
+            "vm_id_2":    vm_id_2,
+            "separation": separation,
+            "pos_x":      pos_x,
+            "pos_y":      pos_y,
+            "pos_z":      pos_z,
+        })
+
+    def track_collision_ended(self, t: float, track_id: int,
+                               vm_id_1: int, vm_id_2: int,
+                               separation, pos_x, pos_y, pos_z,
+                               reason: str) -> None:
+        """Par colisionando volvió a >= TRAIN_VM_LENGTH o uno salió del track."""
+        self._emit("track_collision_ended", t, {
+            "track_id":   track_id,
+            "vm_id_1":    vm_id_1,
+            "vm_id_2":    vm_id_2,
+            "separation": separation,
+            "pos_x":      pos_x,
+            "pos_y":      pos_y,
+            "pos_z":      pos_z,
+            "reason":     reason,
+        })
+
+
 
     def close(self) -> None:
         """
@@ -358,5 +405,14 @@ class NullRecorder:
     def junction_vm_entered(self, t, station_id, vm_id, slot_idx, forced): pass
     def junction_commitment_broken(self, t, station_id, vm_id, slot_idx): pass
     def slot_collision(self, t, slot_idx, vm_arriving_id, vm_occupying_id, prev_labels): pass
+
+    # ── Árboles y colisiones en track ──────────────────────────────────────────
+
+    def tree_vm_entered(self, t, station_id, tree_idx, vm_id, forced, reason,
+                        vehicle_count_after, youngest_distance_after): pass
+    def track_collision_started(self, t, track_id, vm_id_1, vm_id_2,
+                                 separation, pos_x, pos_y, pos_z): pass
+    def track_collision_ended(self, t, track_id, vm_id_1, vm_id_2,
+                               separation, pos_x, pos_y, pos_z, reason): pass
 
 

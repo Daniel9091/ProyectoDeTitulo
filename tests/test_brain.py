@@ -618,7 +618,7 @@ class TestCounterAccounting:
         train.slots[5]['demand_station_id'] = STATION_ID
 
         junction = network.get_junction_up(STATION_ID)
-        with patch.object(junction, 'add_vm', return_value=False):
+        with patch.object(junction, 'add_vm', return_value=(False, None)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         assert station.on_commitment_broken.call_count == 1, \
@@ -745,7 +745,7 @@ class TestCounterAccounting:
         # SIN demand label
 
         junction = network.get_junction_up(STATION_ID)
-        with patch.object(junction, 'add_vm', return_value=False):
+        with patch.object(junction, 'add_vm', return_value=(False,None)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         assert station.on_unplanned_vm_at_tree.call_count == 0, \
@@ -1084,7 +1084,7 @@ class TestCounterAccounting:
         )
 
         junction = network.get_junction_up(STATION_ID)
-        with patch.object(junction, 'add_vm', return_value=False):
+        with patch.object(junction, 'add_vm', return_value=(False,None)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         # dest branch corrió (prioridad), junction rechazó, demand==S → on_commitment_broken
@@ -1128,7 +1128,7 @@ class TestDestinationRedirect:
         train.slots[5]['destination_station_id'] = STATION_ID
 
         junction = network.get_junction_up(STATION_ID)
-        with patch.object(junction, 'add_vm', return_value=False), \
+        with patch.object(junction, 'add_vm', return_value=(False,None)), \
              patch.object(brain, '_next_station_id', return_value=NEXT_ID):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
@@ -1150,7 +1150,7 @@ class TestDestinationRedirect:
         train.slots[5]['destination_station_id'] = STATION_ID
 
         junction = network.get_junction_up(STATION_ID)
-        with patch.object(junction, 'add_vm', return_value=False):
+        with patch.object(junction, 'add_vm', return_value=(False,None)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         assert train.slots[5]['destination_station_id'] == STATION_ID, \
@@ -1200,7 +1200,7 @@ class TestDestinationRedirect:
 
         junction = network.get_junction_up(STATION_ID)
         with caplog.at_level(logging.WARNING, logger="systems.brain"), \
-            patch.object(junction, 'add_vm', return_value=True):
+            patch.object(junction, 'add_vm', return_value=(True, 0)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         assert "Pasajeros" in caplog.text, \
@@ -1240,7 +1240,7 @@ class TestDestinationRedirect:
         # SIN demand label
 
         junction = network.get_junction_up(STATION_ID)
-        with patch.object(junction, 'add_vm', return_value=False), \
+        with patch.object(junction, 'add_vm', return_value=(False,None)), \
             patch.object(brain, '_next_station_id', return_value=NEXT_ID):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
@@ -1271,12 +1271,12 @@ class TestDestinationRedirect:
         train.slots[5]['destination_station_id'] = STATION_ID
 
         real_junction_s = network.get_junction_up(STATION_ID)
-        junction_next = MagicMock(); junction_next.add_vm.return_value = True
+        junction_next = MagicMock(); junction_next.add_vm.return_value = (True, 0)
         junction_map = {STATION_ID: real_junction_s, NEXT_ID: junction_next}
 
         with patch.object(network, 'get_junction_up', side_effect=lambda sid: junction_map[sid]):
             # Frame 1: rechaza → redirige
-            with patch.object(real_junction_s, 'add_vm', return_value=False), \
+            with patch.object(real_junction_s, 'add_vm', return_value=(False,None)), \
                 patch.object(brain, '_next_station_id', return_value=NEXT_ID):
                 brain._handle_crossings([(5, STATION_ID, 0.0)])
 
@@ -1311,8 +1311,8 @@ class TestDestinationRedirect:
         train.slots[5]['destination_station_id'] = S3_ID
 
         real_junction_s1 = network.get_junction_up(S1_ID)
-        junction_s2 = MagicMock(); junction_s2.add_vm.return_value = True
-        junction_s3 = MagicMock(); junction_s3.add_vm.return_value = False
+        junction_s2 = MagicMock(); junction_s2.add_vm.return_value = (True, 0)
+        junction_s3 = MagicMock(); junction_s3.add_vm.return_value = (False, None)
         junction_map = {S1_ID: real_junction_s1, S2_ID: junction_s2, S3_ID: junction_s3}
 
         with patch.object(network, 'get_junction_up', side_effect=lambda sid: junction_map[sid]):
@@ -1322,7 +1322,7 @@ class TestDestinationRedirect:
             assert train.slots[5]['destination_station_id'] == S1_ID
 
             # Frame 2: dest=S1, rechaza → dest=S2
-            with patch.object(real_junction_s1, 'add_vm', return_value=False), \
+            with patch.object(real_junction_s1, 'add_vm', return_value=(False, None)), \
                 patch.object(brain, '_next_station_id', return_value=S2_ID):
                 brain._handle_crossings([(5, S1_ID, 0.0)])
             assert train.slots[5]['destination_station_id'] == S2_ID
@@ -1362,7 +1362,7 @@ class TestCrossingHandler:
         train.slots[5]['demand_station_id'] = STATION_ID
 
         junction = network.get_junction_up(STATION_ID)
-        with patch.object(junction, 'add_vm', return_value=True):
+        with patch.object(junction, 'add_vm', return_value=(True, 0)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         assert train.slots[5]['vm'] is None
@@ -1380,7 +1380,7 @@ class TestCrossingHandler:
         train.slots[5]['demand_station_id'] = STATION_ID
 
         junction = network.get_junction_up(STATION_ID)
-        with patch.object(junction, 'add_vm', return_value=False):
+        with patch.object(junction, 'add_vm', return_value=(False,None)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         assert train.slots[5]['vm'] is vm        # VM se quedó en el belt
@@ -1398,7 +1398,7 @@ class TestCrossingHandler:
         train.slots[5]['destination_station_id'] = STATION_ID
 
         junction = network.get_junction_up(STATION_ID)
-        with patch.object(junction, 'add_vm', return_value=True):
+        with patch.object(junction, 'add_vm', return_value=(True,0)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         assert train.slots[5]['vm'] is None
@@ -1416,7 +1416,7 @@ class TestCrossingHandler:
         train.slots[5]['destination_station_id'] = STATION_ID
 
         junction = network.get_junction_up(STATION_ID)
-        with patch.object(junction, 'add_vm', return_value=False):
+        with patch.object(junction, 'add_vm', return_value=(False,None)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         assert train.slots[5]['vm'] is vm
@@ -1438,7 +1438,7 @@ class TestCrossingHandler:
         train.slots[5]['reserved_vm_id'] = vm.vehicle_id
 
         junction = network.get_junction_up(STATION_ID)
-        with patch.object(junction, 'add_vm', return_value=True):
+        with patch.object(junction, 'add_vm', return_value=(True,0)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         # VM salió del belt
@@ -1468,7 +1468,7 @@ class TestCrossingHandler:
         train.slots[5]['demand_station_id'] = STATION_ID
 
         junction = network.get_junction_up(STATION_ID)
-        with patch.object(junction, 'add_vm', return_value=True):
+        with patch.object(junction, 'add_vm', return_value=(True,0)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         slot = train.slots[5]
@@ -1540,7 +1540,7 @@ class TestLabelCompatibility:
         junction = network.get_junction_up(STATION_ID)
         station = brain._stations[STATION_ID]
 
-        with patch.object(junction, 'add_vm', return_value=True):
+        with patch.object(junction, 'add_vm', return_value=(True,0)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         assert train.slots[5]['vm'] is None
@@ -1563,7 +1563,7 @@ class TestLabelCompatibility:
         junction = network.get_junction_up(STATION_ID)
         station = brain._stations[STATION_ID]
 
-        with patch.object(junction, 'add_vm', return_value=True):
+        with patch.object(junction, 'add_vm', return_value=(True,0)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         assert train.slots[5]['vm'] is None
@@ -1586,7 +1586,7 @@ class TestLabelCompatibility:
         junction = network.get_junction_up(STATION_ID)
         station = brain._stations[STATION_ID]
 
-        with patch.object(junction, 'add_vm', return_value=True):
+        with patch.object(junction, 'add_vm', return_value=(True,0)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         assert train.slots[5]['vm'] is None
@@ -1612,7 +1612,7 @@ class TestLabelCompatibility:
         station = brain._stations[STATION_ID]
         junction = network.get_junction_up(STATION_ID)
 
-        with patch.object(junction, 'add_vm', return_value=False):
+        with patch.object(junction, 'add_vm', return_value=(False,None)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         assert train.slots[5]['vm'] is vm                              # VM en belt
@@ -1638,7 +1638,7 @@ class TestLabelCompatibility:
         junction = network.get_junction_up(STATION_ID)
         station = brain._stations[STATION_ID]
 
-        with patch.object(junction, 'add_vm', return_value=True):
+        with patch.object(junction, 'add_vm', return_value=(True,0)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         assert train.slots[5]['vm'] is None
@@ -1670,7 +1670,7 @@ class TestLabelCompatibility:
         station_s = brain._stations[STATION_ID]
         junction = network.get_junction_up(STATION_ID)
 
-        with patch.object(junction, 'add_vm', return_value=True):
+        with patch.object(junction, 'add_vm', return_value=(True,0)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         assert train.slots[5]['vm'] is None
@@ -1701,7 +1701,7 @@ class TestLabelCompatibility:
         station_s = brain._stations[STATION_ID]
         junction = network.get_junction_up(STATION_ID)
 
-        with patch.object(junction, 'add_vm', return_value=True):
+        with patch.object(junction, 'add_vm', return_value=(True,0)):
             brain._handle_crossings([(5, STATION_ID, 0.0)])
 
         assert train.slots[5]['vm'] is None

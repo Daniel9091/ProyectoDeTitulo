@@ -38,7 +38,8 @@ from tracks.boarding_lane import BoardingLane
 from tracks.acceleration_tree import AccelerationTree
 from systems.continuous_train import ContinuousTrain
 from systems.network import Network
-from config.constants import TRAIN_SPEED, BOARDING_LANE_SPEED, TRAIN_SPACING, SLOT_SEARCH_RANGE_RESERVATION, SLOT_SEARCH_RANGE_DEMAND, BURST_WINDOW_SAFETY_MARGIN
+from objects.types import TreeDirection
+from config.constants import TRAIN_SPEED, BOARDING_LANE_SPEED, TRAIN_SPACING, SLOT_SEARCH_RANGE_RESERVATION, SLOT_SEARCH_RANGE_DEMAND, BURST_WINDOW_SAFETY_MARGIN, TRAIN_VM_LENGTH
 
 class Brain:
     """
@@ -122,6 +123,7 @@ class Brain:
         # 2. avanzar todos los tracks superiores (árboles y lanes): cada VM se mueve dt segundos.
         #   Los VMs que terminaron su track quedan en 'completitions'  para procesar despúes.
         completions = self._network.update_all_tracks(dt, current_time)
+        self._check_collision_ends()
 
         # 3. Separar completions en dos categorías
         #   - decisions: adyacencia len>1, Brain elige el siguiente track
@@ -273,23 +275,22 @@ class Brain:
 
                 if dest != station_id and vm.has_destination:
                     logger.warning(f"VM {vm.vehicle_id} eviccionado en estación {station_id}, destino era {dest}")
+
                 if demand != station_id:
                     station.on_unplanned_vm_at_tree()
-                ok = junction.add_vm(vm,leftover_dt)
-                if not ok:
-                    junction.force_add_vm(vm,leftover_dt)
-                    self._recorder.junction_vm_entered(
-                        t=self._current_time, station_id=station_id,
-                        vm_id=vm.vehicle_id, slot_idx=slot_idx, forced=True,
-                    )
-                else:
-                    self._recorder.junction_vm_entered(
-                        t=self._current_time, station_id=station_id,
-                        vm_id=vm.vehicle_id, slot_idx=slot_idx, forced=False,
-                    )          
+                ok, tree_idx = junction.add_vm(vm, leftover_dt)
+                forced = not ok
+                if forced:
+                    tree_idx = junction.force_add_vm(vm, leftover_dt)
+                    self._check_force_add_collision(junction.trees[tree_idx], vm.vehicle_id)
+                self._recorder.junction_vm_entered(
+                    t=self._current_time, station_id=station_id,
+                    vm_id=vm.vehicle_id, slot_idx=slot_idx, forced=forced,
+                )
+                self._emit_tree_vm_entered(junction, tree_idx, vm.vehicle_id, "reserved", forced)
 
             elif dest == station_id:
-                ok = junction.add_vm(slot['vm'], leftover_dt)
+                ok, tree_idx = junction.add_vm(slot['vm'], leftover_dt)
                 if ok:
                     vm = slot['vm']
                     if vm.has_destination and vm.destination_station_id != station_id:
@@ -341,8 +342,8 @@ class Brain:
                         t=self._current_time, station_id=station_id,
                         vm_id=vm.vehicle_id, slot_idx=slot_idx, forced=False,
                     )
+                    self._emit_tree_vm_entered(junction, tree_idx, vm.vehicle_id, "destination", False)
                     self._train.remove_vm(slot_idx)
-
 
                 else:
                     if demand == station_id:
@@ -369,7 +370,7 @@ class Brain:
                             f"{station_id}: sin estación alternativa (sistema monoestación).")
                         
             elif demand == station_id:
-                ok = junction.add_vm(slot['vm'], leftover_dt)
+                ok, tree_idx = junction.add_vm(slot['vm'], leftover_dt)
                 if ok:
                     self._recorder.slot_demand_cleared(
                         t=self._current_time, slot_idx=slot_idx,
@@ -379,6 +380,7 @@ class Brain:
                         t=self._current_time, station_id=station_id,
                         vm_id=slot['vm'].vehicle_id, slot_idx=slot_idx, forced=False,
                     )
+                    self._emit_tree_vm_entered(junction, tree_idx, slot['vm'].vehicle_id, "demand", False)
                     self._train.remove_vm(slot_idx)
                 else:
                     station.on_commitment_broken()
@@ -391,6 +393,109 @@ class Brain:
                         vm_id=slot['vm'].vehicle_id, slot_idx=slot_idx,
                     )
                     self._train.clear_demand_supply(slot_idx)
+
+    # ─── COLISIONES EN TRACKS ─────────────────────────────────────────────────
+
+    def _emit_tree_vm_entered(
+        self, junction, tree_idx: int, vm_id: int, reason: str, forced: bool
+    ) -> None:
+        """
+        Emite tree_vm_entered con el estado del árbol elegido en el momento de entrada.
+        Llamado en _handle_crossings para los 3 tipos de entrada (reserved, destination, demand).
+        'reason' viene del contexto del branch; 'forced' indica si se usó force_add_vm.
+        """
+        chosen = junction.trees[tree_idx]
+        yd = min((d['distance'] for d in chosen.vehicles.values()), default=None)
+        self._recorder.tree_vm_entered(
+            t=self._current_time,
+            station_id=junction.station_id,
+            tree_idx=tree_idx,
+            vm_id=vm_id,
+            forced=forced,
+            reason=reason,
+            vehicle_count_after=chosen.vehicle_count,
+            youngest_distance_after=yd,
+        )
+
+    def _check_force_add_collision(self, tree, forced_vm_id: int) -> None:
+        """
+        Detecta colisiones producidas por force_add_vm en un árbol UP.
+        Solo compara el VM forzado contra los demás VMs del mismo árbol — no hace O(n²)
+        global. Colisiones en árboles UP solo nacen por force_add: can_accept() rechazado
+        implica que el VM más cercano ya está a menos de _min_safe_distance de la entrada.
+        Agrega pares nuevos a _active_track_collisions y emite track_collision_started.
+        """
+        if forced_vm_id not in tree.vehicles:
+            return
+        forced_dist = tree.vehicles[forced_vm_id]['distance']
+        track_id = tree.track_id
+        active = self._active_track_collisions.setdefault(track_id, set())
+        for other_id, other_data in tree.vehicles.items():
+            if other_id == forced_vm_id:
+                continue
+            if abs(other_data['distance'] - forced_dist) < TRAIN_VM_LENGTH:
+                pair = frozenset({forced_vm_id, other_id})
+                if pair not in active:
+                    active.add(pair)
+                    a, b = sorted(pair)
+                    self._emit_track_collision("started", track_id, tree, a, b)
+
+    def _check_collision_ends(self) -> None:
+        """
+        Revisa si algún par activo en _active_track_collisions dejó de chocar.
+        Llamado justo después de update_all_tracks, cuando los DOWN trees ya avanzaron.
+        Solo árboles DOWN pueden resolver colisiones: al acelerar, el VM de adelante
+        se aleja del de atrás. En UP trees los VMs desaceleran y el retrasado alcanza
+        al de adelante — la separación nunca crece ahí.
+        También detecta pares donde uno de los VMs ya salió del track (vm_exited).
+        En operación normal (_active_track_collisions vacío) esta función es O(1).
+        """
+        for track_id, pairs in list(self._active_track_collisions.items()):
+            track = self._network.tracks.get(track_id)
+            if track is None:
+                continue
+            for pair in list(pairs):
+                a, b = sorted(pair)
+                a_in = a in track.vehicles
+                b_in = b in track.vehicles
+                if not a_in or not b_in:
+                    pairs.discard(pair)
+                    self._emit_track_collision("ended", track_id, track, a, b, "vm_exited")
+                elif isinstance(track, AccelerationTree) and track.direction == TreeDirection.DOWN:
+                    if abs(track.vehicles[a]['distance'] - track.vehicles[b]['distance']) >= TRAIN_VM_LENGTH:
+                        pairs.discard(pair)
+                        self._emit_track_collision("ended", track_id, track, a, b, "separated")
+
+    def _emit_track_collision(
+        self, event: str, track_id: int, track, vm_id_1: int, vm_id_2: int, reason: str = ""
+    ) -> None:
+        """
+        Emite track_collision_started o track_collision_ended con posición 3D del midpoint.
+        Si alguno de los dos VMs ya salió del track, pos_x/y/z y separation quedan None.
+        """
+        pos_x = pos_y = pos_z = sep = None
+        if vm_id_1 in track.vehicles and vm_id_2 in track.vehicles:
+            d1 = track.vehicles[vm_id_1]['distance']
+            d2 = track.vehicles[vm_id_2]['distance']
+            p1 = track.position_at_progress(d1 / track.length)
+            p2 = track.position_at_progress(d2 / track.length)
+            pos_x = (p1.x + p2.x) / 2
+            pos_y = (p1.y + p2.y) / 2
+            pos_z = (p1.z + p2.z) / 2
+            sep = abs(d1 - d2)
+        if event == "started":
+            self._recorder.track_collision_started(
+                t=self._current_time, track_id=track_id,
+                vm_id_1=vm_id_1, vm_id_2=vm_id_2,
+                separation=sep, pos_x=pos_x, pos_y=pos_y, pos_z=pos_z,
+            )
+        else:
+            self._recorder.track_collision_ended(
+                t=self._current_time, track_id=track_id,
+                vm_id_1=vm_id_1, vm_id_2=vm_id_2,
+                separation=sep, pos_x=pos_x, pos_y=pos_y, pos_z=pos_z,
+                reason=reason,
+            )
 
     # ─── DECISIONS ───────────────────────────────────────────────────────────
 
@@ -913,7 +1018,7 @@ class Brain:
         return max_count
     
     def _is_slot_marked_for(self, idx: int, station_id: int) -> bool:
-        """Retorna si el slot s esta marcado con demanda o con destino"""
+        """Retorna si el slot s esta marcado con demanda, con destino o con reserva"""
         s = self._train.slots[idx % self._train.max_slots]
         return s['destination_station_id'] == station_id or s['demand_station_id'] == station_id or s['reserved_station_id'] == station_id
 

@@ -132,7 +132,8 @@ class TestAddVm:
         la junction
         """
         j = make_up_junction()
-        assert j.add_vm(FakeVehicle(1)) is True
+        ok, _ = j.add_vm(FakeVehicle(1))
+        assert ok is True
         assert j.vehicle_count == 1
 
     def test_returns_false_when_all_up_trees_saturated(self):
@@ -141,8 +142,8 @@ class TestAddVm:
         tree.add_vehicle(FakeVehicle(1))
         j = Junction(1, 50.0, 1, TreeDirection.UP, [tree])
 
-        result = j.add_vm(FakeVehicle(99))
-        assert result is False
+        ok, _ = j.add_vm(FakeVehicle(99))
+        assert ok is False
         assert j.vehicle_count == 1
 
     def test_down_junction_always_returns_true(self):
@@ -150,7 +151,8 @@ class TestAddVm:
         DOWN trees nunca saturan — add_vm siempre retorna True.
         Por que no se saturan.
         """
-        assert make_down_junction().add_vm(FakeVehicle(1)) is True
+        ok, _ = make_down_junction().add_vm(FakeVehicle(1))
+        assert ok is True
 
     def test_routes_to_least_loaded_tree(self):
         """Distribuye por carga mínima — el VM nuevo va al árbol con menos vehículos."""

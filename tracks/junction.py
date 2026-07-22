@@ -64,7 +64,6 @@ class Junction:
         """
         Enruta el VM al árbol disponible con menor carga.
         Retorna (True, tree_idx) si entró, (False, None) si todos saturados.
-        Para DOWN siempre retorna (True, tree_idx).
         """
         for tree in sorted(self.trees, key=lambda t: t.vehicle_count):
             if tree.add_vehicle(vehicle, leftover_dt=leftover_dt):
@@ -74,7 +73,7 @@ class Junction:
     def force_add_vm(self, vehicle, leftover_dt: float = 0.0) -> int:
         """
         Fuerza la entrada del VM al árbol menos saturado, ignorando can_accept().
-        Brain llama esto cuando add_vm retorno False y el VM tiene reserva.
+        Brain llama esto cuando add_vm retornó False y el VM tiene reserva.
         Retorna tree_idx del árbol que absorbió el VM.
         """
         tree = self._least_saturated_tree()
