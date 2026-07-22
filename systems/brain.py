@@ -431,10 +431,12 @@ class Brain:
         al VM de adelante (que ya lleva tiempo decelerando y está lento).
         Solo revisa UP trees: en DOWN los VMs aceleran → se separan, no se acercan.
         """
+        found_in_trees = set()
         for track_id, track in self._network.tracks.items():
             if not (isinstance(track, AccelerationTree) and track.direction == TreeDirection.UP):
                 continue
             forced_in_tree = [vid for vid in self._forced_vm_ids if vid in track.vehicles]
+            found_in_trees.update(forced_in_tree)
             if not forced_in_tree:
                 continue
             sorted_ids = sorted(track.vehicles, key=lambda vid: track.vehicles[vid]['distance'])
@@ -455,6 +457,7 @@ class Brain:
                         if pair not in active:
                             active.add(pair)
                             self._emit_track_collision("started", track_id, track, a, b)
+        self._forced_vm_ids &= found_in_trees
 
     def _check_collision_ends(self) -> None:
         """
