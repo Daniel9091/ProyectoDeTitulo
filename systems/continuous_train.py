@@ -62,6 +62,7 @@ class ContinuousTrain:
     ):
         self.start_pos  = start_pos
         self.end_pos    = end_pos
+        self.density    = density
 
         recorder = recorder
 

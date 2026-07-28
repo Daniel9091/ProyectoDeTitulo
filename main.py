@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, time
 import importlib
 from setproctitle import setproctitle
 sys.path.insert(0, os.path.dirname(__file__))
@@ -13,6 +13,8 @@ from simulation.camera   import Camera
 from simulation.renderer import Renderer
 from telemetry.recorder import Recorder, NullRecorder
 from config.constants    import FPS, SCREEN_WIDTH, SCREEN_HEIGHT, TELEMETRY_ENABLED
+import config.constants as C
+from simulation.run_config import extract_run_config
 
 
 DT     = 1.0 / FPS
@@ -30,9 +32,14 @@ def main():
     recorder = Recorder(run_dir, run_id) if TELEMETRY_ENABLED else NullRecorder()
 
 
+    wall_clock_start = time.time()
     print(f"Construyendo escenario... (run_id={run_id})")
     brain, stations = scenario.build(seed=seed, recorder=recorder)
-    recorder.run_started(t=0.0, config={"seed": seed, "scenario_name": scenario_name})
+    cfg = extract_run_config(brain, stations)
+    cfg["run_id"] = run_id
+    cfg["seed"] = seed
+    cfg["scenario_name"] = scenario_name
+    recorder.run_started(t=0.0, config=cfg)
 
     # brain._process_reservations = lambda: None   # ← LÍNEA TEMPORAL: apaga reservas para forzar choques
     
@@ -128,7 +135,13 @@ def main():
         print(f"Parado en t={sim.current_time:.1f}s")
 
     finally:
-        summary = {"simulated_seconds": sim.current_time}
+        wall_clock_elapsed = time.time() - wall_clock_start
+        train_laps = sim.current_time * C.TRAIN_SPEED / train.total_length
+        summary = {
+            "simulated_seconds":  sim.current_time,
+            "wall_clock_seconds": round(wall_clock_elapsed, 2),
+            "train_laps":         round(train_laps, 3),
+        }
         brain.emit_vm_summaries(sim.current_time)
         recorder.run_ended(t=sim.current_time, summary=summary)
         recorder.close()
@@ -144,6 +157,7 @@ def main():
                     "scenario_name": scenario_name,
                     "events_path":   str(run_dir / "events.jsonl"),
                 }) + "\n")
+
 
 if __name__ == "__main__":
     setproctitle("nsim")

@@ -145,7 +145,11 @@ class Station:
         Solo lectura - Brain controla cuando se descuenta.
         """
         return int(self._vm_demand_accumulator)
-    
+
+    @property
+    def num_platforms(self) -> int:
+        return len(self._platforms)
+
     def on_vm_committed(self) -> None:
         """
         Brain comprometio exjitosamente un slot para esta estación.
