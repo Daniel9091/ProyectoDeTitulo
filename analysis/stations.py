@@ -82,7 +82,9 @@ def _snapshot_overview(con, rep):
     for sid, n, first, last in rows:
         rep.print(f"  S{sid}: {n} snapshots — t=[{int(first)}s, {int(last)}s]")
 
-_STATION_COLORS = {1: PALETTE["azul"], 2: PALETTE["verde"], 3: PALETTE["naranja"]}
+_ALL_COLORS = list(plt.get_cmap('tab20').colors) + list(plt.get_cmap('tab20b').colors)
+def _station_color(i: int):
+    return _ALL_COLORS[i % len(_ALL_COLORS)]
 
 def _passengers_waiting_over_time(con, rep, out_dir):
     """Cola de pasajeros en espera por estación a lo largo del tiempo."""
@@ -97,19 +99,21 @@ def _passengers_waiting_over_time(con, rep, out_dir):
         by_station[sid]['t'].append(t / 60)
         by_station[sid]['queue'].append(sum(a['queue_total'] for a in andenes))
 
-    fig, ax = plt.subplots(figsize=FIG_BAR)
-    for sid in sorted(by_station):
+    fig, ax = plt.subplots(figsize=(13, 7))
+    for i, sid in enumerate(sorted(by_station)):
         d = by_station[sid]
-        ax.plot(d['t'], d['queue'], marker='o', markersize=4, linewidth=1.5,
-                label=f"S{sid}", color=_STATION_COLORS.get(sid, PALETTE["violeta"]))
+        ax.plot(d['t'], d['queue'], marker='o', markersize=2, linewidth=0.8,
+                label=f"S{sid}", color=_station_color(i))
 
     ax.set_xlabel("Tiempo (min)")
     ax.set_ylabel("Pasajeros en cola")
     ax.set_title("Pasajeros esperando VM — serie de tiempo", size=TITLE_SIZE)
-    ax.legend()
+    ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1),
+              fontsize=7, ncol=2, framealpha=0.8)
     ax.yaxis.grid(True)
     ax.set_axisbelow(True)
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 0.82, 1])
+
     save_fig("stations_passengers_waiting", out_dir)
     plt.close()
 
@@ -181,19 +185,21 @@ def _pending_demand_over_time(con, rep, out_dir):
         by_station[sid]['t'].append(t / 60)
         by_station[sid]['demand'].append(demand)
 
-    fig, ax = plt.subplots(figsize=FIG_BAR)
-    for sid in sorted(by_station):
+    fig, ax = plt.subplots(figsize=(13, 7))
+    for i, sid in enumerate(sorted(by_station)):
         d = by_station[sid]
-        ax.plot(d['t'], d['demand'], marker='o', markersize=4, linewidth=1.5,
-                label=f"S{sid}", color=_STATION_COLORS.get(sid, PALETTE["violeta"]))
+        ax.plot(d['t'], d['demand'], marker='o', markersize=2, linewidth=0.8,
+                label=f"S{sid}", color=_station_color(i))
 
     ax.axhline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.6)
     ax.set_xlabel("Tiempo (min)")
     ax.set_ylabel("VMs demandados")
     ax.set_title("Demanda pendiente de VMs — serie de tiempo", size=TITLE_SIZE)
-    ax.legend()
+    ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1),
+              fontsize=7, ncol=2, framealpha=0.8)
     ax.yaxis.grid(True)
     ax.set_axisbelow(True)
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 0.82, 1])
+
     save_fig("stations_pending_demand", out_dir)
     plt.close()

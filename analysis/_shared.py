@@ -83,6 +83,22 @@ def get_event_types(events_path: Path, con) -> set[str]:
         "SELECT DISTINCT type FROM events"
     ).fetchall()}
 
+def station_x_ticks(ax, stations: list, xlabel_base: str = "Estaciones") -> None:
+    """Configura xticks y xlabel para N estaciones sin superposición."""
+    n = len(stations)
+    step = 1 if n <= 10 else 2 if n <= 18 else 5
+    indices = list(range(0, n, step))
+    ax.set_xticks(indices)
+    ax.set_xticklabels(
+        [f"S{stations[i]}" for i in indices],
+        rotation=45, ha='right', fontsize=8
+    )
+    if n > 5:
+        ax.set_xlabel(
+            f"{xlabel_base}  (S{stations[0]} ←――→ S{stations[-1]})"
+        )
+
+
 class Reporter:
     """Imprime a terminal y acumula líneas para guardar en un .txt al final."""
 

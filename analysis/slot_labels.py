@@ -28,8 +28,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
-from analysis._shared import resolve_run, connect, get_output_dir, save_fig, get_event_types, Reporter
-from analysis._style  import setup, PALETTE, TITLE_SIZE, FIG_SQUARE, FIG_BAR, FIG_DUAL, BAR_KWARGS, PIE_KWARGS
+from analysis._shared import resolve_run, connect, get_output_dir, save_fig, get_event_types, station_x_ticks, Reporter
+from analysis._style  import setup,fig_for_stations, PALETTE, TITLE_SIZE, FIG_SQUARE, FIG_BAR, FIG_DUAL, BAR_KWARGS, PIE_KWARGS
 
 _SP4_REQUIRED = {
     'slot_reserved', 'slot_demand_set',
@@ -99,17 +99,17 @@ def _label_activity_by_station(con, rep, out_dir):
     for sid, res, dem, dst, ent in rows:
         rep.print(f"  S{sid:<9} {res:>10} {dem:>10} {dst:>10} {ent:>10}")
 
-    stations = [f"S{r[0]}" for r in rows]
-    x = np.arange(len(stations))
-    w = 0.2
 
-    fig, ax = plt.subplots(figsize=FIG_BAR)
+
+    stations_ids = [r[0] for r in rows]
+    x = np.arange(len(stations_ids))
+    w = 0.2
+    fig, ax = plt.subplots(figsize=fig_for_stations(len(stations_ids)))
     ax.bar(x - 1.5*w, [r[1] for r in rows], w, label="Reservas",  color=PALETTE["azul"],    **BAR_KWARGS)
     ax.bar(x - 0.5*w, [r[2] for r in rows], w, label="Demanda",   color=PALETTE["verde"],   **BAR_KWARGS)
     ax.bar(x + 0.5*w, [r[3] for r in rows], w, label="Destinos",  color=PALETTE["violeta"], **BAR_KWARGS)
     ax.bar(x + 1.5*w, [r[4] for r in rows], w, label="Entradas",  color=PALETTE["naranja"], **BAR_KWARGS)
-    ax.set_xticks(x)
-    ax.set_xticklabels(stations)
+    station_x_ticks(ax, stations_ids)
     ax.set_title("Actividad de etiquetas por estación", size=TITLE_SIZE)
     ax.set_ylabel("Cantidad de eventos")
     ax.legend()
@@ -131,14 +131,15 @@ _RESERVATION_PRIORITY_LABELS = {
     "dest_other_station":   "VM va a otra estación",
     "fallback_critical":    "Fallback crítico (saturación)",
 }
+
 _RESERVATION_PRIORITY_COLORS = {
     "dest_same_station":    PALETTE["verde"],
     "demand_same_station":  PALETTE["verde"],
     "empty_slot":           PALETTE["azul"],
     "clean_vm":             PALETTE["violeta"],
-    "demand_other_station": PALETTE["naranja"],
+    "demand_other_station": "#5baee0",      
     "dest_other_station":   PALETTE["naranja"],
-    "fallback_critical":    "#c0392b",
+    "fallback_critical":    "#e6b800",      
 }
 
 def _reservation_health(con, rep, out_dir, types):
@@ -179,15 +180,15 @@ def _reservation_health(con, rep, out_dir, types):
     colors  = [_RESERVATION_PRIORITY_COLORS.get(p, PALETTE["azul"]) for p, _ in pri_rows]
 
     fig, ax = plt.subplots(figsize=FIG_SQUARE)
-    wedges, _, autotexts = ax.pie(
+    total = sum(values)
+    legend_labels = [f"{l}  ({v/total*100:.1f}%)" for l, v in zip(labels, values)]
+    wedges, _ = ax.pie(
         values, labels=None, colors=colors,
-        autopct=lambda p: f"{p:.1f}%" if p > 3 else "",
         **PIE_KWARGS,
     )
-    for at in autotexts:
-        at.set_fontsize(9)
-    ax.legend(wedges, labels, loc="lower center", bbox_to_anchor=(0.5, -0.35),
+    ax.legend(wedges, legend_labels, loc="lower center", bbox_to_anchor=(0.5, -0.45),
               fontsize=8, framealpha=0)
+
     ax.set_title("Prioridades de reserva", size=TITLE_SIZE)
     plt.tight_layout()
     save_fig("slot_labels_reservation_priority", out_dir)
@@ -317,8 +318,8 @@ def _demand_health(con, rep, out_dir, types):
     ax1.bar(x, s_brk, bottom=s_ful,              color=PALETTE["naranja"], label="Rotas", **BAR_KWARGS)
     ax1.bar(x, s_act, bottom=[f+b for f,b in zip(s_ful, s_brk)],
             color=PALETTE["azul"], label="Activas al cierre", **BAR_KWARGS)
-    ax1.set_xticks(x)
-    ax1.set_xticklabels([f"S{s}" for s in all_stations])
+    station_x_ticks(ax1, all_stations, xlabel_base="Estaciones")
+
     ax1.set_title("Promesas de demanda por estación", size=TITLE_SIZE)
     ax1.set_ylabel("Cantidad")
     ax1.legend()
@@ -392,7 +393,7 @@ def _destination_flow(con, rep, out_dir, types):
         matrix[sid][src] = cnt
 
     x = np.arange(len(all_stations))
-    fig, ax = plt.subplots(figsize=FIG_BAR)
+    fig, ax = plt.subplots(figsize=fig_for_stations(len(all_stations)))
     bottoms = np.zeros(len(all_stations))
     for src in ["boarding_commit", "reservations_pass", "redirect"]:
         vals = np.array([matrix[sid][src] for sid in all_stations], dtype=float)
@@ -400,8 +401,7 @@ def _destination_flow(con, rep, out_dir, types):
                label=_SOURCE_LABELS.get(src, src),
                color=_SOURCE_COLORS[src], **BAR_KWARGS)
         bottoms += vals
-    ax.set_xticks(x)
-    ax.set_xticklabels([f"S{s}" for s in all_stations])
+    station_x_ticks(ax, all_stations)
     ax.set_title("Origen de destinos de VM por estación", size=TITLE_SIZE)
     ax.set_ylabel("Cantidad")
     ax.legend()
@@ -446,13 +446,13 @@ def _forced_entries(con, rep, out_dir, types):
         rep.print(f"  S{sid:<9} {normal:>8} {forced:>8} {pct:>9.1f}%")
 
     x = np.arange(len(rows))
-    fig, ax = plt.subplots(figsize=FIG_BAR)
+    station_ids = [r[0] for r in rows]
+    fig, ax = plt.subplots(figsize=fig_for_stations(len(station_ids)))
     normals = [r[2] for r in rows]
     forceds = [r[1] for r in rows]
     ax.bar(x, normals, label="Normal",   color=PALETTE["azul"],    **BAR_KWARGS)
     ax.bar(x, forceds, bottom=normals,   color=PALETTE["naranja"], label="Forzada", **BAR_KWARGS)
-    ax.set_xticks(x)
-    ax.set_xticklabels([f"S{r[0]}" for r in rows])
+    station_x_ticks(ax, station_ids)
     ax.set_title("Entradas al junction: normales vs forzadas", size=TITLE_SIZE)
     ax.set_ylabel("Cantidad de entradas")
     ax.legend()

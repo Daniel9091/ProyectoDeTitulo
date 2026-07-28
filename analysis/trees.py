@@ -24,10 +24,12 @@ Usage:
 """
 
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from collections import defaultdict
 
-from analysis._shared import resolve_run, connect, get_output_dir, save_fig, get_event_types, Reporter
-from analysis._style  import setup, PALETTE, TITLE_SIZE, FIG_BAR, FIG_DUAL, BAR_KWARGS
+from analysis._shared import resolve_run, connect, get_output_dir, save_fig, get_event_types, Reporter, station_x_ticks
+from analysis._style  import setup, PALETTE, TITLE_SIZE, FIG_BAR, FIG_DUAL, BAR_KWARGS, fig_for_stations
+
 
 _SP5_REQUIRED = {'tree_vm_entered'}
 
@@ -101,28 +103,17 @@ def _routing_balance(con, rep, out_dir):
         ]
         rep.print(f"  Estación {sid}: {total} entradas | " + " | ".join(parts))
 
-    fig, ax = plt.subplots(figsize=FIG_BAR)
+    fig, ax = plt.subplots(figsize=fig_for_stations(len(stations)))
     x       = range(len(stations))
     bottoms = [0] * len(stations)
     for i, tidx in enumerate(trees):
         vals  = [data[sid][tidx] for sid in stations]
         color = _TREE_COLORS[i % len(_TREE_COLORS)]
-        bars  = ax.bar(x, vals, bottom=bottoms, label=f"Andén {tidx}", color=color, **BAR_KWARGS)
-        # Anotar porcentaje en cada segmento
-        for bar, sid in zip(bars, stations):
-            total = sum(data[sid].values())
-            pct   = 100 * data[sid][tidx] / total if total else 0
-            if pct > 5:
-                ax.text(
-                    bar.get_x() + bar.get_width() / 2,
-                    bar.get_y() + bar.get_height() / 2,
-                    f"{pct:.0f}%", ha='center', va='center', fontsize=9,
-                    color='white',
-                )
+        ax.bar(x, vals, bottom=bottoms, label=f"Andén {tidx}", color=color, **BAR_KWARGS)
         bottoms = [b + v for b, v in zip(bottoms, vals)]
 
-    ax.set_xticks(list(x))
-    ax.set_xticklabels([f"Estación {s}" for s in stations])
+    station_x_ticks(ax, stations)
+
     ax.set_ylabel("Entradas al árbol UP")
     ax.set_title(
         "Distribución de andenes elegidos por junction\n"
@@ -169,27 +160,17 @@ def _reason_distribution(con, rep, out_dir):
         ]
         rep.print(f"  Estación {sid}: " + " | ".join(parts))
 
-    fig, ax = plt.subplots(figsize=FIG_BAR)
+    fig, ax = plt.subplots(figsize=fig_for_stations(len(stations)))
     x       = range(len(stations))
     bottoms = [0] * len(stations)
     for reason in reasons:
         vals  = [data[sid][reason] for sid in stations]
         color = _REASON_COLORS.get(reason, PALETTE['violeta'])
-        bars  = ax.bar(x, vals, bottom=bottoms, label=reason, color=color, **BAR_KWARGS)
-        for bar, sid in zip(bars, stations):
-            total = sum(data[sid].values())
-            pct   = 100 * data[sid][reason] / total if total else 0
-            if pct > 5:
-                ax.text(
-                    bar.get_x() + bar.get_width() / 2,
-                    bar.get_y() + bar.get_height() / 2,
-                    f"{pct:.0f}%", ha='center', va='center', fontsize=9,
-                    color='white',
-                )
+        ax.bar(x, vals, bottom=bottoms, label=reason, color=color, **BAR_KWARGS)
         bottoms = [b + v for b, v in zip(bottoms, vals)]
 
-    ax.set_xticks(list(x))
-    ax.set_xticklabels([f"Estación {s}" for s in stations])
+    station_x_ticks(ax, stations)
+
     ax.set_ylabel("Entradas al árbol UP")
     ax.set_title(
         "Razón de entrada al junction por estación\n"
@@ -492,45 +473,44 @@ def _collision_summary(con, rep, types, out_dir):
     if not gantt_rows:
         return
 
-    # Obtener duración total de la corrida para el eje X
-    t_max = con.execute(
-        "SELECT MAX(t) FROM events"
-    ).fetchone()[0] or 1.0
+    t_max = con.execute("SELECT MAX(t) FROM events").fetchone()[0] or 1.0
 
-    fig, ax = plt.subplots(figsize=(max(8, len(gantt_rows) * 0.8 + 4), 4))
+    xs      = [r[1] / 60 for r in gantt_rows]
+    t_ends  = [(r[2] if r[2] is not None else t_max) for r in gantt_rows]
+    durs    = [(t_ends[i] - gantt_rows[i][1]) for i in range(len(gantt_rows))]
+    colors  = [PALETTE['verde'] if r[3] else PALETTE['naranja'] for r in gantt_rows]
+    n       = len(gantt_rows)
 
-    for i, (label, t_start, t_end, resolved, reason) in enumerate(gantt_rows):
-        t_end_plot = t_end if t_end is not None else t_max
-        color = PALETTE['verde'] if resolved else PALETTE['naranja']
-        ax.barh(i, t_end_plot - t_start, left=t_start, height=0.5,
-                color=color, alpha=0.85)
-        # Anotación de duración
-        dur = t_end_plot - t_start
-        ax.text(
-            t_start + dur / 2, i,
-            f"{dur:.1f}s", va='center', ha='center',
-            fontsize=8, color='white',
-        )
+    fig, (ax_top, ax_bot) = plt.subplots(2, 1, figsize=(14, 6),
+                                          gridspec_kw={'height_ratios': [2, 1]})
 
-    ax.set_yticks(range(len(gantt_rows)))
-    ax.set_yticklabels([r[0] for r in gantt_rows], fontsize=8)
-    ax.set_xlabel("Tiempo de simulación (s)")
-    ax.set_title(
-        "Línea de tiempo de colisiones físicas en árboles\n"
-        "(verde = resuelta | naranja = abierta al cierre)",
-        fontsize=TITLE_SIZE,
+    # Panel superior: scatter inicio vs duración
+    ax_top.scatter(xs, durs, c=colors, s=40, alpha=0.8, zorder=3)
+    ax_top.set_ylabel("Duración (s)")
+    ax_top.set_title(
+        f"Colisiones físicas en árboles  ({n} total)\n"
+        f"cada punto = una colisión | eje X = cuándo empezó | eje Y = cuánto duró",
+        size=TITLE_SIZE,
     )
-    ax.xaxis.grid(True)
+    ax_top.yaxis.grid(True)
+    ax_top.xaxis.grid(True)
+    ax_top.set_axisbelow(True)
 
-    # Leyenda manual
-    from matplotlib.patches import Patch
-    ax.legend(
-        handles=[
-            Patch(color=PALETTE['verde'],   label="Resuelta (separated / vm_exited)"),
-            Patch(color=PALETTE['naranja'], label="Abierta al cierre de corrida"),
-        ],
-        loc='lower right',
-    )
+    # Panel inferior: histograma de inicios
+    ax_bot.hist([x for x in xs], bins=30,
+                color=PALETTE['azul'], alpha=0.85, edgecolor=PALETTE['azul'])
+    ax_bot.set_xlabel("Tiempo de inicio (min)")
+    ax_bot.set_ylabel("Cantidad")
+    ax_bot.set_title("Distribución temporal de inicio de colisiones", size=TITLE_SIZE - 1)
+    ax_bot.yaxis.grid(True)
+    ax_bot.set_axisbelow(True)
+
+    ax_top.legend(handles=[
+        Line2D([0], [0], marker='o', color='w', markerfacecolor=PALETTE['verde'],
+               markersize=8, label=f"Resuelta ({sum(r[3] for r in gantt_rows)})"),
+        Line2D([0], [0], marker='o', color='w', markerfacecolor=PALETTE['naranja'],
+               markersize=8, label=f"Abierta al cierre ({sum(not r[3] for r in gantt_rows)})"),
+    ], fontsize=9)
 
     plt.tight_layout()
     save_fig("trees_collisions_timeline", out_dir)

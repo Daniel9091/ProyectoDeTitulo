@@ -21,7 +21,7 @@ SPEEDS = [1, 2, 5, 10]
 def main():
 
     seed = 42
-    scenario_name = "inicial"
+    scenario_name = "linea_1_edit"
     scenario = importlib.import_module(f"simulation_builder.{scenario_name}")
 
 

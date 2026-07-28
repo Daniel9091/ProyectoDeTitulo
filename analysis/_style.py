@@ -50,3 +50,10 @@ def setup() -> None:
         "grid.linestyle":   "--",
         "grid.alpha":       0.5,
     })
+
+def fig_for_stations(n_stations: int, height: float = 4.5) -> tuple:
+    """Ancho dinámico para gráficos con muchas estaciones en eje X."""
+    width = max(8, min(n_stations * 0.55, 20))
+    return (width, height)
+
+
