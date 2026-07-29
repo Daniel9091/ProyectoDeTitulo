@@ -24,7 +24,7 @@ SPEEDS = [1, 2, 5, 10]
 SCENARIO_NAME = "linea_1_edit"
 SEED          = 42
 HEADLESS      = True    # True = sin render, tan rápido como el CPU
-SIM_DURATION  = 3020   # segundos simulados (solo si HEADLESS = True)
+SIM_DURATION  = 300   # segundos simulados (solo si HEADLESS = True)
 # ─────────────────────────────────────────────────────────────────────────
 
 if not HEADLESS:
@@ -211,3 +211,10 @@ def main():
 if __name__ == "__main__":
     setproctitle("nsim")
     main()
+
+
+
+
+
+# documentacion pypy
+# loggings citical (sacar y agregar a los logs reales)

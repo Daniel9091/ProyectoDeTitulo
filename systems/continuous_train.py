@@ -95,12 +95,10 @@ class ContinuousTrain:
         Si Brain decide NO trasferir el VM al árbol, ignora el leftover_dt:
         el VM ya avanzó el frame completo en el belt gracias al avance de tail_x.
 
-        Limitación — máximo 1 cruce por junction por frame:
-            El código identifica un único slot candidato via round(). Si en un
-            frame dos slots cruzaran la misma junction, el segundo se perdería.
-            Invariante requerida: TRAIN_SPEED * dt < TRAIN_SPACING
-            NSim a 30 FPS: 20 × (1/30) ≈ 0.67 m < 2.0 m  ✓
-            Si TRAIN_SPEED sube a 60+ m/s, aumentar TRAIN_SPACING o FPS.
+        Soporta múltiples cruces por junction por frame:
+            n_candidates = floor(movement / TRAIN_SPACING) + 1 slots se inspeccionan
+            retroactivamente desde el más cercano. A 30 FPS n_candidates=1 (sin cambio);
+            a 10 FPS n_candidates=2; a 5 FPS n_candidates=3.
         """
 
         old_tail_x =self.tail_x
@@ -114,25 +112,27 @@ class ContinuousTrain:
             if vm.passengers_on_board:
                 vm.distance_carrying_passengers += movement
 
+        n_candidates = math.floor(movement / TRAIN_SPACING) + 1
         crossings = []
         for station_id, junction_x in self.junction_points.items():
-            # Slot que estaba más cerca de juntion_x ANTES del avance
             relative = (junction_x - old_tail_x + self.total_length) % self.total_length
-            slot_idx = round( relative / TRAIN_SPACING) % self.max_slots
+            nearest_idx = round(relative / TRAIN_SPACING) % self.max_slots
 
-            if self.slots[slot_idx]['vm'] is None:
-                continue
-            
-            # Distancia hacia adelante desde la posición del slot hasta junction_x
-            belt_x_before = (old_tail_x + slot_idx * TRAIN_SPACING) % self.total_length
-            d = (junction_x - belt_x_before + self.total_length) % self.total_length
+            for k in range(n_candidates):
+                slot_idx = (nearest_idx - k) % self.max_slots
 
-            # Cruzó si esa distancia abe en el movimiento del frame
-            if d <= movement:
-                leftover_dt = max(0.0, dt -d/TRAIN_SPEED)
-                crossings.append((slot_idx,station_id,leftover_dt))
+                if self.slots[slot_idx]['vm'] is None:
+                    continue
+
+                belt_x_before = (old_tail_x + slot_idx * TRAIN_SPACING) % self.total_length
+                d = (junction_x - belt_x_before + self.total_length) % self.total_length
+
+                if d <= movement:
+                    leftover_dt = max(0.0, dt - d / TRAIN_SPEED)
+                    crossings.append((slot_idx, station_id, leftover_dt))
 
         return crossings
+
 
     # ─── POSICIONES ──────────────────────────────────────────────────────
     
