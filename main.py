@@ -5,13 +5,10 @@ from setproctitle import setproctitle
 sys.path.insert(0, os.path.dirname(__file__))
 
 import json
-import pygame
 from pathlib import Path
 from datetime import datetime
 from simulation.simulation import Simulation
-from simulation.inspector import Inspector
-from simulation.camera   import Camera
-from simulation.renderer import Renderer
+
 from telemetry.recorder import Recorder, NullRecorder
 from config.constants    import FPS, SCREEN_WIDTH, SCREEN_HEIGHT, TELEMETRY_ENABLED
 import config.constants as C
@@ -19,7 +16,6 @@ from simulation.run_config import extract_run_config
 
 import logging
 logging.disable(logging.CRITICAL)
-
 
 DT     = 1.0 / FPS
 SPEEDS = [1, 2, 5, 10]
@@ -30,6 +26,13 @@ SEED          = 42
 HEADLESS      = True    # True = sin render, tan rápido como el CPU
 SIM_DURATION  = 3020   # segundos simulados (solo si HEADLESS = True)
 # ─────────────────────────────────────────────────────────────────────────
+
+if not HEADLESS:
+    import pygame
+    from simulation.inspector import Inspector
+    from simulation.camera   import Camera
+    from simulation.renderer import Renderer
+
 
 def main():
 
