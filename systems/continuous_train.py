@@ -76,8 +76,10 @@ class ContinuousTrain:
         # {station_id: belt_x} - puntos deonde los arboles de cada estacion conectan al carril
         self.junction_points: dict[int,float] = dict(junction_points)
         
-        self.tail_x:    float = 0.0
-        self.slots:     list = []
+        self.tail_x:        float = 0.0
+        self._vms_on_belt:  dict[int, ModularVehicle] = {}
+
+        self.slots:         list = []
         self._init_slots(density, vm_factory, rng)
 
     # ─── AVANCE PRINCIPAL ─────────────────────────────────────────────────
@@ -106,12 +108,11 @@ class ContinuousTrain:
         self.tail_x = (self.tail_x + movement)% self.total_length
 
         # Actualizacion de ditancia recorrida en el continuous_train
-        for slot in self.slots:
-            if slot['vm'] is not None:
-                slot['vm'].total_distance_traveled += movement
-                slot['vm'].operational_time += dt
-                if slot['vm'].passengers_on_board:
-                    slot['vm'].distance_carrying_passengers += movement
+        for vm in self._vms_on_belt.values():
+            vm.total_distance_traveled += movement
+            vm.operational_time += dt
+            if vm.passengers_on_board:
+                vm.distance_carrying_passengers += movement
 
         crossings = []
         for station_id, junction_x in self.junction_points.items():
@@ -187,6 +188,7 @@ class ContinuousTrain:
             )
         else:
             slot['vm'] = vm
+            self._vms_on_belt[slot_idx] = vm
 
     def remove_vm(self, slot_idx: int) -> ModularVehicle:
         """
@@ -197,6 +199,7 @@ class ContinuousTrain:
         """
         vm = self.slots[slot_idx]['vm']
         self.slots[slot_idx]['vm'] = None
+        self._vms_on_belt.pop(slot_idx, None)
         self.slots[slot_idx]['destination_station_id'] = None
         self.slots[slot_idx]['demand_station_id'] = None
 
@@ -292,7 +295,7 @@ class ContinuousTrain:
         vm_factory(vm_id) construye cada ModularVehicle con el ID indicado.
         """
         next_vm_id = 0
-        for _ in range(self.max_slots):
+        for i in range(self.max_slots):
             slot = {
                 'vm':                     None,
                 'reserved_station_id':    None,
@@ -303,6 +306,7 @@ class ContinuousTrain:
             }
             if rng.random() < density:
                 slot['vm'] = vm_factory(next_vm_id)
+                self._vms_on_belt[i] = slot['vm']
                 next_vm_id += 1
             self.slots.append(slot)
 

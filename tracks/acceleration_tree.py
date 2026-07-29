@@ -201,6 +201,9 @@ class AccelerationTree(BaseTrack):
         La velocidad no baja de 0 (VM UP puede quedar congelado si la rampa es muy larga).
         Retorna lista de (vm, left_dt) por cada VM que completó el track en ese frame.
         """
+        if not self.vehicles:
+            return []
+                
         completed = []
         for vid, data in list(self.vehicles.items()):
             old_distance = data['distance']

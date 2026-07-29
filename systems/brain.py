@@ -64,6 +64,7 @@ class Brain:
     ):
         self._train =       train
         self._network =     network
+        self._build_track_indices()
         self._stations =    stations
         self._recorder =    recorder
         self.all_vms: dict[int,"ModularVehicle"] = {}
@@ -83,6 +84,24 @@ class Brain:
                 vm = slot['vm']
                 self.all_vms[vm.vehicle_id] = vm
                 self._recorder.vm_created(0.0, vm.vehicle_id)
+
+    def _build_track_indices(self) -> None:
+        """Precalcula índices de tracks para evitar isinstance en el hot path."""
+        self._lane_to_down_tree: dict[int, AccelerationTree] = {}
+        for lane_id, track in self._network.tracks.items():
+            if isinstance(track, BoardingLane):
+                for next_id in self._network.adjacency.get(lane_id, []):
+                    next_track = self._network.get_track(next_id)
+                    if isinstance(next_track, AccelerationTree):
+                        self._lane_to_down_tree[lane_id] = next_track
+                        break
+
+        self._up_trees: list[tuple[int, AccelerationTree]] = [
+            (track_id, track)
+            for track_id, track in self._network.tracks.items()
+            if isinstance(track, AccelerationTree) and track.direction == TreeDirection.UP
+        ]
+
 
 
     # ─── LOOP PRINCIPAL ───────────────────────────────────────────────────────

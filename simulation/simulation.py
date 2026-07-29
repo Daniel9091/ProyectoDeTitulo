@@ -13,6 +13,7 @@ Lo que NO hace:
 """
 from systems.brain import Brain
 from config.constants import FPS
+import time
 
 class Simulation:
     """
@@ -33,13 +34,16 @@ class Simulation:
         self._brian.update(dt, self.current_time)
         self.current_time += dt
     
-    def run_headless(self, n_ticks: int, dt: float = 1.0 / FPS) -> None:
+    def run_headless(self, sim_duration: float, dt: float = 1.0 / FPS) -> None:
         """
-        Corre n_ticks frames sin render.
-        dt por defecto = 1/FPS (un frame real a 30 FPS).
+        Corre sim_duration segundos simulados sin render, tan rápido como el CPU permita.
         """
-        for _ in range(n_ticks):
+        n_ticks = int(sim_duration / dt)
+        t0= time.time()
+        for i in range(n_ticks):
             self.step(dt)
+            if i % 5000 == 0 and i > 0:
+                print(f"  {self.current_time:.0f}s / {sim_duration:.0f}s simulados  ({time.time()-t0:.1f}s reales)")
 
         
 
