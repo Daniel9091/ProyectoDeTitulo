@@ -16,14 +16,19 @@ import pygame
 from config.constants import VM_RENDER_WIDTH, VM_RENDER_DEPTH, VM_RENDER_HEIGHT
 from tracks.acceleration_tree import AccelerationTree
 from tracks.boarding_lane import BoardingLane
-from simulation.renderer import BOX_EDGES
+from simulation.renderer import BOX_EDGES, VM_BOARDING, VM_DEST
+import simulation.palette as palette
 
 # ─── LAYOUT ────────────────────────────────────────────────────────────────
 
-PANEL_W = 260
-PANEL_H = 210
-GAP     = 8
-MARGIN  = 8
+PANEL_W        = 300
+PANEL_H        = 280
+GAP            = 8
+MARGIN         = 8
+HEADER_H       = 42
+SECTION_LABEL_H = 16
+ROW_H          = 18
+SECTION_PAD    = 6
 
 PICK_RADIUS_VM      = 14
 PICK_RADIUS_STATION = 30
@@ -409,26 +414,243 @@ class Inspector:
                 pygame.draw.line(surface, ACCENT, seg[0], seg[1], 3)
 
     def _draw_panel(self, surface, x, y, panel, loc) -> None:
-        title, lines = panel_content(panel, loc)
+        title, subtitle = self._get_title_subtitle(panel, loc)
 
         panel_surf = pygame.Surface((PANEL_W, PANEL_H), pygame.SRCALPHA)
-        panel_surf.fill(PANEL_BG)
+        panel_surf.fill(palette.active["panel_bg"])
         pygame.draw.rect(panel_surf, PANEL_BORDER, panel_surf.get_rect(), 1)
 
-        title_surf = self._font_md.render(title, True, TEXT_BRIGHT)
-        panel_surf.blit(title_surf, (8, 6))
+        self._draw_header(panel_surf, title, subtitle)
 
-        for i, line in enumerate(lines):
-            y_off = 34 + i * 18          
-            if y_off > PANEL_H - 14: 
-                break
-            line_surf = self._font_sm.render(line[:30], True, TEXT_DIM)   # antes line[:34]
-            panel_surf.blit(line_surf, (8, y_off))
-
+        if panel['kind'] == 'vm':
+            self._draw_vm_panel(panel_surf, panel['ref'], loc)
+        else:
+            self._draw_station_panel(panel_surf, loc['station'])
 
         cx0 = PANEL_W - CLOSE_BOX_SIZE - CLOSE_BOX_MARGIN
         cy0 = CLOSE_BOX_MARGIN
-        pygame.draw.line(panel_surf, CLOSE_COLOR, (cx0, cy0), (cx0 + CLOSE_BOX_SIZE, cy0 + CLOSE_BOX_SIZE), 2)
-        pygame.draw.line(panel_surf, CLOSE_COLOR, (cx0 + CLOSE_BOX_SIZE, cy0), (cx0, cy0 + CLOSE_BOX_SIZE), 2)
+        pygame.draw.line(panel_surf, CLOSE_COLOR,
+                         (cx0, cy0), (cx0 + CLOSE_BOX_SIZE, cy0 + CLOSE_BOX_SIZE), 2)
+        pygame.draw.line(panel_surf, CLOSE_COLOR,
+                         (cx0 + CLOSE_BOX_SIZE, cy0), (cx0, cy0 + CLOSE_BOX_SIZE), 2)
 
         surface.blit(panel_surf, (x, y))
+
+    # ── Encabezado ───────────────────────────────────────────────────────
+
+    def _draw_header(self, surf, title, subtitle) -> None:
+        # Línea de acento delgada arriba — sin fondo sólido
+        pygame.draw.rect(surf, ACCENT, (0, 0, PANEL_W, 3))
+
+        title_surf = self._font_md.render(title, True, palette.active["text_bright"])
+        if title_surf.get_width() > PANEL_W - 44:
+            title_surf = self._font_sm.render(title, True, palette.active["text_bright"])
+        surf.blit(title_surf, (8, 6))
+
+        sub_surf = self._font_sm.render(subtitle, True, palette.active["text_dim"])
+        surf.blit(sub_surf, (8, 25))
+
+        pygame.draw.line(surf, PANEL_BORDER, (0, HEADER_H), (PANEL_W, HEADER_H), 1)
+
+    # ── Panel VM ─────────────────────────────────────────────────────────
+
+    def _draw_vm_panel(self, surf, vm, loc) -> None:
+        y = HEADER_H + 2
+
+        y = self._draw_section_label(surf, "ESTADO", y)
+        surf.blit(
+            self._font_sm.render(self._friendly_state(vm, loc),
+                                 True, palette.active["text_bright"]),
+            (12, y)
+        )
+        y += ROW_H
+        self._draw_bar(surf, 26, y + 2, 90, 9,
+                       vm.passenger_count / max(vm.capacity, 1))
+        surf.blit(
+            self._font_sm.render(f"{vm.passenger_count}/{vm.capacity}",
+                                 True, palette.active["text_dim"]),
+            (124, y)
+        )
+        y += ROW_H
+
+        # ── ABORDANDO (solo si está en boarding lane) ────────────────────
+        if loc['template'] == 'lane':
+            data = loc['data']
+            committed = data.get('boarding_committed', True)
+            boarding = data.get('passengers', [])
+            y = self._draw_separator(surf, y)
+            y = self._draw_section_label(surf, "ABORDANDO", y)
+            if not committed and boarding:
+                surf.blit(
+                    self._font_sm.render(f"{len(boarding)} subiendo al VM",
+                                         True, palette.active["text_bright"]),
+                    (12, y)
+                )
+                y += ROW_H
+            surf.blit(
+                self._font_sm.render(
+                    f"Compromiso: {'Sí — cerrado' if committed else 'No — abierto'}",
+                    True, palette.active["text_dim"]
+                ),
+                (12, y)
+            )
+            y += ROW_H
+
+        labels = self._vm_label_lines(loc)
+        if labels:
+            y = self._draw_separator(surf, y)
+            y = self._draw_section_label(surf, "ETIQUETAS", y)
+            for lbl in labels:
+                if y + ROW_H > PANEL_H - 8:
+                    break
+                surf.blit(
+                    self._font_sm.render(lbl, True, palette.active["text_bright"]),
+                    (12, y)
+                )
+                y += ROW_H
+
+        if vm.passenger_count > 0:
+            y = self._draw_separator(surf, y)
+            y = self._draw_section_label(surf, "PASAJEROS A BORDO", y)
+            for p in vm.passengers_on_board:
+                if y + ROW_H > PANEL_H - 8:
+                    surf.blit(
+                        self._font_sm.render("...", True, palette.active["text_dim"]),
+                        (12, y)
+                    )
+                    break
+                line = f"#{p.passenger_id:03d}  S{p.origin_station_id}→S{p.destination_station_id}"
+                surf.blit(
+                    self._font_sm.render(line, True, palette.active["text_dim"]),
+                    (12, y)
+                )
+                y += ROW_H
+
+    # ── Panel Estación ───────────────────────────────────────────────────
+
+    def _draw_station_panel(self, surf, station) -> None:
+        y = HEADER_H + 2
+        summary = station.get_summary()
+
+        y = self._draw_section_label(surf, "DEMANDA", y)
+        demand = station.pending_demand
+        color = palette.active["text_bright"] if demand > 0 else palette.active["text_dim"]
+        label = f"{demand} pendientes" if demand > 0 else f"{demand}"
+        surf.blit(self._font_sm.render(label, True, color), (12, y))
+        y += ROW_H
+
+        walking = len(station._walking)
+        if walking > 0:
+            surf.blit(
+                self._font_sm.render(f"{walking} caminando al andén",
+                                     True, palette.active["text_dim"]),
+                (12, y)
+            )
+            y += ROW_H
+
+        y = self._draw_separator(surf, y)
+        y = self._draw_section_label(surf, "FLUJO", y)
+        surf.blit(
+            self._font_sm.render(f"Pasajeros   {summary['passenger_rate']:.1f}/s",
+                                 True, palette.active["text_bright"]),
+            (12, y)
+        )
+        y += ROW_H
+        surf.blit(
+            self._font_sm.render(f"VMs         {summary['vm_request_rate']:.1f}/s",
+                                 True, palette.active["text_dim"]),
+            (12, y)
+        )
+        y += ROW_H
+
+        y = self._draw_separator(surf, y)
+        y = self._draw_section_label(surf, "DESTINOS", y)
+        dests = summary.get('destinations', {})
+        if dests:
+            dest_text = "  ".join(f"S{k}:{v}%" for k, v in dests.items())
+            surf.blit(
+                self._font_sm.render(dest_text[:36], True, palette.active["text_dim"]),
+                (12, y)
+            )
+        else:
+            surf.blit(
+                self._font_sm.render("Sin datos aún", True, palette.active["text_dim"]),
+                (12, y)
+            )
+
+    # ── Primitivas de sección ────────────────────────────────────────────
+
+    def _draw_section_label(self, surf, label, y) -> int:
+        y += SECTION_PAD
+        surf.blit(self._font_sm.render(label, True, palette.active["text_dim"]), (8, y))
+        return y + SECTION_LABEL_H
+
+    def _draw_separator(self, surf, y) -> int:
+        y += 3
+        pygame.draw.line(surf, PANEL_BORDER, (8, y), (PANEL_W - 8, y), 1)
+        return y + 4
+
+    @staticmethod
+    def _draw_bar(surf, x, y, width, height, fill) -> None:
+        pygame.draw.rect(surf, PANEL_BORDER, (x, y, width, height), 1)
+        fill_w = int((width - 2) * max(0.0, min(1.0, fill)))
+        if fill_w > 0:
+            pygame.draw.rect(surf, ACCENT, (x + 1, y + 1, fill_w, height - 2))
+
+    # ── Helpers de contenido ─────────────────────────────────────────────
+
+    def _get_title_subtitle(self, panel, loc) -> tuple[str, str]:
+        if panel['kind'] == 'station':
+            summary = loc['station'].get_summary()
+            return (
+                f"Estación S{summary['station_id']}",
+                f"{summary['platforms']} andenes · {summary['active_platforms']} activos",
+            )
+        vm = panel['ref']
+        return f"VM #{vm.vehicle_id}", self._location_text(loc)
+
+    @staticmethod
+    def _location_text(loc) -> str:
+        t = loc['template']
+        if t == 'belt':
+            return f"Belt · Slot {loc['slot_index']}"
+        if t == 'tree':
+            return f"Árbol {loc['track'].direction.value} · {loc['progress']*100:.0f}%"
+        if t == 'lane':
+            return f"BoardingLane · {loc['progress']*100:.0f}%"
+        return ""
+
+    @staticmethod
+    def _vm_state_color(vm, loc) -> tuple:
+        if loc['template'] == 'lane' and not loc['data'].get('boarding_committed', True):
+            return VM_BOARDING
+        if vm.has_destination:
+            return VM_DEST
+        return palette.active["vm_default"]
+
+    @staticmethod
+    def _friendly_state(vm, loc) -> str:
+        t = loc['template']
+        pct = int(loc.get('progress', 0) * 100)
+        if t == 'lane':
+            label = "Abordando" if not loc['data'].get('boarding_committed', True) else "En lane"
+            return f"{label}  {pct}%"
+        if t == 'tree':
+            return f"Árbol {loc['track'].direction.value}  {pct}%"
+        return "En belt"
+
+    @staticmethod
+    def _vm_label_lines(loc) -> list:
+        if loc['template'] != 'belt':
+            return []
+        slot = loc['slot']
+        lines = []
+        if slot.get('destination_station_id') is not None:
+            lines.append(f"Destino → S{slot['destination_station_id']}")
+        if slot.get('demand_station_id') is not None:
+            lines.append(f"Demanda → S{slot['demand_station_id']}")
+        if slot.get('reserved_station_id') is not None:
+            lines.append(f"Reserva → S{slot['reserved_station_id']}")
+        if slot['colliding_vms']:
+            lines.append(f"CHOQUE  {1 + len(slot['colliding_vms'])} VMs")
+        return lines

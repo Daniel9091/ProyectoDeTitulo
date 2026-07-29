@@ -24,6 +24,7 @@ from config.constants import TRAIN_SPACING, VM_RENDER_WIDTH, VM_RENDER_DEPTH, VM
 from tracks.acceleration_tree import AccelerationTree
 from tracks.boarding_lane import BoardingLane
 from objects.types import TreeDirection
+import simulation.palette as palette
 
 # ─── PALETA ──────────────────────────────────────────────────────────────────
 
@@ -125,7 +126,7 @@ class Renderer:
             9. Overlay de pausa (si aplica)
         """
         W, H = surface.get_size()
-        surface.fill(BG)
+        surface.fill(palette.active["bg"])
 
         self._draw_belt_rail(surface, camera, train)
         belt_drawn = self._draw_belt_vms(surface, camera, train, W, H)
@@ -158,7 +159,7 @@ class Renderer:
         )
         if seg:
             p1, p2 = seg
-            pygame.draw.line(surface, TRACK_GLOW, p1, p2, 7)
+            pygame.draw.line(surface, palette.active["track_glow"], p1, p2, 7)
             pygame.draw.line(surface, TRACK_COLOR, p1, p2, 2)
 
     def _draw_belt_vms(
@@ -231,8 +232,8 @@ class Renderer:
         ]
         pts = [camera.project(vx, vy, vz) for vx, vy, vz in verts]
 
-        color_base = labels[0]  if labels else VM_DEFAULT
-        color_top  = labels[-1] if labels else VM_DEFAULT
+        color_base = labels[0]  if labels else palette.active["vm_default"]
+        color_top  = labels[-1] if labels else palette.active["vm_default"]
 
         for a, b in ((0,1),(1,2),(2,3),(3,0)):
             if pts[a] and pts[b]:
@@ -244,7 +245,7 @@ class Renderer:
                 pygame.draw.line(surface, color_top,
                                 (pts[a][0], pts[a][1]), (pts[b][0], pts[b][1]), 1)
 
-        seg_colors = labels if labels else [VM_DEFAULT]
+        seg_colors = labels if labels else [palette.active["vm_default"]]
         for base_i, top_i in ((0,4),(1,5),(2,6),(3,7)):
             if pts[base_i] and pts[top_i]:
                 pb = (pts[base_i][0], pts[base_i][1])
@@ -266,7 +267,7 @@ class Renderer:
             return
         box_w = abs(pts[1][0] - pts[0][0])
         r = max(1, min(4, int(box_w * 0.15)))
-        pygame.draw.circle(surface, VM_PASSENGERS, (cp[0], cp[1]), r)
+        pygame.draw.circle(surface, palette.active["vm_passengers"], (cp[0], cp[1]), r)
 
 
     def _draw_collision_stack(
@@ -346,7 +347,7 @@ class Renderer:
                 if result:
                     sx, sy, depth = result
                     r = max(1, min(3, int(600 / max(depth, 80))))
-                    pygame.draw.circle(surface, JUNCTION_DOT, (sx, sy), r)
+                    pygame.draw.circle(surface, palette.active["junction_dot"], (sx, sy), r)
 
     # ── Estaciones ────────────────────────────────────────────────────────────
 
@@ -408,7 +409,8 @@ class Renderer:
                 if center is None:
                     continue
                 sx, sy, _ = center
-                pygame.draw.circle(surface, VM_PASSENGERS, (sx, sy), 2)
+                pygame.draw.circle(surface, palette.active["vm_passengers"], (sx, sy), 2)
+
 
     # ── VMs en tránsito ───────────────────────────────────────────────────────
 
@@ -426,11 +428,12 @@ class Renderer:
         """
         VM_W, VM_D, VM_H = VM_RENDER_WIDTH, VM_RENDER_DEPTH, VM_RENDER_HEIGHT
         drawn = 0
-        collisions = 0
+        total_collisions = 0
         for track in network.tracks.values():
             is_lane = isinstance(track, BoardingLane)
             items = list(track.vehicles.items())
             colliding_ids = self._find_colliding_vehicle_ids(items)
+            total_collisions += len(colliding_ids)
 
             for vm_id, data in items:
                 vm = data['vehicle']
@@ -446,7 +449,6 @@ class Renderer:
                 drawn += 1
 
                 if vm_id in colliding_ids:
-                    collisions += 1
                     labels = [VM_COLLISION]
                 else:
                     is_actively_boarding = is_lane and not data['boarding_committed']
@@ -468,9 +470,9 @@ class Renderer:
                     (cx + hw, cy + hd, cz + ht),
                     (cx - hw, cy + hd, cz + ht),
                 ]
-                self._draw_wireframe_box(surface, camera, verts, VM_DEFAULT_GL, 5)
+                self._draw_wireframe_box(surface, camera, verts, palette.active["vm_default_gl"], 5)
                 self._draw_vm_box(surface, camera, vm, cx, cy, cz, labels)
-        return drawn, collisions
+        return drawn, total_collisions
 
     @staticmethod
     def _find_colliding_vehicle_ids(items: list) -> set:
@@ -518,7 +520,7 @@ class Renderer:
         hud_y = H - self.HUD_H
 
         panel = pygame.Surface((W, self.HUD_H), pygame.SRCALPHA)
-        panel.fill(HUD_BG)
+        panel.fill(palette.active["hud_bg"])
         surface.blit(panel, (0, hud_y))
         pygame.draw.line(surface, HUD_LINE, (0, hud_y), (W, hud_y), 1)
 
@@ -532,19 +534,18 @@ class Renderer:
         for i, line in enumerate([
             f"t = {current_time:>9.1f} s",
             f"FPS: {fps:>4.0f}     Vel: {vel_str}",
-            f"Belt: {on}/{total}    Tránsito: {transit}",
-            f"Visibles: {belt_drawn + transit_drawn}  (belt {belt_drawn}/{on}  ·  tránsito {transit_drawn}/{transit})",
+            f"Belt: {on}/{total}   Tránsito: {transit}   Visibles: {belt_drawn + transit_drawn}",
             f"Colisiones: {collisions}",
         ]):
 
 
-            surf = self._font_sm.render(line, True, TEXT_BRIGHT)
+            surf = self._font_sm.render(line, True, palette.active["text_bright"])
             surface.blit(surf, (16, hud_y + 8 + i * 22))
 
         # Leyenda (columna derecha)
         lx = W - 220
         surface.blit(
-            self._font_sm.render("Leyenda VM", True, TEXT_DIM), (lx, hud_y + 8)
+            self._font_sm.render("Leyenda VM", True, palette.active["text_dim"]), (lx, hud_y + 8)
         )
         for i, (label, color) in enumerate([
             ("Normal",       VM_DEFAULT),
@@ -556,14 +557,14 @@ class Renderer:
         ]):
             cy = hud_y + 26 + i * 13
             pygame.draw.circle(surface, color, (lx + 6, cy + 5), 5)
-            surface.blit(self._font_sm.render(label, True, TEXT_DIM), (lx + 16, cy))
+            surface.blit(self._font_sm.render(label, True, palette.active["text_dim"]), (lx + 16, cy))
 
         # Controles
         ctrl = (
-            "WASD=mover   ←→↑↓=rotar   QE=altura   ZX=zoom   "
+            "WASD=mover   ←→↑↓=rotar   QE=altura   ZX=zoom   L=modo   Shift=rápido   "
             "Clic der=look   H=reset   Espacio=pausa   1234=vel   Esc=salir"
         )
-        cs = self._font_sm.render(ctrl, True, TEXT_DIM)
+        cs = self._font_sm.render(ctrl, True, palette.active["text_dim"])
         surface.blit(cs, (W // 2 - cs.get_width() // 2, hud_y + self.HUD_H - 18))
 
     def _draw_pause_overlay(self, surface, W, H) -> None:
@@ -572,7 +573,7 @@ class Renderer:
         overlay.fill((0, 0, 0, 100))
         surface.blit(overlay, (0, 0))
         txt = self._font_md.render(
-            "PAUSADO  —  Espacio para continuar", True, TEXT_BRIGHT
+            "PAUSADO  —  Espacio para continuar", True, palette.active["text_bright"]
         )
         surface.blit(txt, (W // 2 - txt.get_width() // 2, H // 2 - 12))
 

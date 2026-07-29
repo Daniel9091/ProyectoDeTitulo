@@ -13,6 +13,7 @@ from telemetry.recorder import Recorder, NullRecorder
 from config.constants    import FPS, SCREEN_WIDTH, SCREEN_HEIGHT, TELEMETRY_ENABLED
 import config.constants as C
 from simulation.run_config import extract_run_config
+import simulation.palette as palette
 
 import logging
 logging.disable(logging.CRITICAL)
@@ -23,7 +24,7 @@ SPEEDS = [1, 2, 5, 10]
 # ─── Configuración de corrida ────────────────────────────────────────────
 SCENARIO_NAME = "linea_1_edit"
 SEED          = 42
-HEADLESS      = True    # True = sin render, tan rápido como el CPU
+HEADLESS      = False    # True = sin render, tan rápido como el CPU
 SIM_DURATION  = 300   # segundos simulados (solo si HEADLESS = True)
 # ─────────────────────────────────────────────────────────────────────────
 
@@ -146,6 +147,8 @@ def main():
                         elif event.key == pygame.K_2:     speed_idx = 1
                         elif event.key == pygame.K_3:     speed_idx = 2
                         elif event.key == pygame.K_4:     speed_idx = 3
+                        elif event.key == pygame.K_l:     palette.toggle()
+
 
                     elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                         inspector.handle_click(
@@ -218,3 +221,4 @@ if __name__ == "__main__":
 
 # documentacion pypy
 # loggings citical (sacar y agregar a los logs reales)
+# agregar 

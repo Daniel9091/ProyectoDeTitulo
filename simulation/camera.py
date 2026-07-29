@@ -226,7 +226,8 @@ class Camera:
             "vuele" al avanzar. Q/E controlan Z de forma independiente.
         """
         keys  = pygame.key.get_pressed()
-        spd   = CAM_MOVE_SPEED * dt
+        shift = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
+        spd   = CAM_MOVE_SPEED * dt * (10.0 if shift else 1.0)
         rot   = CAM_ROT_SPEED  * dt
 
         yaw_r = math.radians(self.yaw)
