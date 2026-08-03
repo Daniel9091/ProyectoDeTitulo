@@ -27,47 +27,14 @@ from objects.types import TreeDirection
 import simulation.palette as palette
 
 # ─── PALETA ──────────────────────────────────────────────────────────────────
+# Colores adaptativos (claro/oscuro) → viven en palette.py, acceder con palette.active["key"]
+# Colores estáticos (no cambian con el modo) → constantes aquí
 
-# BG            = (  8,  12,  18)    # fondo más profundo
-# BELT_GLOW     = (  0,  20,  80)    # halo azul eléctrico
-# BELT_CORE     = ( 30, 160, 255)    # azul brillante
-# UP_TREE       = ( 30, 200,  80)    # verde neón
-# DN_TREE       = (255,  60,  40)    # rojo vivo
-# LANE_COLOR    = ( 80, 200, 255)    # azul claro luminoso
-# JUNCTION_MARK = (200, 220, 255)    # blanco azulado
-# STATION_WIRE  = ( 60, 150, 255)    # azul medio
-# VM_FREE       = (150, 165, 185)    # gris azulado
-# VM_DEMAND     = (255, 190,  30)    # ámbar brillante
-# VM_DEST       = ( 40, 230, 110)    # verde menta
-# VM_RESERVED   = (210, 130, 255)    # violeta
-# VM_TRANSIT    = (255, 220,  60)    # amarillo dorado
-# VM_TRANSIT_GL = ( 60,  50,   0)    # glow dorado oscuro
-# VM_COLLISION  = (255,   0,   0)    # rojo puro — choque: 2+ VMs en el mismo slot
-# VM_WIRE       = ( 70,  80,  95)    # aristas cuando no hay etiqueta
-# VM_PASSENGERS = (255, 255, 255)    # indicador interior cuando hay pasajeros
-# JUNCTION_DOT  = (255, 220,   0)    # punto amarillo de junction
-# HUD_BG        = (  8,  12,  20, 220)
+TRACK_COLOR   = ( 30, 160, 255)   # azul neón — todos los rieles: belt, árboles, lanes
+JUNCTION_MARK = (200, 220, 255)   # blanco azulado — marcador de junction en wireframe
+STATION_WIRE  = ( 60,  90, 220)   # azul medio — aristas de la estación
+HUD_LINE      = ( 30, 120, 255)   # línea separadora del HUD
 
-
-BG            = (  8,  12,  18)    # fondo más profundo
-TRACK_GLOW    = (  0,  20,  80)    # halo azul eléctrico — solo el belt lo usa
-TRACK_COLOR   = ( 30, 160, 255)    # azul neón — TODOS los rieles: belt, árboles, lanes
-JUNCTION_MARK = (200, 220, 255)    # blanco azulado
-STATION_WIRE  = ( 60, 90, 220)    # azul medio
-VM_DEFAULT    = (  190, 225, 250)    # sky blue neón — VM sin ninguna etiqueta activa
-VM_DEFAULT_GL = (  40,  70,  70)    # glow oscuro a juego, halo de VMs en tránsito
-VM_DEMAND     = (255, 225,   0)    # amarillo neón — etiqueta de demanda
-VM_BOARDING   = (255, 130,   0)    # naranjo neón — pasajeros abordando
-VM_RESERVED   = (215,  175, 250)    # violeta reforzado — etiqueta de reserva
-VM_DEST       = ( 40, 255, 120)    # verde neón — etiqueta de destino
-VM_COLLISION  = (255,   0,   0)    # rojo puro — choque: 2+ VMs en el mismo slot
-VM_PASSENGERS = (255, 255, 255)    # indicador interior cuando hay pasajeros
-JUNCTION_DOT  = (255, 220,   0)    # punto amarillo de junction
-
-HUD_BG        = (  8,  12,  20, 220)
-HUD_LINE      = ( 30, 120, 255)
-TEXT_BRIGHT   = (220, 230, 245)
-TEXT_DIM      = (165, 180, 200)
 
 # Pares de índices para las 12 aristas de una caja con vértices [0-3]=base, [4-7]=techo
 BOX_EDGES = [
@@ -199,7 +166,7 @@ class Renderer:
 
             if depth > 400:
                 # Vista general: punto de 1px con color de etiqueta dominante
-                dot_color = labels[0] if labels else VM_DEFAULT
+                dot_color = labels[0] if labels else palette.active["vm_default"]
                 pygame.draw.circle(surface, dot_color, (sx, sy), 1)
             else:
                 # Vista detallada: caja wireframe completa
@@ -238,12 +205,12 @@ class Renderer:
         for a, b in ((0,1),(1,2),(2,3),(3,0)):
             if pts[a] and pts[b]:
                 pygame.draw.line(surface, color_base,
-                                (pts[a][0], pts[a][1]), (pts[b][0], pts[b][1]), 1)
+                                (pts[a][0], pts[a][1]), (pts[b][0], pts[b][1]), 2)
 
         for a, b in ((4,5),(5,6),(6,7),(7,4)):
             if pts[a] and pts[b]:
                 pygame.draw.line(surface, color_top,
-                                (pts[a][0], pts[a][1]), (pts[b][0], pts[b][1]), 1)
+                                (pts[a][0], pts[a][1]), (pts[b][0], pts[b][1]), 2)
 
         seg_colors = labels if labels else [palette.active["vm_default"]]
         for base_i, top_i in ((0,4),(1,5),(2,6),(3,7)):
@@ -282,7 +249,7 @@ class Renderer:
             self._draw_vm_box(
                 surface, camera, vm,
                 cx, cy, cz + i * VM_RENDER_HEIGHT,
-                [VM_COLLISION],
+                [palette.active["vm_collision"]],
             )
 
     @staticmethod
@@ -300,7 +267,7 @@ class Renderer:
         """
         n = len(colors)
         if n == 1:
-            pygame.draw.line(surface, colors[0], p_bottom, p_top, 1)
+            pygame.draw.line(surface, colors[0], p_bottom, p_top, 2)
             return
         # Calcular los puntos intermedios en espacio de pantalla
         pts = [p_bottom]
@@ -313,7 +280,7 @@ class Renderer:
             pts.append(mid)
         pts.append(p_top)
         for i in range(n):
-            pygame.draw.line(surface, colors[i], pts[i], pts[i+1], 1)
+            pygame.draw.line(surface, colors[i], pts[i], pts[i+1], 2)
 
     # ── Tracks ────────────────────────────────────────────────────────────────
 
@@ -449,13 +416,17 @@ class Renderer:
                 drawn += 1
 
                 if vm_id in colliding_ids:
-                    labels = [VM_COLLISION]
+                    labels = [palette.active["vm_collision"]]
                 else:
-                    is_actively_boarding = is_lane and not data['boarding_committed']
+                    is_actively_boarding = (
+                        is_lane
+                        and not data['boarding_committed']
+                        and len(data.get('passengers', [])) > 0
+                    )
                     labels = self._transit_label_colors(vm, is_actively_boarding)
 
                 if depth > 800:
-                    color = labels[0] if labels else VM_DEFAULT
+                    color = color = labels[0] if labels else palette.active["vm_default"]
                     pygame.draw.circle(surface, color, (sx, sy), 3)
                     continue
 
@@ -500,9 +471,9 @@ class Renderer:
         puro si tiene destino, o al color por defecto si no.
         """
         if is_actively_boarding:
-            return [VM_BOARDING]
+            return [palette.active["vm_boarding"]]
         if vm.has_destination:
-            return [VM_DEST]
+            return [palette.active["vm_dest"]]
         return []
 
 
@@ -548,12 +519,12 @@ class Renderer:
             self._font_sm.render("Leyenda VM", True, palette.active["text_dim"]), (lx, hud_y + 8)
         )
         for i, (label, color) in enumerate([
-            ("Normal",       VM_DEFAULT),
-            ("Demanda",      VM_DEMAND),
-            ("Abordando",    VM_BOARDING),
-            ("Reserva",      VM_RESERVED),
-            ("Destino",      VM_DEST),
-            ("Choque",       VM_COLLISION),
+            ("Normal", palette.active["vm_default"]),
+            ("Demanda", palette.active["vm_demand"]),
+            ("Abordando", palette.active["vm_boarding"]),
+            ("Reserva", palette.active["vm_reserved"]),
+            ("Destino", palette.active["vm_dest"]),
+            ("Choque", palette.active["vm_collision"]),
         ]):
             cy = hud_y + 26 + i * 13
             pygame.draw.circle(surface, color, (lx + 6, cy + 5), 5)
@@ -640,9 +611,9 @@ class Renderer:
         Máximo 3 elementos — uno por etiqueta activa.
         """
         colors = []
-        if slot.get('reserved_station_id')   is not None: colors.append(VM_RESERVED)
-        if slot.get('destination_station_id') is not None: colors.append(VM_DEST)
-        if slot.get('demand_station_id')      is not None: colors.append(VM_DEMAND)
+        if slot.get('reserved_station_id')   is not None: colors.append(palette.active["vm_reserved"])
+        if slot.get('destination_station_id') is not None: colors.append(palette.active["vm_dest"])
+        if slot.get('demand_station_id')      is not None: 	colors.append(palette.active["vm_demand"])
         return colors
 
     @staticmethod

@@ -13,16 +13,17 @@ Lo que NO hace:
     - No maneja mouse look de cámara — main.py decide cuándo llamar
 """
 import pygame
-from config.constants import VM_RENDER_WIDTH, VM_RENDER_DEPTH, VM_RENDER_HEIGHT
+from config.constants import VM_RENDER_WIDTH, VM_RENDER_DEPTH, VM_RENDER_HEIGHT, TRAIN_SPEED, BOARDING_LANE_SPEED
 from tracks.acceleration_tree import AccelerationTree
 from tracks.boarding_lane import BoardingLane
-from simulation.renderer import BOX_EDGES, VM_BOARDING, VM_DEST
+from simulation.renderer import BOX_EDGES
 import simulation.palette as palette
+
 
 # ─── LAYOUT ────────────────────────────────────────────────────────────────
 
 PANEL_W        = 300
-PANEL_H        = 280
+PANEL_H        = 300
 GAP            = 8
 MARGIN         = 8
 HEADER_H       = 42
@@ -267,6 +268,9 @@ class Inspector:
     def __init__(self, font_sm: pygame.font.Font, font_md: pygame.font.Font):
         self._font_sm = font_sm
         self._font_md = font_md
+        self._font_xs = pygame.font.SysFont(
+            "dejavusansmono,consolas,couriernew,monospace", 13
+        )
         self._panels: list[dict] = []
 
     # ── API pública ─────────────────────────────────────────────────────
@@ -463,6 +467,10 @@ class Inspector:
                                  True, palette.active["text_bright"]),
             (12, y)
         )
+        vel_surf = self._font_sm.render(
+            f"{self._vm_velocity(loc):.1f} m/s", True, palette.active["text_dim"]
+        )
+        surf.blit(vel_surf, (PANEL_W - vel_surf.get_width() - 10, y))
         y += ROW_H
         self._draw_bar(surf, 26, y + 2, 90, 9,
                        vm.passenger_count / max(vm.capacity, 1))
@@ -476,25 +484,14 @@ class Inspector:
         # ── ABORDANDO (solo si está en boarding lane) ────────────────────
         if loc['template'] == 'lane':
             data = loc['data']
-            committed = data.get('boarding_committed', True)
-            boarding = data.get('passengers', [])
-            y = self._draw_separator(surf, y)
-            y = self._draw_section_label(surf, "ABORDANDO", y)
-            if not committed and boarding:
+            if not data.get('boarding_committed', True):
+                boarding = data.get('passengers', [])
+                note = f"+ {len(boarding)} subiendo" if boarding else "Sin pasajeros en cola"
                 surf.blit(
-                    self._font_sm.render(f"{len(boarding)} subiendo al VM",
-                                         True, palette.active["text_bright"]),
+                    self._font_sm.render(note, True, palette.active["text_dim"]),
                     (12, y)
                 )
                 y += ROW_H
-            surf.blit(
-                self._font_sm.render(
-                    f"Compromiso: {'Sí — cerrado' if committed else 'No — abierto'}",
-                    True, palette.active["text_dim"]
-                ),
-                (12, y)
-            )
-            y += ROW_H
 
         labels = self._vm_label_lines(loc)
         if labels:
@@ -539,11 +536,17 @@ class Inspector:
         surf.blit(self._font_sm.render(label, True, color), (12, y))
         y += ROW_H
 
+        platform_data = station.platform_snapshot_data()
+        total_queue = sum(p['queue_total'] for p in platform_data)
         walking = len(station._walking)
-        if walking > 0:
+        if total_queue > 0 or walking > 0:
+            parts = []
+            if total_queue > 0:
+                parts.append(f"{total_queue} en fila")
+            if walking > 0:
+                parts.append(f"{walking} caminando")
             surf.blit(
-                self._font_sm.render(f"{walking} caminando al andén",
-                                     True, palette.active["text_dim"]),
+                self._font_sm.render("  ·  ".join(parts), True, palette.active["text_dim"]),
                 (12, y)
             )
             y += ROW_H
@@ -567,11 +570,35 @@ class Inspector:
         y = self._draw_section_label(surf, "DESTINOS", y)
         dests = summary.get('destinations', {})
         if dests:
-            dest_text = "  ".join(f"S{k}:{v}%" for k, v in dests.items())
-            surf.blit(
-                self._font_sm.render(dest_text[:36], True, palette.active["text_dim"]),
-                (12, y)
-            )
+            max_k = max(len(str(k)) for k in dests.keys())
+            max_v = max(len(f"{v:.0%}") for v in dests.values())
+            item_w = 1 + max_k + 1 + max_v  # "S" + id + ":" + pct
+            items = [
+                f"S{str(k).ljust(max_k)}:{f'{v:.0%}'.rjust(max_v)}"
+                for k, v in dests.items()
+            ]
+
+            font_d = self._font_sm
+            row_h_d = ROW_H
+            cw = font_d.size("X")[0]
+            cols = max(1, (PANEL_W - 24) // (cw * (item_w + 1)))
+            rows_needed = (len(items) + cols - 1) // cols
+            if rows_needed > 5:
+                font_d = self._font_xs
+                row_h_d = 14
+                cw = font_d.size("X")[0]
+                cols = max(1, (PANEL_W - 24) // (cw * (item_w + 1)))
+
+            for i in range(0, len(items), cols):
+                if y + row_h_d > PANEL_H - 4:
+                    surf.blit(font_d.render("...", True, palette.active["text_dim"]), (12, y))
+                    break
+                surf.blit(
+                    font_d.render(" ".join(items[i:i + cols]),
+                                  True, palette.active["text_dim"]),
+                    (12, y)
+                )
+                y += row_h_d
         else:
             surf.blit(
                 self._font_sm.render("Sin datos aún", True, palette.active["text_dim"]),
@@ -623,21 +650,30 @@ class Inspector:
     @staticmethod
     def _vm_state_color(vm, loc) -> tuple:
         if loc['template'] == 'lane' and not loc['data'].get('boarding_committed', True):
-            return VM_BOARDING
+            return palette.active["vm_boarding"]
         if vm.has_destination:
-            return VM_DEST
+            return palette.active["vm_dest"]
         return palette.active["vm_default"]
+
+    @staticmethod
+    def _vm_velocity(loc) -> float:
+        t = loc['template']
+        if t == 'belt':
+            return TRAIN_SPEED
+        if t == 'lane':
+            return BOARDING_LANE_SPEED
+        return loc['data']['velocity']
+
 
     @staticmethod
     def _friendly_state(vm, loc) -> str:
         t = loc['template']
-        pct = int(loc.get('progress', 0) * 100)
         if t == 'lane':
-            label = "Abordando" if not loc['data'].get('boarding_committed', True) else "En lane"
-            return f"{label}  {pct}%"
+            return "Embarcando" if not loc['data'].get('boarding_committed', True) else "Comprometido"
         if t == 'tree':
-            return f"Árbol {loc['track'].direction.value}  {pct}%"
-        return "En belt"
+            return "Ascendiendo" if loc['track'].direction.value == "UP" else "Descendiendo"
+        return "Circulando"
+
 
     @staticmethod
     def _vm_label_lines(loc) -> list:
