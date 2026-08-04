@@ -112,14 +112,16 @@ class ContinuousTrain:
             if vm.passengers_on_board:
                 vm.distance_carrying_passengers += movement
 
-        n_candidates = math.floor(movement / TRAIN_SPACING) + 1
+
         crossings = []
         for station_id, junction_x in self.junction_points.items():
             relative = (junction_x - old_tail_x + self.total_length) % self.total_length
-            nearest_idx = round(relative / TRAIN_SPACING) % self.max_slots
 
-            for k in range(n_candidates):
-                slot_idx = (nearest_idx - k) % self.max_slots
+            i_high = math.floor(relative / TRAIN_SPACING)
+            i_low  = math.floor((relative - movement) / TRAIN_SPACING) + 1
+
+            for i in range(i_high, i_low - 1, -1):
+                slot_idx = i % self.max_slots
 
                 if self.slots[slot_idx]['vm'] is None:
                     continue
