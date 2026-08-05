@@ -23,7 +23,6 @@ Estructura de cada slot (dict en self.slots):
     }
 """
 
-import logging
 import math
 import random
 from typing import Callable
@@ -31,7 +30,6 @@ from objects.math3d import Vector3
 from objects.modular_vehicle import ModularVehicle
 from config.constants import TRAIN_SPEED, TRAIN_SPACING
 
-logger = logging.getLogger(__name__)
 
 class ContinuousTrain:
     """
@@ -184,10 +182,6 @@ class ContinuousTrain:
         slot['reserved_vm_id'] = None
         if slot['vm'] is not None:
             slot['colliding_vms'].append(vm)
-            logger.critical(
-                f"CHOQUE: VM {vm.vehicle_id} llegó al slot {slot_idx}, ya ocupado por "
-                f"VM {slot['vm'].vehicle_id} — reserva falló o llegó tarde"
-            )
         else:
             slot['vm'] = vm
             self._vms_on_belt[slot_idx] = vm

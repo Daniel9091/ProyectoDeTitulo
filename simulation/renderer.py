@@ -236,7 +236,6 @@ class Renderer:
         r = max(1, min(4, int(box_w * 0.15)))
         pygame.draw.circle(surface, palette.active["vm_passengers"], (cp[0], cp[1]), r)
 
-
     def _draw_collision_stack(
         self, surface, camera, slot, cx, cy, cz
     ) -> None:

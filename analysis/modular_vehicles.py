@@ -53,6 +53,9 @@ def run(events_path=None):
     else:
         rep.print("  [sin datos] Sin viajes registrados.")
 
+    if 'vm_placed_without_reservation' in types:
+        _placement_without_reservation(con, rep)
+
     rep.save()
     con.close()
 
@@ -297,3 +300,21 @@ def _trip_occupancy(con, rep, out_dir):
     plt.tight_layout()
     save_fig("modular_vehicles_trip_occupancy", out_dir)
     plt.show()
+
+def _placement_without_reservation(con, rep):
+    """
+    VMs que aterrizaron en el carril sin que Brain tuviera una reserva previa.
+    Debería ser siempre 0; cualquier valor distinto indica un bug en el scheduler.
+
+    Needs: vm_placed_without_reservation
+    """
+    count = con.execute("""
+        SELECT COUNT(*) FROM events WHERE type = 'vm_placed_without_reservation'
+    """).fetchone()[0]
+
+    rep.print("\n[ VMs aterrizados sin reserva previa ]")
+    rep.print("  Indica si el scheduler dejó de anticipar la llegada de algún VM al carril.")
+    if count == 0:
+        rep.print("  Sin incidencias (esperado).")
+    else:
+        rep.print(f"  ATENCIÓN: {count} VM(s) aterrizaron sin reserva — revisar _make_reservation en brain.py")

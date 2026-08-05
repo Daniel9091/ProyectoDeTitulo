@@ -37,7 +37,11 @@ def run(events_path=None):
     rep.print("\n=== ESTACIONES ===")
     _demand_and_arrivals(con, rep)
 
+    if 'vm_redirected' in types:
+        _redirections(con, rep, out_dir)
+
     if 'station_snapshot' in types:
+
         _snapshot_overview(con, rep)
         _passengers_waiting_over_time(con, rep, out_dir)
         _vm_states_over_time(con, rep, out_dir)
@@ -202,4 +206,63 @@ def _pending_demand_over_time(con, rep, out_dir):
     plt.tight_layout(rect=[0, 0, 0.82, 1])
 
     save_fig("stations_pending_demand", out_dir)
+    plt.close()
+
+def _redirections(con, rep, out_dir):
+    """
+    VMs que no pudieron entrar a su estación de destino porque los árboles
+    estaban saturados y fueron redirigidos a la siguiente estación.
+
+    Questions: ¿Qué estaciones causan más redirecciones? ¿Cuántas afectan pasajeros?
+    Text: tabla por estación bloqueada (total, con pasajeros, sin pasajeros)
+    Chart: stations_redirections.png — barras horizontales por estación, apiladas con/sin pasajeros
+    Needs: vm_redirected
+    """
+    df = con.execute("""
+        SELECT
+            blocked_station_id                               AS station,
+            COUNT(*)                                         AS total,
+            COUNT(*) FILTER (WHERE passenger_count > 0)     AS con_pax,
+            COUNT(*) FILTER (WHERE passenger_count = 0)     AS sin_pax
+        FROM events
+        WHERE type = 'vm_redirected'
+        GROUP BY blocked_station_id
+        ORDER BY total DESC
+    """).df()
+
+    total_redirections = int(df["total"].sum())
+    total_con_pax      = int(df["con_pax"].sum())
+
+    rep.print("\n[ VMs redirigidos por saturación de árbol ]")
+    rep.print("  VM llegó a su junction de destino pero los árboles estaban llenos;")
+    rep.print("  fue desviado a la siguiente estación en la red.")
+    rep.print(f"  {'Estación':>10}  {'Total':>7}  {'Con pax':>8}  {'Sin pax':>8}")
+    for _, row in df.iterrows():
+        rep.print(f"  S{int(row['station']):>9}  {int(row['total']):>7}  "
+                  f"{int(row['con_pax']):>8}  {int(row['sin_pax']):>8}")
+    rep.print(f"\n  Total: {total_redirections}  "
+              f"({total_con_pax} con pasajeros → impacto directo en nivel de servicio)")
+
+    # ── Gráfico ──────────────────────────────────────────────────────────────
+    labels   = [f"S{int(s)}" for s in df["station"]]
+    con_pax  = df["con_pax"].tolist()
+    sin_pax  = df["sin_pax"].tolist()
+
+    fig, ax = plt.subplots(figsize=(8, max(4, len(labels) * 0.35)))
+    y = list(range(len(labels)))
+
+    ax.barh(y, con_pax, color=PALETTE["naranja"], label="Con pasajeros")
+    ax.barh(y, sin_pax, left=con_pax, color=PALETTE["azul"], alpha=0.6, label="Sin pasajeros")
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.invert_yaxis()
+    ax.set_xlabel("VMs redirigidos")
+    ax.set_title("Cuellos de botella — redirecciones por saturación de árbol", size=TITLE_SIZE)
+    ax.legend(loc="lower right", fontsize=8)
+    ax.xaxis.grid(True)
+    ax.set_axisbelow(True)
+
+    plt.tight_layout()
+    save_fig("stations_redirections", out_dir)
     plt.close()

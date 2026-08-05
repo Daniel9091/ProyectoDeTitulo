@@ -152,6 +152,26 @@ class Recorder:
             "lane_length":      lane_length,
         })
 
+    def vm_redirected(self, t: float, vm_id: int,
+                    blocked_station_id: int, redirected_to_station_id: int,
+                    passenger_count: int) -> None:
+        """VM no pudo entrar a una estación porque los árboles estaban saturados; redirigido a la siguiente."""
+        self._emit("vm_redirected", t, {
+            "vm_id":                    vm_id,
+            "blocked_station_id":       blocked_station_id,
+            "redirected_to_station_id": redirected_to_station_id,
+            "passenger_count":          passenger_count,
+        })
+
+    def vm_placed_without_reservation(self, t: float, vm_id: int,
+                                    station_id: int, fallback_slot_idx: int) -> None:
+        """VM bajó al carril sin reserva previa — indica bug en el scheduler de reservas."""
+        self._emit("vm_placed_without_reservation", t, {
+            "vm_id":             vm_id,
+            "station_id":        station_id,
+            "fallback_slot_idx": fallback_slot_idx,
+        })
+
     # ── Etiquetas de slot ───────────────────────────────────────────────────
 
     def slot_reserved(self, t: float, slot_idx: int, station_id: int, vm_id: int,
@@ -315,8 +335,6 @@ class Recorder:
             "andenes":             andenes,
         })
 
-
-
     def close(self) -> None:
         """
         Vuelca el buffer pendiente a disco y cierra el archivo.
@@ -415,6 +433,11 @@ class NullRecorder:
 
     def vm_trip_completed(self, t: float, vm_id: int,
                         passenger_count: int, lane_length: float) -> None: pass
+
+    def vm_redirected(self, t, vm_id, blocked_station_id,
+                    redirected_to_station_id, passenger_count): pass
+
+    def vm_placed_without_reservation(self, t, vm_id, station_id, fallback_slot_idx): pass
 
     # ── Etiquetas de slot ───────────────────────────────────────────────────
 

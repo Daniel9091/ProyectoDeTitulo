@@ -31,8 +31,6 @@ Lo que NO hace:
     - No gestiona generación de pasajeros (Station lo hace)
     - No modifica la topología de la red (Network lo hace)
 """
-import logging
-logger = logging.getLogger(__name__)
 
 from tracks.boarding_lane import BoardingLane
 from tracks.acceleration_tree import AccelerationTree
@@ -297,10 +295,6 @@ class Brain:
                         station_id=station_id,
                     )
 
-
-                if dest != station_id and vm.has_destination:
-                    logger.warning(f"VM {vm.vehicle_id} eviccionado en estación {station_id}, destino era {dest}")
-
                 if demand != station_id:
                     station.on_unplanned_vm_at_tree()
                 ok, tree_idx = junction.add_vm(vm, leftover_dt)
@@ -318,9 +312,6 @@ class Brain:
                 ok, tree_idx = junction.add_vm(slot['vm'], leftover_dt)
                 if ok:
                     vm = slot['vm']
-                    if vm.has_destination and vm.destination_station_id != station_id:
-                        logger.warning(f"Pasajeros de VM {vm.vehicle_id} iban a estación "
-                            f"{vm.destination_station_id}, bajaron en estación {station_id}")
                         
                     # Bajar todos los pasajeros — correctos a su destino, incorrectos a otra estación
                     departed = vm.disembark_all()
@@ -388,11 +379,14 @@ class Brain:
                             vm_id=slot['vm'].vehicle_id, source="redirect",
                             prev_dest=prev_dest,
                         )
-                        logger.warning(f"VM {slot['vm'].vehicle_id} no pudo entrar a estación "
-                            f"{station_id} (árboles saturados). Redirigido a estación {next_id}")
-                    else:
-                        logger.warning(f"VM {slot['vm'].vehicle_id} no pudo entrar a estación "
-                            f"{station_id}: sin estación alternativa (sistema monoestación).")
+                        self._recorder.vm_redirected(
+                            t=self._current_time,
+                            vm_id=slot['vm'].vehicle_id,
+                            blocked_station_id=station_id,
+                            redirected_to_station_id=next_id,
+                            passenger_count=slot['vm'].passenger_count,
+                        )
+
                         
             elif demand == station_id:
                 ok, tree_idx = junction.add_vm(slot['vm'], leftover_dt)
@@ -579,12 +573,17 @@ class Brain:
         for vm, leftover_dt, station_id in belt_placements:
             slot_idx = self._reserved_slots.pop(vm.vehicle_id, None)
             if slot_idx is None:
-                logger.warning(f"VM {vm.vehicle_id} bajó sin reserva desde estación {station_id}")
                 junction_down = self._network.get_junction_down(station_id)
                 if junction_down is None:
-                    logger.error(f"Sin junction DOWN para estación {station_id}")
                     continue
                 slot_idx, _ = self._train.find_neartest_slot_to_belt_x(junction_down.belt_x)
+                self._recorder.vm_placed_without_reservation(
+                    t=self._current_time,
+                    vm_id=vm.vehicle_id,
+                    station_id=station_id,
+                    fallback_slot_idx=slot_idx,
+                )
+
             prev = self._slot_snapshot(slot_idx)
             slot = self._train.slots[slot_idx]
             occupying_vm = slot['vm']
@@ -731,7 +730,6 @@ class Brain:
 
         junction_down = self._network.get_junction_down(station_id)
         if junction_down is None:
-            logger.error(f"Sin junction DOWN para estación {station_id}")
             return
         
         future_tail_x = (self._train.tail_x + TRAIN_SPEED * T_total) % self._train.total_length
@@ -747,7 +745,6 @@ class Brain:
             window=window,
         )
         if best_slot is None:
-            logger.critical(f"Sin slot disponible para reserva de VM {vm.vehicle_id}")
             return
 
         half = self._train.max_slots // 2
@@ -905,11 +902,6 @@ class Brain:
 
             res_lbl = slot['reserved_station_id']
             if res_lbl is not None:
-                if res_lbl != station_id:
-                    logger.critical(
-                        f"Slot {candidate} ya reservado para estación {res_lbl} — "
-                        "riesgo de colisión si se sobreescribe, ignorando"
-                    )
                 _w['skipped_reason'] = 'reserved'; window.append(_w); continue  # skip: doble reserva (=S) y colisión (=OTHER)
 
             if saturates:
@@ -940,13 +932,6 @@ class Brain:
 
             window.append(_w)
 
-        if best_priority == 6 and best_slot is not None:
-            dest = self._train.slots[best_slot]['destination_station_id']
-            logger.warning(
-                f"Reserva en slot con destino de otra estación "
-                f"(slot {best_slot}, dest={dest}) — pasajeros irán a estación incorrecta"
-            )
-
         if best_slot is None:
             best_sat = float('inf')
             for candidate in candidates:
@@ -959,10 +944,7 @@ class Brain:
         
             if best_slot is not None:
                 best_priority_label = "fallback_critical"
-                logger.critical(
-                    f"Reserva forzada en slot saturado "
-                    f"(estación {station_id}, slot {best_slot})"
-                )
+
         return best_slot, best_priority_label, window
 
     def _range_search_demand(self, station_id: int, junction_up) -> tuple[int | None, str, list]:

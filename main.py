@@ -15,8 +15,6 @@ import config.constants as C
 from simulation.run_config import extract_run_config
 import simulation.palette as palette
 
-import logging
-logging.disable(logging.CRITICAL)
 
 DT     = 1.0 / FPS
 SPEEDS = [1, 2, 5, 10]
@@ -24,7 +22,7 @@ SPEEDS = [1, 2, 5, 10]
 # ─── Configuración de corrida ────────────────────────────────────────────
 SCENARIO_NAME = "linea_1_edit"
 SEED          = 42
-HEADLESS      = False    # True = sin render, tan rápido como el CPU
+HEADLESS      = True    # True = sin render, tan rápido como el CPU
 SIM_DURATION  = 3019   # segundos simulados (solo si HEADLESS = True)
 # ─────────────────────────────────────────────────────────────────────────
 
