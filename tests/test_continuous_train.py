@@ -288,15 +288,15 @@ class TestCollisions:
         train.place_vm(intruder, 0)
         assert train.slots[0]['colliding_vms'] == [intruder]
 
-    def test_place_vm_collision_logs_critical(self, caplog):
-        """El choque debe quedar registrado para diagnóstico."""
-        import logging
+    def test_place_vm_collision_detects_choque(self):
+        """El choque queda registrado en colliding_vms para diagnóstico."""
         train = make_train()
-        train.place_vm(FakeVehicle(1), 0)
-        with caplog.at_level(logging.CRITICAL):
-            train.place_vm(FakeVehicle(2), 0)
-        assert any("CHOQUE" in r.message for r in caplog.records
-                   if r.levelno == logging.CRITICAL)
+        v1, v2 = FakeVehicle(1), FakeVehicle(2)
+        train.place_vm(v1, 0)
+        train.place_vm(v2, 0)
+        assert train.slots[0]['vm'] is v1
+        assert v2 in train.slots[0]['colliding_vms']
+
 
     def test_third_vm_stacks_on_existing_collision(self):
         """Un tercer VM en el mismo slot se agrega a la lista, no reemplaza nada."""

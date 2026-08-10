@@ -1,4 +1,4 @@
-""""
+"""
 Vehículo modular (VM) - Unidad básica de transporte en NSim.
 
 Responsabilidades de este archvio:
@@ -124,7 +124,7 @@ class ModularVehicle:
 
     # GESTION DE DESTINO
     def assign_destination(self, station_id: int) -> None:
-        """"
+        """
         Asigna un destino al VM
         """
         self.destination_station_id = station_id

@@ -251,9 +251,9 @@ class Station:
         self._passenger_accumulator += self.passenger_rate * dt
         while self._passenger_accumulator >= 1.0:
             self._passenger_accumulator -= 1.0
-            self.spawn_pasenger(current_time)
+            self.spawn_passenger(current_time)
 
-    def spawn_pasenger(self, current_time: float) -> None:
+    def spawn_passenger(self, current_time: float) -> None:
         """
         Genera un pasajero y lo pone a caminar hacia la siguiente plataforma activa en rotación.
         Si no hay plataformas activas, el pasajero se descarta silenciosamente.

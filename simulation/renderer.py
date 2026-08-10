@@ -425,7 +425,7 @@ class Renderer:
                     labels = self._transit_label_colors(vm, is_actively_boarding)
 
                 if depth > 800:
-                    color = color = labels[0] if labels else palette.active["vm_default"]
+                    color = labels[0] if labels else palette.active["vm_default"]
                     pygame.draw.circle(surface, color, (sx, sy), 3)
                     continue
 
@@ -620,12 +620,12 @@ class Renderer:
         """
         Color aditivo por etiquetas activas.
         Cada etiqueta suma su componente RGB — slots con múltiples etiquetas
-        aparecen más brillantes. Sin etiqueta → gris suave (VM_FREE).
+        aparecen más brillantes. Sin etiqueta → vm_default de la paleta activa..
         """
         r = g = b = 0
         if slot.get('reserved_station_id')   is not None: r += 188; g += 140; b += 255
         if slot.get('destination_station_id') is not None: r +=  60; g += 200; b += 120
         if slot.get('demand_station_id')      is not None: r += 210; g += 160; b +=  30
         if r == 0 and g == 0 and b == 0:
-            return VM_FREE
+            return palette.active["vm_default"]
         return (min(255, r), min(255, g), min(255, b))

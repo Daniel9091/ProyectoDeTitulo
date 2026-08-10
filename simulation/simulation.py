@@ -25,13 +25,13 @@ class Simulation:
         sim.run_headless(n_ticks = 3000)
     """
     def __init__(self,brain: Brain, stations: dict):
-        self._brian = brain
+        self._brain = brain
         self._stations = stations
         self.current_time: float = 0.0
 
     def step(self, dt: float) -> None:
         """ Avanza un frame de dt segundos."""
-        self._brian.update(dt, self.current_time)
+        self._brain.update(dt, self.current_time)
         self.current_time += dt
     
     def run_headless(self, sim_duration: float, dt: float = 1.0 / FPS) -> None:

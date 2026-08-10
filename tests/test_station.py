@@ -190,7 +190,7 @@ class Test_WalkingPassengers:
         En la mitad del tiempo de caminata requerido el pasajero debe continuar camindo.
         """
         station = make_station(lane_y_offset=5.0)
-        station.spawn_pasenger(current_time=0.0)
+        station.spawn_passenger(current_time=0.0)
         half_time = (5.0 / PASSENGER_WALK_SPEED) / 2.0
         station._advance_walking_passengers(dt=half_time)
         assert len(station._walking) == 1
@@ -200,7 +200,7 @@ class Test_WalkingPassengers:
         Despues de que el pasajero camino la distancia total, debe estar encolado en la lane.
         """
         station = make_station(lane_y_offset=5.0)
-        station.spawn_pasenger(current_time=0.0)
+        station.spawn_passenger(current_time=0.0)
         full_time = 5.0 / PASSENGER_WALK_SPEED + 0.1
         station._advance_walking_passengers(dt=full_time)
         
@@ -213,7 +213,7 @@ class Test_WalkingPassengers:
         El pasajero se dirige y llega a la estacion que se le asigno.
         """
         station = make_station(num_platforms=2, lane_y_offset=0.0)
-        station.spawn_pasenger(current_time=0.0)
+        station.spawn_passenger(current_time=0.0)
         station._advance_walking_passengers(dt=1.0)
 
         assert len(station._platforms[0]['lane'].enqueued) == 1
@@ -245,7 +245,7 @@ class Test_PlatformManagement:
         Pasajeros caminando hacia una plataforma desactivada son redirigidos a la plataforma activa restante.
         """
         station = make_station(num_platforms=2, lane_y_offset=5.0)
-        station.spawn_pasenger(current_time=0.0)  # round-robin → plataforma 0
+        station.spawn_passenger(current_time=0.0)  # round-robin → plataforma 0
         lane_1 = station._platforms[1]['lane']
         station.deactivate_platform(0)
         pid = list(station._walking.keys())[0]
@@ -256,7 +256,7 @@ class Test_PlatformManagement:
         Si al desactivar no quedan plataformas activas, los pasajeros conservan su lane original.
         """
         station = make_station(num_platforms=1, lane_y_offset=5.0)
-        station.spawn_pasenger(current_time=0.0)
+        station.spawn_passenger(current_time=0.0)
         pid = list(station._walking.keys())[0]
         original_lane = station._walking[pid]['target_lane']
         station.deactivate_platform(0)
@@ -267,8 +267,8 @@ class Test_PlatformManagement:
         Solo se redirigen los pasajeros cuya lane pertenecía a la plataforma cerrada; los demás no se modifican.
         """
         station = make_station(num_platforms=3, lane_y_offset=5.0)
-        station.spawn_pasenger(current_time=0.0)  # → plataforma 0
-        station.spawn_pasenger(current_time=0.0)  # → plataforma 1
+        station.spawn_passenger(current_time=0.0)  # → plataforma 0
+        station.spawn_passenger(current_time=0.0)  # → plataforma 1
         pids = list(station._walking.keys())
         lane_1_before = station._walking[pids[1]]['target_lane']
         station.deactivate_platform(0)
@@ -279,8 +279,8 @@ class Test_PlatformManagement:
         Dos pasajeros con dos plataformas activas se distribuyen la carga.
         """
         station = make_station(num_platforms=2, lane_y_offset=0.0)
-        station.spawn_pasenger(current_time=0.0)
-        station.spawn_pasenger(current_time=0.0)
+        station.spawn_passenger(current_time=0.0)
+        station.spawn_passenger(current_time=0.0)
         station._advance_walking_passengers(dt=1.0)
         assert len(station._platforms[0]['lane'].enqueued) == 1
         assert len(station._platforms[1]['lane'].enqueued) == 1

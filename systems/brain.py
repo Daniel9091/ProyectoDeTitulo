@@ -253,7 +253,7 @@ class Brain:
                         t=self._current_time, slot_idx=slot_idx,
                         station_id=demand, reason="commitment_broken",
                     )
-                elif demand == station_id:                          # ← esto falta
+                elif demand == station_id:
                     self._recorder.slot_demand_cleared(
                         t=self._current_time, slot_idx=slot_idx,
                         station_id=station_id, reason="vm_entered_tree",
@@ -567,7 +567,7 @@ class Brain:
         place_vm limpia reserved_station_id y reserved_vm_id del slot.
 
         El fallback (sin reserva en _reserved_slots) indica un bug en el sistema de
-        reserva: el VM bajó sin que Brain lo anticipara. Se usa find_neartest_slot_to belt_x
+        reserva: el VM bajó sin que Brain lo anticipara. Se usa find_nearest_slot_to_belt_x
         como fallback de emergencia y se registra el error para diagnóstico.
         """
         for vm, leftover_dt, station_id in belt_placements:
@@ -576,7 +576,7 @@ class Brain:
                 junction_down = self._network.get_junction_down(station_id)
                 if junction_down is None:
                     continue
-                slot_idx, _ = self._train.find_neartest_slot_to_belt_x(junction_down.belt_x)
+                slot_idx, _ = self._train.find_nearest_slot_to_belt_x(junction_down.belt_x)
                 self._recorder.vm_placed_without_reservation(
                     t=self._current_time,
                     vm_id=vm.vehicle_id,
@@ -964,7 +964,7 @@ class Brain:
             2.  dest=S     → VM ya iba a S de todas formas
             3.  limpio     → candidato sin compromisos previos
         """
-        start_idx = self._train.find_neartest_slot_to_belt_x(junction_up.belt_x)[0]
+        start_idx = self._train.find_nearest_slot_to_belt_x(junction_up.belt_x)[0]
         max_slots = self._train.max_slots
         G = junction_up.burst_window
         safe_start = (start_idx - G) % max_slots  # zona ciega: G slots más próximos a junction ya enviaron VMs al árbol

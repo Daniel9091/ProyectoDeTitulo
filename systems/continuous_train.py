@@ -62,7 +62,7 @@ class ContinuousTrain:
         self.end_pos    = end_pos
         self.density    = density
 
-        recorder = recorder
+        self._recorder = recorder
 
         dx = end_pos.x - start_pos.x
         dy = end_pos.y - start_pos.y
@@ -243,7 +243,7 @@ class ContinuousTrain:
 
     # ─── CONSULTAS PARA BRAIN ─────────────────────────────────────────────
     
-    def find_neartest_slot_to_belt_x(self, target_belt_x: float) -> tuple[int, float]:
+    def find_nearest_slot_to_belt_x(self, target_belt_x: float) -> tuple[int, float]:
         """
         Retorna (slot_idx, distancia) del slot cuya posicion es mas cercana a target_belt_x.
         O(1): la distribucion uniforma de slots permite calculo directo por aritmetica.

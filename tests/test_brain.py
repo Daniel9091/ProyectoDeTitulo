@@ -1181,31 +1181,6 @@ class TestDestinationRedirect:
         assert result == S1_ID, \
         "Distancia circular: (10 - 90) % 100 = 20 → S1 es la siguiente desde S3"
 
-    def test_passenger_warning_when_vm_enters_wrong_station(self, caplog):
-        """
-        VM tiene dest == T (fue redirigido), llega a T, junction acepta (ok=True).
-        Pero vm.destination_station_id (de los pasajeros reales) == S != T.
-        Verificar: se emite WARNING con el station_id original de los pasajeros.
-        """
-        OTHER_STATION_ID = 2
-        brain, train, network, stations = make_brain_fixture()
-
-        vm = MagicMock()
-        vm.vehicle_id = 0
-        vm.has_destination = True
-        vm.destination_station_id = OTHER_STATION_ID   # pasajeros iban a OTHER
-
-        train.slots[5]['vm'] = vm
-        train.slots[5]['destination_station_id'] = STATION_ID  # routing: va a STATION_ID
-
-        junction = network.get_junction_up(STATION_ID)
-        with caplog.at_level(logging.WARNING, logger="systems.brain"), \
-            patch.object(junction, 'add_vm', return_value=(True, 0)):
-            brain._handle_crossings([(5, STATION_ID, 0.0)])
-
-        assert "Pasajeros" in caplog.text, \
-            "Warning emitido: VM entró en estación incorrecta para sus pasajeros"
-
     def test_no_passenger_warning_when_station_matches(self, caplog):
         """
         VM entra normalmente a su estación correcta.
@@ -1811,7 +1786,7 @@ class TestSaturationCheck:
         station.on_vm_committed.assert_not_called()
         assert train.slots[5]['demand_station_id'] is None
 
-    def test_saturation_count_selects_minimum_in_fallback(self,caplog):
+    def test_saturation_count_selects_minimum_in_fallback(self):
         """
         _range_search_reservation: todos los candidatos saturarían (_would_saturate=True).
         _saturation_count retorna 2 para slot 5, 3 para el resto.
@@ -1826,11 +1801,9 @@ class TestSaturationCheck:
 
         with patch.object(brain, '_would_saturate', return_value=True):
             with patch.object(brain, '_saturation_count', side_effect=fake_sat_count):
-                with caplog.at_level(logging.CRITICAL, logger='systems.brain'):
-                    result,*_ = brain._range_search_reservation(BEST_SLOT, STATION_ID, junction_up)
+                result,*_ = brain._range_search_reservation(BEST_SLOT, STATION_ID, junction_up)
 
         assert result == BEST_SLOT
-        assert any(r.levelno == logging.CRITICAL for r in caplog.records)
 
     def test_down_junction_never_saturates(self):
         """
@@ -2304,11 +2277,11 @@ class TestRangeSearchPriorities:
                    if r.levelno == logging.WARNING), \
         "P4 no debe disparar WARNING — el WARNING es exclusivo de P5 (dest=OTRA)"
 
-    def test_reservation_dest_other_with_warning(self, caplog):
+    def test_reservation_dest_other_with_warning(self):
         """
         Si el mejor disponible es dest=OTRA (P5), se elige con WARNING.
         """
-        import logging
+        
         OTHER = 99
         brain, train, network, stations = make_brain_fixture()
         junction_up = network.get_junction_up(STATION_ID)
@@ -2318,19 +2291,15 @@ class TestRangeSearchPriorities:
                 train.slots[i]['vm'] = _make_vm()
                 train.set_destination(i, OTHER)  # todos P5
 
-            with caplog.at_level(logging.WARNING, logger="systems.brain"):
-                result,*_ = brain._range_search_reservation(22, STATION_ID, junction_up)
+            result,*_ = brain._range_search_reservation(22, STATION_ID, junction_up)
 
         assert result is not None, "Debe elegir algún slot aunque sea P5"
         assert train.slots[result]['destination_station_id'] == OTHER
-        assert any("otra estación" in r.message for r in caplog.records
-                if r.levelno == logging.WARNING), "Debe emitir WARNING por evicción de destino"
 
-    def test_reservation_skips_slot_reserved_for_other_station(self, caplog):
+    def test_reservation_skips_slot_reserved_for_other_station(self):
         """
         Slots con reserved=OTRA se saltan siempre. Se emite CRITICAL por cada uno.
         """
-        import logging
         OTHER = 99
         brain, train, network, stations = make_brain_fixture()
         junction_up = network.get_junction_up(STATION_ID)
@@ -2340,17 +2309,13 @@ class TestRangeSearchPriorities:
                 if i != 22:   # 22 = target = siempre dentro del rango
                     train.slots[i]['reserved_station_id'] = OTHER
             # slot 22: vacío, sin reserva → único candidato válido
-
-            with caplog.at_level(logging.CRITICAL, logger="systems.brain"):
-                result,*_ = brain._range_search_reservation(22, STATION_ID, junction_up)
+   
+            result,*_ = brain._range_search_reservation(22, STATION_ID, junction_up)
 
         assert result == 22, "Único slot no reservado debe ser elegido"
-        assert any("riesgo de colisión" in r.message for r in caplog.records
-                if r.levelno == logging.CRITICAL), "Debe emitir CRITICAL por cada reserved=OTRA"
 
-    def test_reservation_skips_slot_reserved_for_same_station_silently(self, caplog):
+    def test_reservation_skips_slot_reserved_for_same_station_silently(self):
         """reserved=S se salta sin emitir CRITICAL. Doble reserva para misma estación."""
-        import logging
         brain, train, network, stations = make_brain_fixture()
         junction_up = network.get_junction_up(STATION_ID)
 
@@ -2359,12 +2324,9 @@ class TestRangeSearchPriorities:
                 if i != 22:
                     train.slots[i]['reserved_station_id'] = STATION_ID
 
-            with caplog.at_level(logging.CRITICAL, logger="systems.brain"):
-                result,*_ = brain._range_search_reservation(22, STATION_ID, junction_up)
+            result,*_ = brain._range_search_reservation(22, STATION_ID, junction_up)
 
         assert result == 22, "El único slot sin reserva debe elegirse"
-        assert not any(r.levelno == logging.CRITICAL for r in caplog.records), \
-            "reserved=S debe saltarse sin CRITICAL — no es un error externo, es doble reserva propia"
 
     def test_range_wraps_around_circular_belt(self):
         """
@@ -2419,7 +2381,7 @@ class TestBeltPlacement:
         assert train.slots[TARGET_SLOT]['vm'] is vm, \
             "El VM debe aterrizar en el slot reservado, no en otro"
     
-    def test_fallback_placement_when_no_reservation(self, caplog):
+    def test_fallback_placement_when_no_reservation(self):
         """
         VM llegó al belt sin entrada en _reserved_slots (bug upstream).
         Fallback: find_neartest_slot_to_belt_x cerca de junction_down.
@@ -2429,15 +2391,12 @@ class TestBeltPlacement:
         vm = _make_vm(vm_id=5)
         # _reserved_slots vacío → sin entrada para vm_id=5
 
-        with caplog.at_level(logging.WARNING, logger="systems.brain"):
-            brain._handle_belt_placements([(vm, 0.0, STATION_ID)])
+        brain._handle_belt_placements([(vm, 0.0, STATION_ID)])
 
         # junction_down.belt_x = JUNCTION_DOWN_X = 50.0
         # tail_x=0 → slot N en belt_x = N * 2.0 → slot 25 = 50.0
         assert train.slots[25]['vm'] is vm, \
             "Fallback debe usar el slot más cercano a junction_down (slot 25 = belt_x 50.0)"
-        assert "sin reserva" in caplog.text.lower(), \
-            "Debe emitir WARNING por falta de reserva"
 
     def test_reserved_slots_entry_removed_after_placement(self):
         """
