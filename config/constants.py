@@ -38,7 +38,6 @@ TREE_LENGTH = 400                           # largo de los árboles de aceleraci
 SLOT_SEARCH_RANGE_RESERVATION = 40   # ±20 slots — reservas necesitan mucho margen
 SLOT_SEARCH_RANGE_DEMAND      = 10   # 10 slots atrás
 
-SLOT_SEARCH_RANGE = 30          # legacy — brain.py usa RESERVATION y DEMAND; solo existe en snapshot de run_config
 BURST_WINDOW_SAFETY_MARGIN = 0  # cuántos slots de más va a tener la ventana para prevenir saturación
 
 # CTE. VISUALIZACIÓN

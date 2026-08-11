@@ -61,7 +61,6 @@ def extract_run_config(brain, stations: dict) -> dict:
         "TREE_LENGTH":                   C.TREE_LENGTH,
         "SLOT_SEARCH_RANGE_RESERVATION": C.SLOT_SEARCH_RANGE_RESERVATION,
         "SLOT_SEARCH_RANGE_DEMAND":      C.SLOT_SEARCH_RANGE_DEMAND,
-        "SLOT_SEARCH_RANGE":             C.SLOT_SEARCH_RANGE,
         "BURST_WINDOW_SAFETY_MARGIN":    C.BURST_WINDOW_SAFETY_MARGIN,
         "SNAPSHOT_INTERVAL":             C.SNAPSHOT_INTERVAL,
         "FPS":                           C.FPS,

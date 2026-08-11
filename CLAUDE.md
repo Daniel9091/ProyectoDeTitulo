@@ -423,7 +423,8 @@ con el signo `+`, los VMs llegaban sistemáticamente desfasados de su slot.)
 
 ### Búsqueda en rango — constantes y prioridades
 
-`SLOT_SEARCH_RANGE = 10` — para reserva: 5 atrás + 5 adelante; para demanda: 10 atrás solamente.
+`SLOT_SEARCH_RANGE_RESERVATION = 40` — ±20 slots (reserva necesita margen amplio para ajustar timing)
+`SLOT_SEARCH_RANGE_DEMAND = 10` — 10 slots atrás solamente.
 
 Prioridades para reserva (mejor primero):
 1. Slot con etiqueta de la misma estación (dest o demand == S), no saturaría
