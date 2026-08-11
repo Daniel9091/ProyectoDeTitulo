@@ -34,7 +34,7 @@ class Vector3:
 
     def __hash__(self):
         """Hash de un vector"""
-        return hash((self.x, self.y, self.z))
+        return hash((round(self.x, 9), round(self.y, 9), round(self.z, 9)))
 
     def __eq__(self, other):
         """Compara si dos vectores son iguales con una tolerancia para números float"""

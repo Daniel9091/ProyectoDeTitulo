@@ -4,6 +4,8 @@ Este archivo es contexto persistente para Claude Code.
 Describe el sistema, la arquitectura, los invariantes y el estado de implementación.
 Actualizar cuando cambien contratos entre sistemas o cuando se complete un archivo vacío.
 
+**Navegación y estado del proyecto** → leer `docs/memory/INDEX.md` al inicio de cada sesión.
+
 ---
 
 ## ¿Qué es NSim?
@@ -67,7 +69,7 @@ NSim/
 │   ├── simulation.py       Simulation.step(dt) / run_headless(n_ticks) — wrapper sobre Brain
 │   ├── camera.py           Cámara 3D con proyección perspectiva (yaw/pitch/FOV, mouse look)
 │   ├── renderer.py         Pygame — wireframe 3D de VMs, árboles, estaciones, HUD
-│   └── info_panel.py       (vacío — no implementado)
+│   └── inspector.py        (click-to-inspect de VMs y estaciones)
 │
 ├── simulation_builder/     Escenarios — cada archivo construye una red completa
 │   ├── inicial.py          Escenario base: 3 estaciones (S2 con 3 andenes)
@@ -94,7 +96,7 @@ imports circulares.
 
 ## Flujo principal del loop de simulación
 
-Implementado en `systems/brain.py` (`Brain.update`) y verificado con 329 tests y ejecución
+Implementado en `systems/brain.py` (`Brain.update`) y verificado con 353 tests y ejecución
 real vía `main.py`. El loop es:
 
 ```
@@ -239,7 +241,7 @@ estación X, Brain lee `demand_station_id` del slot ANTES de llamar `remove_vm`:
 
 ---
 
-## Estado de implementación (Julio 2026) — 329 tests, todos verdes
+## Estado de implementación (Agosto 2026) — 353 tests, todos verdes
 
 ### Completo con tests
 - `objects/` — math3d, types, passenger, modular_vehicle, passenger_id_generator, station
@@ -252,7 +254,7 @@ estación X, Brain lee `demand_station_id` del slot ANTES de llamar `remove_vm`:
 - `simulation/simulation.py`, `camera.py`, `renderer.py`, `main.py` — pygame end-to-end
 
 ### Vacío — no implementado, no bloqueante
-- `simulation/info_panel.py`
+- `simulation/info_panel.py` (eliminado — reemplazado por inspector.py)
 - `simulation/event_handler.py`, `vehicle_spawner.py`, `passenger_spawner.py` (nunca se crearon; sus responsabilidades quedaron cubiertas por camera.py/renderer.py y station.update()/density inicial)
 
 ---
@@ -313,7 +315,7 @@ Brain llama:  tree.set_vehicle_acceleration(vm_id, a)  → ajusta aceleración D
 Esta sección es para calibrar qué contexto necesito al retomar el proyecto:
 
 **Lo que me cuesta reconstruir sin leer el código:**
-- El orden exacto de pasos dentro del tick de Brain: `advance → update_all_tracks → process_transitions → handle_crossings → handle_decisions → handle_belt_placements → station.update → process_demand → process_reservations`
+- El orden exacto de pasos dentro del tick de Brain: `advance → update_all_tracks → process_transitions → handle_crossings → handle_decisions → handle_belt_placements → station.update → process_reservations → process_demand`
 - Que `reserved_station_id` almacena `station_id` (no vm_id) — Brain mantiene `_reserved_slots: dict[int,int]` (vm_id→slot_idx) por separado
 - Qué ocurre cuando `junction.add_vm` rechaza: solo `reserved_station_id` fuerza entrada en el mismo frame (`force_add_vm`); `destination_station_id` y `demand_station_id` son condicionales (VM se queda en belt si rechaza)
 - Que `AccelerationTree` calcula su propia `base_acceleration` desde `dz/length * GRAVITY` — NO se pasa como parámetro. Un árbol con `dz=0` lanza `ValueError` (fail-fast, no degrada a aceleración 0).
@@ -373,12 +375,13 @@ class Brain:
 5. _handle_decisions(decisions)
 6. _handle_belt_placements(belt_placements)
 7. station.update(dt, current_time)  # para cada estación
-8a. _process_demand()
-8b. _process_reservations()
+8a. _process_reservations()
+8b. _process_demand()
 ```
 
 **Invariante de orden**: tracks UP (paso 2) ANTES que junction routing (paso 4) — evita doble advance.
 **Invariante de orden**: station.update (paso 7) ANTES que demand/reservations (paso 8) — Brain lee `pending_demand` actualizado.
+**Invariante de orden**: reservations (8a) ANTES que demand (8b) — orden semántico: las reservas son compromisos ya contraídos (VM en boarding lane), la demanda es especulación sobre el futuro. NOTA: en el código actual _make_reservation NO llama on_vm_committed(); ambos ordenes producen el mismo call_count. El ordenamiento se mantiene por claridad semántica y porque si en el futuro _make_reservation adquiriera on_vm_committed(), el orden ya correcto evitaría doble descuento.
 
 ### Crossing handler — 3 comportamientos (por etiqueta)
 

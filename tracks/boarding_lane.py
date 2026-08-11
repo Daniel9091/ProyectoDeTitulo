@@ -3,7 +3,7 @@ BoardingLane - Segmento de abordaje de pasajeros
 
 Responsabilidades:
     - Mover VMs a velocidad constante
-    - Gestionar el abordaje de un pasagero por VM (cola FIFO)
+    - Gestionar el abordaje de hasta vehicle.capacity pasajeros por VM (cola FIFO por grupo de destino)
     - Comprometer el abordaje al alcanzar BOARDING_COMMIT_PROGRESS
 
 Lo que NO hace:
@@ -54,11 +54,12 @@ class BoardingLane(BaseTrack):
             self.passenger_groups[dest] = deque()
         self.passenger_groups[dest].append(passenger)
 
-    def add_vehicle(self, vehicle, entry_velocity = None, leftover_dt = 0.0):
+    def add_vehicle(self, vehicle, entry_velocity = None, leftover_dt = 0.0) -> bool:
         """
         Agrega un VM al lane a velocidad constante BOARDING_LANE_SPEED.
         Aborda hasta vehicle.capacity pasajeros del grupo con mayor tiempo de espera.
         leftover_dt convierte el tiempo sobrante del frame en distancia inicial.
+        Siempre retorna True — la BoardingLane no tiene saturación.
         """
         velocity = BOARDING_LANE_SPEED
         initial_distance = self._compute_advance(velocity, leftover_dt)
@@ -90,6 +91,7 @@ class BoardingLane(BaseTrack):
             'passengers': passengers,
             'boarding_committed': False,
         }
+        return True
 
     def remove_vehicle(self, vehicle_id: int) -> None:
         """

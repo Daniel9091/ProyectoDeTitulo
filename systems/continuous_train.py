@@ -179,6 +179,7 @@ class ContinuousTrain:
         slot = self.slots[slot_idx]
         slot['reserved_station_id'] = None
         slot['reserved_vm_id'] = None
+        vm.slot_index = slot_idx
         if slot['vm'] is not None:
             slot['colliding_vms'].append(vm)
         else:
@@ -197,6 +198,8 @@ class ContinuousTrain:
         self._vms_on_belt.pop(slot_idx, None)
         self.slots[slot_idx]['destination_station_id'] = None
         self.slots[slot_idx]['demand_station_id'] = None
+        if vm is not None:
+            vm.slot_index = None
 
         return vm
 
@@ -317,10 +320,10 @@ class ContinuousTrain:
 
         )
 
-def _circular_distance(a: float, b: float, lenght: float) -> float:
+def _circular_distance(a: float, b: float, length: float) -> float:
     """
     Distancia mínima entre dos puntos en una circunferencia de longitud length.
     """
-    diff = abs(a -b)%lenght
-    return min(diff, lenght - diff)
+    diff = abs(a - b) % length
+    return min(diff, length - diff)
 

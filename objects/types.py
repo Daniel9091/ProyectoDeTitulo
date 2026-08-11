@@ -30,14 +30,6 @@ class TreeDirection(Enum):
     UP = "UP"       # Árbol asciende (la gravedad lo hace desacelerar)
     DOWN = "DOWN"   # Árbol desciende (la gravedad lo hace acelerar)
 
-class CollisionAction(Enum):
-    """
-    Estados posibles de la predicción de colisiones
-    """
-    FREE = "FREE"               # Hay slot disponible, sin problema
-    CONSUME = "CONSUME"         # No hay slot disponible pero hay un VM que puede ser consumido para liberar espacio
-    INEVITABLE = "INEVITABLE"   # No hay solucion posible, colicion inevitable
-
 class AndenState(Enum):
     """
     Estados posibles para los andenes en una estación.

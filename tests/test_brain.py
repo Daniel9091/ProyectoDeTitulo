@@ -388,29 +388,30 @@ class TestBrainLoop:
 
     def test_reservations_before_demand_prevents_double_commit(self):
         """
-        Invariante: _process_reservations (8a) corre ANTES de _process_demand (8b).
+        Smoke test: _process_reservations (8a) y _process_demand (8b) coexisten correctamente.
 
-        Consecuencia de romperlo: demand encuentra el slot que la reserva iba a
-        elegir (está sin reserva todavía), lo etiqueta y llama on_vm_committed.
-        El counter baja a 0 mientras el VM aún está en tránsito → Brain deja de
-        buscar más VMs aunque la estación siga necesitando.
+        NOTA sobre el invariante documentado en CLAUDE.md:
+        La descripción original decía que reservation llama on_vm_committed(), lo que
+        causaría doble descuento si demand corría primero. En el código actual,
+        _make_reservation NO llama on_vm_committed() — solo _process_demand lo llama.
+        Por eso, ambos ordenes (8a→8b y 8b→8a) producen call_count=1 y el slot recibe
+        ambas etiquetas. No existe doble descuento en el código actual.
+        Este test verifica que ambos mecanismos corren y marcan el slot correctamente.
 
-        Setup: VM en lane (boarding_committed), slot 5 bloqueado para que SOLO
-        ese slot sea elegible por la reserva (todos los demás reservados para
-        otra estación). Con orden correcto: reserva primero → slot 5 bloqueado
-        para demand → on_vm_committed=0. Con orden incorrecto (8b antes 8a):
-        demand llega antes, slot 5 aún libre → on_vm_committed=1.
+        Setup: VM en lane (boarding_committed), slot 3 es el único elegible.
+        Slot 3 = safe_start (junction slot 5 − G=2) — primer slot que
+        _range_search_demand SÍ alcanza; fuera de la zona ciega de demanda.
 
-        Slot objetivo calculado para VM en lane con progress=0.52:
-            remaining = 0.48 × 20 = 9.6 m
-            T_lane    = 9.6 / 2.0       = 4.8 s
-            T_tree    = (20−2) / 2.5    = 7.2 s
-            T_total   = 12.0 s
-            future_x  = (0 + 20×12) % 100 = 40.0
-            relative  = (50 − 40) % 100   = 10.0
-            target    = round(10/2) % 50  = slot 5
+        Cálculo del target (slot 3) con PROGRESS=0.50:
+            remaining = 0.50 × 20 = 10.0 m
+            T_lane    = 10.0 / 2.0       = 5.0 s
+            T_tree    = (20 − 2) / 2.5   = 7.2 s
+            T_total   = 12.2 s
+            future_x  = (20 × 12.2) % 100 = 44.0
+            relative  = (50 − 44 + 100) % 100 = 6
+            target    = round(6 / 2) % 50 = slot 3
         """
-        PROGRESS_FOR_TARGET_5 = 0.52
+        PROGRESS_FOR_TARGET_3 = 0.50
 
         def _setup(brain, train, network, stations):
             station = stations[STATION_ID]
@@ -419,18 +420,18 @@ class TestBrainLoop:
             vm_lane = _make_vm(vm_id=0)
             lane.vehicles[vm_lane.vehicle_id] = {
                 'vehicle':            vm_lane,
-                'distance':           PROGRESS_FOR_TARGET_5 * LANE_LENGTH,
+                'distance':           PROGRESS_FOR_TARGET_3 * LANE_LENGTH,
                 'velocity':           BOARDING_LANE_SPEED,
                 'passengers':         [],
                 'boarding_committed': True,
             }
 
             vm_belt = _make_vm(vm_id=1)
-            train.slots[5]['vm'] = vm_belt
+            train.slots[3]['vm'] = vm_belt
 
-            # Forzar que _range_search_reservation solo tenga slot 5 disponible
+            # Forzar que _range_search_reservation solo tenga slot 3 disponible
             for idx in range(train.max_slots):
-                if idx != 5:
+                if idx != 3:
                     train.slots[idx]['reserved_station_id'] = 99
 
             station.pending_demand = 1
@@ -446,30 +447,30 @@ class TestBrainLoop:
         with patch.object(brain1, '_would_saturate', return_value=False):
             brain1.update(dt=0.001, current_time=0.0)
 
-        assert station1.on_vm_committed.call_count == 0, (
-            "Correcto (8a antes 8b): slot 5 está en zona ciega (≤ G=2 slots de junction). "
-            "safe_start=3 → demand nunca busca slots 4 ni 5. "
-            "TODO: rediseñar con reservation target en slot ≤ 3 para probar concentración."
-        )
-        assert train1.slots[5]['reserved_station_id'] == STATION_ID, \
-            "Slot 5 tiene reserva de STATION_ID"
-        assert train1.slots[5]['demand_station_id'] is None, \
-            "Demand no etiquetó slot 5 (zona ciega)"
+        assert station1.on_vm_committed.call_count == 1, \
+            "Demand llama on_vm_committed exactamente una vez (reservation no lo llama)"
+        assert train1.slots[3]['reserved_station_id'] == STATION_ID, \
+            "Reserva marcó slot 3 con STATION_ID"
+        assert train1.slots[3]['demand_station_id'] == STATION_ID, \
+            "Demand también marcó slot 3 (pending_demand=1 → demand eligió slot disponible)"
 
         # ── ORDEN INCORRECTO (_wrong_order_8ab) ───────────────────────────────
+        # Con el código actual, ambos ordenes dan el mismo resultado observable
+        # porque _make_reservation no llama on_vm_committed.
         brain2, train2, network2, stations2 = make_brain_fixture()
         station2 = _setup(brain2, train2, network2, stations2)
 
         with patch.object(brain2, '_would_saturate', return_value=False):
             _wrong_order_8ab(brain2, dt=0.001, current_time=0.0)
 
-        assert station2.on_vm_committed.call_count == 0, (
-            "Incorrecto (8b antes 8a): demand también falla porque slot 5 es zona ciega. "
-            "Con safe_start, ambos órdenes producen el mismo resultado en este setup. "
-            "TODO: mismo rediseño pendiente."
-        )
-        assert train2.slots[5]['demand_station_id'] is None, \
-            "Demand tampoco etiquetó slot 5 con orden incorrecto"
+        assert station2.on_vm_committed.call_count == 1, \
+            "Orden incorrecto: call_count sigue siendo 1 (reservation no llama on_vm_committed)"
+        assert station2.pending_demand == 0, \
+            "pending_demand agotado en ambos ordenes"
+        assert train2.slots[3]['demand_station_id'] == STATION_ID, \
+            "Demand etiquetó slot 3"
+        assert train2.slots[3]['reserved_station_id'] == STATION_ID, \
+            "Reservation también etiquetó slot 3"
 
     def test_belt_placements_after_decisions(self):
         """

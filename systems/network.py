@@ -150,7 +150,14 @@ class Network:
 
             if len(next_ids) == 1:
                 next_track = self.tracks[next_ids[0]]
-                next_track.add_vehicle(vm, leftover_dt=leftover)
+                accepted = next_track.add_vehicle(vm, leftover_dt=leftover)
+                if accepted is False:
+                    # En la topología actual esto nunca ocurre: los DOWN trees siempre
+                    # aceptan y las BoardingLanes no retornan False. Si ocurre, es porque
+                    # un track saturable (UP tree) se conectó por transición mecánica —
+                    # lo correcto sería interponer una Junction. Forzamos para no perder
+                    # el VM, pero esta rama indica un error de topología.
+                    next_track.force_add_vehicle(vm, leftover_dt=leftover)
             
             elif len(next_ids) > 1:
                 decisions.append((vm, list(next_ids), leftover))

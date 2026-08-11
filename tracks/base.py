@@ -71,7 +71,7 @@ class BaseTrack(ABC):
         
     # INTERFAZ ABSTRACTA
     @abstractmethod
-    def add_vehicle(self,vehicle,entry_velocity:float | None = None, leftover_dt: float = 0.0) -> None:
+    def add_vehicle(self,vehicle,entry_velocity:float | None = None, leftover_dt: float = 0.0) -> bool | None:
         """
         Agrega un VM al track, inicializando su entrada.
 

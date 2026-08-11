@@ -596,6 +596,7 @@ class Brain:
             slot = self._train.slots[slot_idx]
             occupying_vm = slot['vm']
             self._train.place_vm(vm, slot_idx)
+            self._forced_vm_ids.discard(vm.vehicle_id)
             if prev["reserved"]:
                 self._recorder.slot_reservation_cleared(
                     t=self._current_time, slot_idx=slot_idx,
