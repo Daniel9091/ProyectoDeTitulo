@@ -1,4 +1,6 @@
 """
+Slot label analysis (SP4) — reservas, demanda, destinos y entradas al junction.
+
 Questions answered:
   1. How many labels of each type did each station place?      → _label_activity_by_station
   2. How healthy is the reservation range search?              → _reservation_health

@@ -1,13 +1,13 @@
 """
 PassengerIdGenerator - Contador global de IDs de pasajeros
 
-Una sola instancia por simulaicon. Se pasa a cada Station como parametro.
+Una sola instancia por simulación. Se pasa a cada Station como parametro.
 Garantiza IDs unicos entre todas las estaciones sin limite por estacion.
 """
 
 class PassengerIdGenerator:
     """
-    Genera IDs enteros unicos y crecientes para psajeros.
+    Genera IDs enteros unicos y crecientes para pasajeros.
     La trazabilidad de la estacion se lee en passenger.origin_station_id,
     no en el ID en sí.
     """

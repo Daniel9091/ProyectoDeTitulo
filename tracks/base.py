@@ -1,9 +1,9 @@
 """
 BaseTrack - Clase abstracta para todos los segmentos de via lineales en Nsim
 
-Responsabililidades de este archivo:
-    -Definir la interfaz y el comportamiento COMPARTIDO entre BoardingLane y AcelerationTree.
-        Ambos son segmentos rectilineos con VMs moviendose de un punto A a un punto B.
+Responsabilidades de este archivo:
+    -Definir la interfaz y el comportamiento COMPARTIDO entre BoardingLane y AccelerationTree.
+        Ambos son segmentos rectilíneos con VMs moviéndose de un punto A a un punto B.
 
 Lo que define:
     - Métodos abstractos que toda subclase DEBE implementar
@@ -11,11 +11,11 @@ Lo que define:
     - Cálculos geométricos: longitud, posición interpolada, vector dirección
     - get_progress() como método CONCRETO derivado de distance/length
 
-Lo uqe NO define:
-    - Fisica (constante, gravitacional) - eso es responsabilidad de la subclase
-    - Logica de pasageros
-    - Anti - colision
-    - ContinuosTrain No hereda de aqui: es circular y slot-based
+Lo que NO define:
+    - Física (constante, gravitacional) - eso es responsabilidad de la subclase
+    - Lógica de pasajeros
+    - Anti-colisión
+    - ContinuousTrain No hereda de aquí: es circular y slot-based
     arquitectura completamente distinta (vive en systems/)
 """
 from abc import ABC, abstractmethod
@@ -27,11 +27,11 @@ class BaseTrack(ABC):
 
     Geometria:
     Un track es un segmento recto de start_pos -> end_pos.
-    Los VMs avansan con un progreso normalizado: 0.0 -> 1.0 (fin)
+    Los VMs avanzan con un progreso normalizado: 0.0 -> 1.0 (fin)
 
     Contexto de coordenadas:
     X -> direccion principal del tren (horizontal)
-    Y -> offest lateral (posicion denror de la estacion)
+    Y -> offset lateral (posición dentro de la estación)
     Z -> altura (vertical)
 
     Estructura estándar del dict self.vehicles:
@@ -73,12 +73,12 @@ class BaseTrack(ABC):
     @abstractmethod
     def add_vehicle(self,vehicle,entry_velocity:float | None = None, leftover_dt: float = 0.0) -> None:
         """
-        Agrega un VM al track, inicialisando su entrada.
+        Agrega un VM al track, inicializando su entrada.
 
         La subclase define:
-            - La velocidad inicial (entry_velocity o su propia constate)
-            - Los campos adicionales del dict (passenger, trarget_acceleration, etc.)
-            - La formula de movimiento que ocupa leftover_dt para combertirlo en distancia
+            - La velocidad inicial (entry_velocity o su propia constante)
+            - Los campos adicionales del dict (passenger, target_acceleration, etc.)
+            - La formula de movimiento que ocupa leftover_dt para convertirlo en distancia
 
         Convencion: distance=0.0 al entrar, velocity segun el tipo de track.
         """
@@ -88,19 +88,21 @@ class BaseTrack(ABC):
     def remove_vehicle(self, vehicle_id: int) -> None:
         """
         Remueve un VM del track y limpia su entrada de self.vehicles.
-        La subclase maneja los efectos secundarios (re-encolar pasagero, etc.).
+        La subclase maneja los efectos secundarios (re-encolar pasajero, etc.).
         """
         pass
 
     @abstractmethod
-    def update(self,dt: float) -> list[tuple]:
+    def update(self, dt: float, current_time: float = 0.0) -> list[tuple]:
         """
-        Avanza la simiulacion dt segundos para todos los VMs en el track.
+        Avanza la simulación dt segundos para todos los VMs en el track.
+        current_time se usa para timestamps de telemetría (passenger_boarded, vm_trip_completed).
+        Es opcional (default 0.0) para mantener compatibilidad con tests que no pasan tiempo.
 
-        La subclase aplica su fisica:
+
+        La subclase aplica su física:
             BoardingLane        -> velocidad constante BOARDING_LANE_SPEED
             AccelerationTree    -> MRUA con a = +/- g * sin(teta), velocity por VM
-            Boarding
 
         Retorna lista de tuplas (vm, leftover_dt) por cada VM que completó el track.
         leftover_dt = tiempo sobrante del frame después de que el VM llegó al final.
@@ -116,10 +118,10 @@ class BaseTrack(ABC):
 
     def get_progress(self, vehicle) -> float:
         """
-        Retrona el progreso normalizado del VM (0.0 = start_pos, 1.0 = end_pos).
-        Las subclases No necesitan sobrescribir esto.
+        Retorna el progreso normalizado del VM (0.0 = start_pos, 1.0 = end_pos).
+        Las subclases no necesitan sobrescribir esto.
 
-        Retorna 0.0 si el VM no esta en el track. (falla silenciosa segura).
+        Retorna 0.0 si el VM no está en el track. (falla silenciosa segura).
         """
         data = self.vehicles.get(vehicle.vehicle_id)
         if data is None:
@@ -130,12 +132,12 @@ class BaseTrack(ABC):
     
     def position_at_progress(self, progress: float) -> Vector3:
         """
-        Calcula la posicion 3D para un progreso dado por la interpolacion lineal
-    
+        Calcula la posición 3D para un progreso dado por interpolación lineal.
+
         progress=0.0 -> start_pos
         progress=1.0 -> end_pos
 
-        Funciona para abmbas clases por que son rectilineas
+        Funciona para ambas clases porque son rectilíneas.
         """
         direction = self.end_pos - self.start_pos
         return self.start_pos + direction * progress
@@ -144,7 +146,7 @@ class BaseTrack(ABC):
         """
         Vector unitario de start_pos -> end_pos
 
-        Util para convertir speed (escalar) en velocity (vectorial):
+        Útil para convertir speed (escalar) en velocity (vectorial):
             velocity_vec = direction_vector * speed
         """
         direction = self.end_pos - self.start_pos
@@ -161,7 +163,7 @@ class BaseTrack(ABC):
 
     def get_vehicles(self) -> list:
         """
-        Lista de objetos VM Actualmente en el track.
+        Lista de objetos VM actualmente en el track.
         """
         return [data['vehicle'] for data in self.vehicles.values()]
 

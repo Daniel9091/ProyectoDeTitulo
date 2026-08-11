@@ -31,7 +31,7 @@ from config.constants import (
 
 class AccelerationTree(BaseTrack):
     """
-    Track de acceleración/desaceleración que contecta el ContinuousTrain con las estaciones.
+    Track de aceleración/desaceleración que conecta el ContinuousTrain con las estaciones.
 
     Física:
         UP:     entry_velocity = TRAIN_SPEED            signed_accel = -base_acceleration
@@ -41,17 +41,17 @@ class AccelerationTree(BaseTrack):
     Saturación:
         Cuando dos VMs desaceleran con la misma magnitud, su separación disminuye
         monótonamente. El punto más crítico es la cima (salida del árbol). Dado Δt entre
-        entradas, la separaración en la cima es:
+        entradas, la separación en la cima es:
             sep_cima = Δt · (v_salida + ½ · a · Δt)
         El Δt_min que garantiza sep_cima ≥ d_min se resuelve como ecuación cuadrática.
-        El chequeo asume base_acceleration para todos los VMs; las modificacciones de Brain
-        vía set_vehicle_acceleration son ajustes fios y su error de saturación es de
+        El chequeo asume base_acceleration para todos los VMs; las modificaciones de Brain
+        vía set_vehicle_acceleration son ajustes finos y su error de saturación es de
         segundo orden, aceptable en simulación a 30 FPS.
 
     Ajuste de aceleración: en DOWN (alineación con slot reservado):
         Una vez que el sistema de reserva asigna un slot a un VM que está en el DOWN tree,
-        Brain llama set_vehicle_acceleration() para ajsutar la tasa de aceleración de ese
-        VM específico. El objetivo es que el VM salga del árbol en el momenot exacto en 
+        Brain llama set_vehicle_acceleration() para ajustar la tasa de aceleración de ese
+        VM específico. El objetivo es que el VM salga del árbol en el momento exacto en
         que su slot reservado pasa por la junction de entrada al tren
 
     Estructura del dict self.vehicles (extiende BaseTrack):
@@ -66,10 +66,10 @@ class AccelerationTree(BaseTrack):
     }
     
     Atributos propios:
-        direction           TreeDiection    UP o DOWN
+        direction           TreeDirection   UP o DOWN
         base_acceleration   float           magnitud de aceleración (m/s2), siempre > 0 (calculada, no recibida)
         min_slot_gap        int             slots mínimos entre entradas consecutivas (0 si DOWN)
-        _min_safe_distnce   float           umbral de distancia del vM más joven para can_accept
+        _min_safe_distance  float           umbral de distancia del VM más joven para can_accept
     """
 
     def __init__(
@@ -82,6 +82,18 @@ class AccelerationTree(BaseTrack):
             recorder,
             station_id : int | None = None
     ):
+        """
+        Construye un árbol de aceleración/desaceleración gravitacional.
+
+        Args:
+            track_id: Identificador único del track.
+            start_pos: Posición 3D de entrada al árbol (base).
+            end_pos: Posición 3D de salida del árbol (cima).
+            direction: UP (sube hacia la estación) o DOWN (baja hacia el belt).
+            min_vm_separation: Distancia mínima en metros entre VMs en la cima; solo relevante para UP.
+            recorder: Objeto que registra telemetría (vm_trip_completed).
+            station_id: ID de la estación a la que pertenece este árbol; None si no aplica.
+        """
         super().__init__(track_id, start_pos, end_pos)
         self.direction = direction
         self.base_acceleration = self._compute_effective_acceleration()
@@ -95,7 +107,6 @@ class AccelerationTree(BaseTrack):
         self._recorder = recorder
 
     def _compute_effective_acceleration(self) -> float:
-
         """
         Calcula la aceleración efectiva a partir de la geometría del árbol.
 
@@ -122,9 +133,9 @@ class AccelerationTree(BaseTrack):
 
     def _init_saturation(self, d_min: float) -> None:
         """
-        Precomputa parámetros de saturacion para árbol UP.
-        Resuelve 0.5·a·Δt² + v_salida·Δt - d_min = 0 para obterner Δt_min,
-        que garantiza sep_cima ≥ d_min entre dos vMs consecutivos.
+        Precomputa parámetros de saturación para árbol UP.
+        Resuelve 0.5·a·Δt² + v_salida·Δt - d_min = 0 para obtener Δt_min,
+        que garantiza sep_cima ≥ d_min entre dos VMs consecutivos.
         """
         v_entry = TRAIN_SPEED
         v_exit = math.sqrt(max(0.0, v_entry ** 2 - 2.0 * self.base_acceleration * self.length))
@@ -138,9 +149,9 @@ class AccelerationTree(BaseTrack):
 
     def can_accept(self) -> bool:
         """
-        True si el árbol puede recibir un nuevo VM sin riesgo de colisión por satruración.
+        True si el árbol puede recibir un nuevo VM sin riesgo de colisión por saturación.
 
-        Para UP: el VM más joven (menor distnacia desde start) debe haber avanzado 
+        Para UP: el VM más joven (menor distancia desde start) debe haber avanzado
         al menos _min_safe_distance. Para DOWN siempre True: los VMs se separan al acelerar.
         """
         if self.direction == TreeDirection.DOWN:
@@ -176,7 +187,7 @@ class AccelerationTree(BaseTrack):
         """
         Fuerza la entrada de un VM ignorando la comprobación de saturación.
 
-        Registra advertecnai en stdout si hay riesgo de colisión. pero no falla.
+        Registra advertencia en stdout si hay riesgo de colisión, pero no falla.
         Brain llama esto cuando todos los árboles del junction rechazaron a un VM con 
         reserva y es necesario forzar al árbol menos saturado.
         """
@@ -189,7 +200,7 @@ class AccelerationTree(BaseTrack):
 
     def remove_vehicle(self, vehicle_id: int) -> None:
         """
-        Remueve un VM del árbol y restaura su estado a MOVINNG.
+        Remueve un VM del árbol y restaura su estado a MOVING.
         """
         self.vehicles[vehicle_id]['vehicle'].state = ModularVehicleState.MOVING
         del self.vehicles[vehicle_id]
@@ -244,11 +255,11 @@ class AccelerationTree(BaseTrack):
         """
         Brain ajusta la aceleración de un VM específico para que el VM llegue al slot.
 
-        En DOWN: el sistema de reserva, a través de Brain, llama esta funcion para que 
-        el VM ajuste su aceleración y salaga del árbol. en el momento exacto en que su slot 
+        En DOWN: el sistema de reserva, a través de Brain, llama esta función para que
+        el VM ajuste su aceleración y salga del árbol en el momento exacto en que su slot
         pasa por la junction.
 
-        Avisa si se sale de ragnos de aceleracion.
+        Avisa si se sale de rangos de aceleración.
         """
         
         if new_accel < ACCEL_RANGE_MIN or new_accel > ACCEL_RANGE_MAX:
@@ -310,7 +321,7 @@ class AccelerationTree(BaseTrack):
 
     def _signed_acceleration(self, magnitude: float) -> float:
         """
-        Convierte magnitud a aceleeración con signo según dirección del árbol.
+        Convierte magnitud a aceleración con signo según dirección del árbol.
         """
         return -magnitude if self.direction == TreeDirection.UP else magnitude
 

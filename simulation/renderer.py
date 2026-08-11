@@ -136,9 +136,9 @@ class Renderer:
         Dibuja los VMs del belt como cajas wireframe 3D.
 
         LOD:
-            depth > 1200 → invisible (sub-pixel, no dibuja)
-            depth 400-1200 → punto de 1px coloreado por etiqueta dominante
-            depth < 400   → caja wireframe completa con codificación por etiquetas
+            depth > 400 → punto de 1px coloreado por etiqueta dominante
+            depth ≤ 400 → caja wireframe completa con codificación por etiquetas
+        + Culling por viewport: _project_visible omite VMs fuera de pantalla (margen 50px).
         + Retorna la cantidad de VMs dibujados este frame.
         """
 
@@ -285,7 +285,7 @@ class Renderer:
 
     def _draw_tracks(self, surface: pygame.Surface, camera, network) -> None:
         """
-        Dibuja todos los tracks de la red como segmentos 3D:
+        Dibuja todos los tracks de la red como segmentos 3D.
         """
         for track in network.tracks.values():
             width = 2 if isinstance(track, AccelerationTree) else 3
@@ -620,7 +620,7 @@ class Renderer:
         """
         Color aditivo por etiquetas activas.
         Cada etiqueta suma su componente RGB — slots con múltiples etiquetas
-        aparecen más brillantes. Sin etiqueta → vm_default de la paleta activa..
+        aparecen más brillantes. Sin etiqueta → vm_default de la paleta activa.
         """
         r = g = b = 0
         if slot.get('reserved_station_id')   is not None: r += 188; g += 140; b += 255

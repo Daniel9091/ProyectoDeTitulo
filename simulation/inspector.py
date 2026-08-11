@@ -113,6 +113,10 @@ def _find_belt_slot(vm, train):
     Retorna (slot_index, slot, stack_offset) o None.
     stack_offset es 0 para el VM titular del slot, o su posición (>=1)
     dentro de slot['colliding_vms'] si está apilado por un choque.
+
+    ContinuousTrain no expone una referencia inversa vm→slot: place_vm y
+    remove_vm no asignan ningún campo de posición al VM, así que se busca
+    escaneando por igualdad de objeto.
     """
     for i, slot in enumerate(train.slots):
         if slot['vm'] is vm:
@@ -178,6 +182,7 @@ def resolve_station_location(station_id: int, stations: dict) -> dict | None:
 # ─── CONTENIDO DE PANEL ───────────────────────────────────────────────────
 
 def _slot_labels(slot: dict) -> list[str]:
+    """Lista de strings con las etiquetas activas del slot (RESERVED, DEST, DEMAND). Vacía si no tiene."""
     labels = []
     if slot.get('reserved_station_id') is not None:
         labels.append(f"RESERVED→S{slot['reserved_station_id']}")
@@ -276,6 +281,11 @@ class Inspector:
     # ── API pública ─────────────────────────────────────────────────────
 
     def handle_click(self, pos, camera, train, network, stations, screen_width) -> None:
+        """
+        Procesa un click izquierdo: cierra el panel si el click es sobre su botón ×,
+        o abre un panel nuevo para el VM/estación más cercano. No hace nada si el
+        objeto ya tiene un panel abierto.
+        """
         if self._try_close(pos, screen_width):
             return
         target = self._pick(pos, camera, train, network, stations)
@@ -284,6 +294,12 @@ class Inspector:
         self._panels.append(target)
 
     def render(self, surface, camera, train, network, stations, screen_width) -> None:
+        """
+        Actualiza y dibuja todos los paneles abiertos. Resuelve la ubicación actual
+        de cada objeto referenciado, elimina automáticamente paneles cuyos objetos
+        ya no existen, y dibuja resaltado + línea conectora + burbuja de panel.
+        Llamar cada frame después del render principal.
+        """
         resolved = []
         for panel in self._panels:
             loc = self._resolve(panel, train, network, stations)
@@ -299,6 +315,10 @@ class Inspector:
     # ── Picking ──────────────────────────────────────────────────────────
 
     def _try_close(self, pos, screen_width) -> bool:
+        """
+        True si el click cayó sobre el botón × de algún panel abierto (y lo cierra).
+        False si no se cerró nada.
+        """
         for i in range(len(self._panels)):
             x, y = panel_position(i, screen_width)
             close_rect = pygame.Rect(
@@ -311,6 +331,13 @@ class Inspector:
         return False
 
     def _pick(self, pos, camera, train, network, stations) -> dict | None:
+        """
+        Busca el objeto (VM o estación) más cercano a pos en coordenadas de pantalla.
+        Considera VMs en belt (incluidos los apilados por choque), VMs en tránsito
+        y centros de estaciones, dentro de sus radios de picking respectivos.
+        Retorna el dict target del candidato con menor depth, o None si ninguno quedó
+        dentro del radio.
+        """
         candidates = []  # list[(depth, target)]
 
         for i, slot in enumerate(train.slots):
@@ -356,6 +383,10 @@ class Inspector:
         return candidates[0][1]
 
     def _is_already_open(self, target: dict) -> bool:
+        """
+        True si ya existe un panel abierto para el mismo objeto que target.
+        Compara por identidad de objeto (VM) o por station_id (estación).
+        """
         for panel in self._panels:
             if panel['kind'] != target['kind']:
                 continue
@@ -366,6 +397,10 @@ class Inspector:
         return False
 
     def _resolve(self, panel, train, network, stations) -> dict | None:
+        """
+        Delega la resolución de ubicación según el tipo del panel. Retorna None si el
+        objeto ya no existe — Inspector.render lo usa para cerrar el panel automáticamente.
+        """
         if panel['kind'] == 'vm':
             return resolve_vm_location(panel['ref'], train, network, stations)
         return resolve_station_location(panel['station_id'], stations)
@@ -373,6 +408,10 @@ class Inspector:
     # ── Dibujo ───────────────────────────────────────────────────────────
 
     def _draw_highlight_and_line(self, surface, camera, x, y, panel, loc) -> None:
+        """
+        Dibuja el resaltado del objeto inspeccionado (caja wireframe azul) y la
+        línea que conecta el borde del panel con su posición 3D proyectada.
+        """
         px, py, pz = loc['pos']
         proj = camera.project(px, py, pz)
         if proj is None:
@@ -418,6 +457,10 @@ class Inspector:
                 pygame.draw.line(surface, ACCENT, seg[0], seg[1], 3)
 
     def _draw_panel(self, surface, x, y, panel, loc) -> None:
+        """
+        Dibuja la burbuja completa del panel: fondo semitransparente, borde,
+        encabezado, contenido específico (VM o estación) y el botón ×.
+        """
         title, subtitle = self._get_title_subtitle(panel, loc)
 
         panel_surf = pygame.Surface((PANEL_W, PANEL_H), pygame.SRCALPHA)
@@ -459,6 +502,11 @@ class Inspector:
     # ── Panel VM ─────────────────────────────────────────────────────────
 
     def _draw_vm_panel(self, surf, vm, loc) -> None:
+        """
+        Dibuja el cuerpo del panel para un VM: estado, barra de ocupación, sección
+        de abordaje si está en lane, etiquetas de slot activas y lista de pasajeros
+        a bordo.
+        """
         y = HEADER_H + 2
 
         y = self._draw_section_label(surf, "ESTADO", y)
@@ -526,6 +574,10 @@ class Inspector:
     # ── Panel Estación ───────────────────────────────────────────────────
 
     def _draw_station_panel(self, surf, station) -> None:
+        """
+        Dibuja el cuerpo del panel para una estación: demanda pendiente, pasajeros
+        en cola y caminando, flujo (pasajeros/s y VMs/s) y distribución de destinos.
+        """
         y = HEADER_H + 2
         summary = station.get_summary()
 

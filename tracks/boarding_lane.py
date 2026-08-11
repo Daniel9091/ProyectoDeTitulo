@@ -1,10 +1,10 @@
 """
-BardingLane - Segmento de abordaje de pasageros
+BoardingLane - Segmento de abordaje de pasajeros
 
 Responsabilidades:
     - Mover VMs a velocidad constante
     - Gestionar el abordaje de un pasagero por VM (cola FIFO)
-    - Comprometer el abordafj al alcanzar  BOARDING_COMMIT_PROGRESS
+    - Comprometer el abordaje al alcanzar BOARDING_COMMIT_PROGRESS
 
 Lo que NO hace:
     - No conoce Brain, Station ni TreeSelector
@@ -22,22 +22,22 @@ class BoardingLane(BaseTrack):
     Track de abordaje en las estaciones
     A velocidad constante
 
-    Estructrua del dict self.vehicles (extiende BaseTrack):
+    Estructura del dict self.vehicles (extiende BaseTrack):
     {
         vehicle_id (int): {
             'vehicle':      ModularVehicle,
             'distance':     float,              # metros recorridos desde start_pos
             'velocity':     float,              # siempre BOARDING_LANE_SPEED
-            'passengers':    Passengers,        # pasageros asignados al VM    
+            'passengers':   list[Passenger],    # pasajeros asignados al VM
             'boarding_committed': bool,         # True si progress >= BOARDING_COMMIT_PROGRESS
         }
     }
     Atributos propios:
-        passenger_queue list[Passenger]         # pasageros esperand un VM (FIFO)
+        passenger_groups: dict[int, deque[Passenger]]  # pasajeros agrupados por destino
     """
     def __init__(self,track_id: int, start_pos: Vector3, end_pos: Vector3, recorder):
         """
-        Inicialisacion utiliza __init__ de BaseTrack
+        Inicialización utiliza __init__ de BaseTrack.
         """
         super().__init__(track_id, start_pos, end_pos)
         self.passenger_groups: dict[int, deque[Passenger]] = {}
@@ -99,7 +99,7 @@ class BoardingLane(BaseTrack):
 
     def update(self, dt: float, current_time: float = 0.0) -> list[tuple]:
         """
-        Avansa todos los VMs dt segundos a BOARDING_LANE_SPEED.
+        Avanza todos los VMs dt segundos a BOARDING_LANE_SPEED.
 
         Al alcanzar BOARDING_COMMIT_PROGRESS, llama complete_boarding() en el pasajero.
         El flag boarding_committed evita llamadas repetidas en frames subsiguientes.
@@ -155,8 +155,8 @@ class BoardingLane(BaseTrack):
 
     def _select_priority_group(self) -> int | None:
         """
-        Retorna el destination_id del grupo con el pasajero que lleva mas tiempo esperando.
-        Compara passenger_gropps[dest][0].spawn_time entre todos los grupos activos.
+        Retorna el destination_id del grupo con el pasajero que lleva más tiempo esperando.
+        Compara passenger_groups[dest][0].spawn_time entre todos los grupos activos.
         Retorna None si no hay grupos.
         """
         if not self.passenger_groups:
@@ -165,8 +165,8 @@ class BoardingLane(BaseTrack):
     
     def _compute_advance(self, velocity: float, dt:float) -> float:
         """
-        Calcula la distancia que qvanza el VM en dt segundos
-        En BaordingLane la velocidad es contante d = v * dt
+        Calcula la distancia que avanza el VM en dt segundos.
+        En BoardingLane la velocidad es constante: d = v * dt.
         """
         return velocity * dt
         

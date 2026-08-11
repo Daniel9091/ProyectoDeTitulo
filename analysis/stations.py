@@ -53,6 +53,10 @@ def run(events_path=None):
     con.close()
 
 def _demand_and_arrivals(con, rep):
+    """
+    Tabla texto: pasajeros generados y llegados por estación origen.
+    Necesita: passenger_spawned, passenger_arrived.
+    """
     df = con.execute("""
         SELECT
             origin_station_id AS station,
@@ -76,6 +80,7 @@ def _demand_and_arrivals(con, rep):
         rep.print(f"  S{int(row['station']):>9}  {int(row['generados']):>10}  {int(row['llegaron']):>10}")
 
 def _snapshot_overview(con, rep):
+    """Resumen texto de cuántos snapshots SP6 se registraron por estación y en qué rango de tiempo."""
     rows = con.execute("""
         SELECT station_id, COUNT(*) AS n,
                ROUND(MIN(t), 0) AS first_t, ROUND(MAX(t), 0) AS last_t

@@ -9,9 +9,9 @@ Responsabilidades:
 
 Lo que NO hace:
     - No implementa el sliding-window check del 'Problema Destino Terminal'
-        (ese check vive en el sistema de reserva; Juction solo expone burst_capacity y burst_window)
-    - No conoce ConinuousTrain ni Station
-    - No tine update() - sus árboles son actalizados por Network/Brain
+        (ese check vive en el sistema de reserva; Junction solo expone burst_capacity y burst_window)
+    - No conoce ContinuousTrain ni Station
+    - No tiene update() - sus árboles son actualizados por Network/Brain
 """
 
 from tracks.acceleration_tree import AccelerationTree
@@ -23,16 +23,16 @@ class Junction:
 
     Cada estación tiene dos Junctions:
         UP (belt_x_entry):  VMs salen del belt hacia la estación - gestiona saturación
-        DOWN (belt_x_exit): Vms llegan al belt desde la estación - solo distribuye
+        DOWN (belt_x_exit): VMs llegan al belt desde la estación - solo distribuye
 
-    Capacidad de absorción (para 'Problema Destino Terminal):
+    Capacidad de absorción (para 'Problema Destino Terminal'):
         burst_capacity  - VMs absorbibles de corrido = len(trees)
-        burst_window    - slots hasta recargar capacidad = trees[0]. min_slot_gap (UP) / 0 (DOWN)
+        burst_window    - slots hasta recargar capacidad = trees[0].min_slot_gap (UP) / 0 (DOWN)
 
     Atributos:
         junction_id     int                         identificador único
         belt_x          float                       posición en el carril circular (metros)
-        station_id      int                         estación a la que pertence
+        station_id      int                         estación a la que pertenece
         direction       TreeDirection               UP o DOWN
         trees           list[AccelerationTree]      árboles gestionados por esta junction
     """
@@ -45,6 +45,16 @@ class Junction:
       direction: TreeDirection,
       trees: list[AccelerationTree]
     ):
+        """
+        Construye una junction que agrupa árboles de aceleración de una estación.
+
+        Args:
+            junction_id: Identificador único de la junction.
+            belt_x: Posición en el carril circular (metros desde el inicio).
+            station_id: ID de la estación a la que pertenece esta junction.
+            direction: UP (VMs salen del belt hacia la estación) o DOWN (VMs llegan al belt).
+            trees: Lista de AccelerationTrees gestionados por esta junction.
+        """
         self.junction_id = junction_id
         self.belt_x = belt_x
         self.station_id = station_id
@@ -106,6 +116,7 @@ class Junction:
     # ── ESTADO ──────────────────────────────────────────────────────────
     @property
     def vehicle_count(self) -> int:
+        """Número total de VMs en todos los árboles de esta junction."""
         return sum(tree.vehicle_count for tree in self.trees)
     
     # ── PRIVADOS ─────────────────────────────────────────────────────────

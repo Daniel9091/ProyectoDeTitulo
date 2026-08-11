@@ -1,15 +1,15 @@
 """
-En este archvio se ecuentran los estados claves de los distintos objetos fisicos de la simulacion
+En este archivo se encuentran los estados clave de los distintos objetos físicos de la simulación
 """
 
 from enum import Enum
 
 class ModularVehicleState(Enum):
     """
-    Estados posibles que los Vms pueden tener 
+    Estados posibles que los VMs pueden tener
     """
     MOVING = "MOVING"                           # Viaja en el tren o en un track a velocidad normal
-    ACCELERATING_UP = "ACCELERATING_UP"         # Subiendo por un arbol UP (desaselerando)
+    ACCELERATING_UP = "ACCELERATING_UP"         # Subiendo por un arbol UP (desacelerando)
     ACCELERATING_DOWN = "ACCELERATING_DOWN"     # Bajando por un arbol DOWN (acelerando)
 
 class PassengerState(Enum):
@@ -25,14 +25,14 @@ class PassengerState(Enum):
 
 class TreeDirection(Enum):
     """
-    Estados posibles que los arboles de aceleracion pueden tener
+    Dirección de un árbol de aceleración
     """
-    UP = "UP"       # Arbol aciende, (la grabedad lo hace desaselerar)
-    DOWN = "DOWN"   # Arbol deciende, (la grabedad lo hace acelerar)
+    UP = "UP"       # Árbol asciende (la gravedad lo hace desacelerar)
+    DOWN = "DOWN"   # Árbol desciende (la gravedad lo hace acelerar)
 
 class CollisionAction(Enum):
     """
-    Estados posibles de la predicion de colisiones
+    Estados posibles de la predicción de colisiones
     """
     FREE = "FREE"               # Hay slot disponible, sin problema
     CONSUME = "CONSUME"         # No hay slot disponible pero hay un VM que puede ser consumido para liberar espacio
@@ -40,7 +40,7 @@ class CollisionAction(Enum):
 
 class AndenState(Enum):
     """
-    Estados posibles para los andenes en una esation.
+    Estados posibles para los andenes en una estación.
     """
-    ACTIVE = "ACTIVE"           # Anden activo habilitado para recivir VMs y Pasengers
-    INACTIVE = "INACTIVE"       # Anden inactivo incapacitado para recivir VMs o Passengers
+    ACTIVE = "ACTIVE"           # Anden activo habilitado para recibir VMs y Passengers
+    INACTIVE = "INACTIVE"       # Anden inactivo incapacitado para recibir VMs o Passengers

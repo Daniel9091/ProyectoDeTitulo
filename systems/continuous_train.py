@@ -2,24 +2,24 @@
 continuousTrain - Carril inferior circular de la simulacion
 
 Responsabilidades:
-    - Mantener una lista de slots fjijos con posición calculada desde tail_x (O(1) por frame)
+    - Mantener una lista de slots fijos con posición calculada desde tail_x (O(1) por frame)
     - Avanzar el carril moviendo solo tail_x - todos los slots se recalculan desde ahí
     - Mantener las etiquetas de cada slot para que brain tome decisiones
-    - Exponer consultas de datos (posicion 3D, slot mas cercano a un belt_x dado)
-    - Manejar el wrap-around circular con modulo
+    - Exponer consultas de datos (posición 3D, slot más cercano a un belt_x dado)
+    - Manejar el wrap-around circular con módulo
 
 Lo que no hace:
-    - No toma deciciones de routing, colisión ni demanda (Brain lo hace)
+    - No toma decisiones de routing, colisión ni demanda (Brain lo hace)
     - No conoce logica de estaciones - solo registra junction_points por station_id
     - No gestiona pasajeros
 
 Estructura de cada slot (dict en self.slots):
     {
         'vm':                           ModularVehicle | None
-        'reserved_station_id':          int | None              # Estación que reclamo el slot (routing en junction_UP) (sistema de reserva)
-        'reserved_vm_id':               int | None              # VM esperado (verificacíon de llegada)
-        'demand_station_id':            int | None              # Marcado para suplir demanda (sistema de taza)
-        'destination_station_id':       int | None              # Destino del VM en este slot (VM tiene destino por que tiene pasajeros a bordo) (sistema de destino)    
+        'reserved_station_id':          int | None              # Estación que reclamó el slot (routing en junction_UP) (sistema de reserva)
+        'reserved_vm_id':               int | None              # VM esperado (verificación de llegada)
+        'demand_station_id':            int | None              # Marcado para suplir demanda (sistema de tasa)
+        'destination_station_id':       int | None              # Destino del VM en este slot (VM tiene destino por que tiene pasajeros a bordo) (sistema de destino)
     }
 """
 
@@ -35,9 +35,9 @@ class ContinuousTrain:
     """
     Carril inferior circular del sistema de transporte.
 
-    El carrijl es un segmento de start_pos a end_pos tratado como via circular:
-    los VMs qeu superan el final reaparecen al inicio via modulo.
-    Internamente se modlea como una coordenada 1D (belt_x ∈ [0, total_length)).
+    El carril es un segmento de start_pos a end_pos tratado como via circular:
+    los VMs que superan el final reaparecen al inicio via modulo.
+    Internamente se modela como una coordenada 1D (belt_x ∈ [0, total_length)).
 
     Parámetros:
         start_pos           Vector3             # inicio del carril en 3D
@@ -45,7 +45,7 @@ class ContinuousTrain:
         density             float               # proporcion inicial de slots ocupados [0.0 - 1.0]
         vm_factory          Callable            # vm_factory(vm_id: int) -> ModularVehicle
         rng                 random.Random       # generador compartido con semilla fija
-        junction_points     dict[int, float]    # {station_id: belt_x} puntos de conexion de arboles
+        junction_points     dict[int, float]    # {station_id: belt_x} puntos de conexión de árboles
     """
 
     def __init__(
@@ -90,7 +90,7 @@ class ContinuousTrain:
         y calcula el leftover_dt exacto (tiempo sobrante después de cruzar).
 
         Retorna list[(slot_idx, station_id, leftover_dt)].
-        Si Brain decide NO trasferir el VM al árbol, ignora el leftover_dt:
+        Si Brain decide NO transferir el VM al árbol, ignora el leftover_dt:
         el VM ya avanzó el frame completo en el belt gracias al avance de tail_x.
 
         Soporta múltiples cruces por junction por frame:
@@ -139,14 +139,13 @@ class ContinuousTrain:
     def get_slot_belt_x(self, slot_idx: int) -> float:
         """
         Coordenada 1D de carril del slot indicado.
-        Posicion de slot i = (tail_x + slot_idx * TRAIN_SPACING) % total_length
-        
+        Posición de slot i = (tail_x + slot_idx * TRAIN_SPACING) % total_length
         """
         return (self.tail_x + slot_idx * TRAIN_SPACING) % self.total_length
     
     def get_slot_position_3d(self,slot_idx: int) -> Vector3:
         """
-        Posision 3D del slot indicado
+        Posición 3D del slot indicado
         """
         return self.belt_x_to_3d(self.get_slot_belt_x(slot_idx))
     
@@ -154,9 +153,9 @@ class ContinuousTrain:
         """
         Convierte coordenada de carril a posicion 3D.
 
-        Hoy; interpolacion lineal entre start_pos y end_pos.
-        Diseñada para ser externdida en versiones futruras con trayectorias curvas
-        (reemplazar con tabla de segmentoes sin cambiar la interfaz)
+        Hoy: interpolación lineal entre start_pos y end_pos.
+        Diseñada para ser extendida en versiones futuras con trayectorias curvas
+        (reemplazar con tabla de segmentos sin cambiar la interfaz)
         """
         t = belt_x / self.total_length
         return Vector3(
@@ -170,7 +169,7 @@ class ContinuousTrain:
     def place_vm(self, vm: ModularVehicle, slot_idx: int) -> None:
         """
         Coloca un VM en el slot indicado.
-        Brain llama esto cuando un VM termina de desender para un arbol y toma su slot.
+        Brain llama esto cuando un VM termina de descender por un árbol y toma su slot.
 
         Si el slot YA tiene un VM — nunca debería pasar en operación correcta, indica
         que la reserva falló o llegó tarde — el VM entrante NO sobreescribe al que ya
@@ -190,8 +189,8 @@ class ContinuousTrain:
         """
         Extrae el VM del slot y lo retorna.
         Brain llama esto cuando  un VM sale del carril hacia un arbol de subida.
-        No se limpia la etiqueta de reserva, por que se debe conservar hasta
-        el arbol de bajada.
+        No se limpia la etiqueta de reserva, porque se debe conservar hasta
+        el árbol de bajada.
         """
         vm = self.slots[slot_idx]['vm']
         self.slots[slot_idx]['vm'] = None
@@ -219,7 +218,7 @@ class ContinuousTrain:
 
     def set_destination(self, slot_idx: int, station_id: int) -> None:
         """
-        Registra que el VM en este slot tiene destiono station_id.
+        Registra que el VM en este slot tiene destino station_id.
         """
         self.slots[slot_idx]['destination_station_id'] = station_id
 
@@ -237,7 +236,7 @@ class ContinuousTrain:
 
     def clear_demand_supply(self, slot_idx: int) -> None:
         """
-        Limpia slots[slot_idx]['demand_supply_for_station_id']
+        Limpia slots[slot_idx]['demand_station_id']
         """
         self.slots[slot_idx]['demand_station_id'] = None
 
@@ -245,10 +244,10 @@ class ContinuousTrain:
     
     def find_nearest_slot_to_belt_x(self, target_belt_x: float) -> tuple[int, float]:
         """
-        Retorna (slot_idx, distancia) del slot cuya posicion es mas cercana a target_belt_x.
-        O(1): la distribucion uniforma de slots permite calculo directo por aritmetica.
+        Retorna (slot_idx, distancia) del slot cuya posición es más cercana a target_belt_x.
+        O(1): la distribución uniforme de slots permite cálculo directo por aritmética.
         La distancia considera el wrap-around circular.
-        Brain usa esto para dientificar que slot esta en un junciton cada frame.
+        Brain usa esto para identificar qué slot está en una junction cada frame.
         """
         relative = (target_belt_x - self.tail_x) % self.total_length
         idx = round(relative / TRAIN_SPACING) %  self.max_slots
@@ -258,7 +257,7 @@ class ContinuousTrain:
     
     def get_occupied_slot_count(self) -> int:
         """
-        Cantidad de slots ocupados ['vm'] != None.
+        Cantidad de slots cuyo campo 'vm' no es None.
         """
         return sum(1 for s in self.slots if s['vm'] is not None)
     
@@ -286,8 +285,8 @@ class ContinuousTrain:
 
     def _init_slots(self, density: float, vm_factory: Callable, rng: random.Random) -> None:
         """
-        Crea max_slots slots y ocupa aleatoriamente segun density.
-        IDs de VMs inicialies: enteros secuenciales desde 0.
+        Crea max_slots slots y ocupa aleatoriamente según density.
+        IDs de VMs iniciales: enteros secuenciales desde 0.
         vm_factory(vm_id) construye cada ModularVehicle con el ID indicado.
         """
         next_vm_id = 0
@@ -320,7 +319,7 @@ class ContinuousTrain:
 
 def _circular_distance(a: float, b: float, lenght: float) -> float:
     """
-    Distancia minima entre dos puntos en una circunferencia de longitud lenght.
+    Distancia mínima entre dos puntos en una circunferencia de longitud length.
     """
     diff = abs(a -b)%lenght
     return min(diff, lenght - diff)

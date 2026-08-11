@@ -1,9 +1,9 @@
 """
 Vehículo modular (VM) - Unidad básica de transporte en NSim.
 
-Responsabilidades de este archvio:
-Modelar el estado INTERNO  de un VM: quuién es, qué es, qué capacidad tiene,
-quién lleva a bordo, a dónde va, y dónde esá en el espacio 3D
+Responsabilidades de este archivo:
+Modelar el estado INTERNO de un VM: quién es, qué es, qué capacidad tiene,
+quién lleva a bordo, a dónde va, y dónde está en el espacio 3D
 
 Lo que NO hace este archivo:
     - No calcula rutas              
@@ -35,14 +35,14 @@ class ModularVehicle:
         self.state: ModularVehicleState = ModularVehicleState.MOVING
 
         # POSICION
-        # expone su pocicion pero no la calcula
+        # expone su posición pero no la calcula
         self.position: Vector3 = Vector3()
 
         # SLOT EN TREN CONTINUO
         # None se ocupa cuando esta fuera del tren continuo
         self.slot_index: int | None = None
 
-        # PASAGEROS ABORDO
+        # PASAJEROS ABORDO
         self.passengers_on_board: list[Passenger] = []
 
         # NAVEGACION
@@ -60,15 +60,15 @@ class ModularVehicle:
     @property
     def passenger_count(self) -> int:
         """
-        Cantidad de pasageros actualmente abordo
+        Cantidad de pasajeros actualmente abordo
         """
         return len(self.passengers_on_board)
 
     @property
     def is_full(self) -> bool:
         """
-        True si el VM esta lleno
-        Se puede ocupar para saber si se pueden agregar mas pasageros
+        True si el VM está lleno
+        Se puede ocupar para saber si se pueden agregar más pasajeros
         """
         return self.passenger_count >= self.capacity
     
@@ -79,12 +79,12 @@ class ModularVehicle:
         """
         return self.destination_station_id is not None
     
-    # GESTION DE PASAGEROS
+    # GESTION DE PASAJEROS
     def board(self, passenger) -> bool:
         """
-        Embarca pasageros en el VM
+        Embarca pasajeros en el VM
         Retorna True si se pudo embarcar
-        Retorna False sin modificar el estado si el VM esta lleno
+        Retorna False sin modificar el estado si el VM está lleno
         """
         if self.is_full:
             return False
@@ -96,11 +96,11 @@ class ModularVehicle:
         """
         Retira del VM a todos los pasajeros cuyo destino sea station_id.
 
-        Retorna la lista de pasageros que bajaron (puede ser vacia).
-        Llamado por el sistema de estaciones cuando un VM pasa por una estacion.
+        Retorna la lista de pasajeros que bajaron (puede ser vacía).
+        Llamado por el sistema de estaciones cuando un VM pasa por una estación.
 
         Diseño: en lugar de que el Passenger se desembarque a si mismo,
-        el Vm decide qeuien baja segun el destino.
+        el VM decide quién baja según el destino.
 
         """
         staying = []

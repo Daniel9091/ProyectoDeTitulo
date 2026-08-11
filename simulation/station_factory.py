@@ -1,11 +1,11 @@
 """
-Fábrica de  estaciones con geometria 3D automatica.
+Fábrica de estaciones con geometría 3D automática.
 
 Responsabilidades:
-    - Recibir posicion 3D de la estación, largo de rampa y prfundidad de juntion
-    - Calcular autoáticamente dónde van las junctiones en el belt (belt_x_up, belt_dn)
-    - Garantizar que todos los árboles de la etacion tengan el mismo largo (ramp_length)
-    - Instanciar AccelerationTree, BoardingLane, Junciton y Station
+    - Recibir posición 3D de la estación, largo de rampa y profundidad de junction
+    - Calcular automáticamente dónde van las junctions en el belt (belt_x_up, belt_dn)
+    - Garantizar que todos los árboles de la estación tengan el mismo largo (ramp_length)
+    - Instanciar AccelerationTree, BoardingLane, Junction y Station
 
 Lo que NO hace:
     - No registra en Network (responsabilidad de simulation_builder.py)
@@ -15,7 +15,7 @@ Lo que NO hace:
 Geometría (ejes: X = belt, Y = Ancho estacion, Z = Altura):
 
     Junction UP:    (belt_x_up,  station_origin.y, junction_depth)
-    Juntion DOWN:   (belt_x_dn,  station_origin.y, junction_depth)
+    Junction DOWN:  (belt_x_dn,  station_origin.y, junction_depth)
 
     Piso estación:  Z = dims.floor_height
 
@@ -24,8 +24,8 @@ Geometría (ejes: X = belt, Y = Ancho estacion, Z = Altura):
     
     Para cada andén con offset y_i:
         dx_i = sqrt(ramp_length^2 - y_i^2 - dz^2)
-        - anden externo (max|y_i|): dx menor -> lane mas larga
-        - anden central (y_i = 0): dx mayor -> lane mas corta
+        - andén externo (max|y_i|): dx menor → lane más larga
+        - andén central (y_i = 0): dx mayor → lane más corta
 
     Posiciones Y (siempre lane central en Y=0; soporta N par e impar):
         N=1 → [0]
@@ -72,14 +72,14 @@ class TrackIdAllocator:
 # ─── FUNCIÓN PRINCIPAL ───────────────────────────────────────────────────────
 def create_station(
     station_id:                 int,                    # ID
-    station_origin:             Vector3,                # Cordenadas del centro de la estacion
+    station_origin:             Vector3,                # Coordenadas del centro de la estación
     num_lanes:                  int,                    # Numero de andenes
     passenger_rate:             float,                  # Tasa de produccion de pasajeros (s)
-    destination_probabilities:  dict,                   # diccionario con probabilidades de que pasagero valla a estacion x
+    destination_probabilities:  dict,                   # Probabilidades de destino por estación
     vm_request_rate:            float,                  # Tasa de solicitudes de VMs (s)
     rng:                        random.Random,          # Generador de numeros aleatorios
     id_generator:               PassengerIdGenerator,   # Generador de IDs de pasajeros
-    id_alloc:                   TrackIdAllocator,       # Generador de IDs de tracks  
+    id_alloc:                   TrackIdAllocator,       # Generador de IDs de tracks
     recorder,      
 ) -> tuple[Station, list, list, list, Junction, Junction]:
     """
@@ -95,7 +95,7 @@ def create_station(
         junction_down:  Junction                  - agrupa todos los down_trees
 
     ADVERTENCIA: belt circular:
-        junciotn_down.belt_x puede exeder TOTAL_BELT_LENGTH si la estación está
+        junction_down.belt_x puede exceder TOTAL_BELT_LENGTH si la estación está
         cerca del final del belt. El builder debe hacer:
             junction_down.belt_x %= TOTAL_BELT_LENGTH
         antes de registrar la junction y de pasar belt_x a ContinuousTrain.
@@ -141,10 +141,10 @@ def create_station(
         up_trees.append(AccelerationTree(
             track_id            = up_id,                # ID
             start_pos           = j_up_3d,              # Coordenada de juntion up (origen)
-            end_pos             = extraction,           # indica cordenada donde comienza la lane (termino)
+            end_pos             = extraction,           # Coordenada de extracción: terminus del árbol UP, origen de la lane
             direction           = TreeDirection.UP,     # Indica arbol de subida
             min_vm_separation   = MIN_VM_SEPARATION,    # Minima separacion entre vm en el arbol (anti colicion)
-            station_id          = None,                 # ID de la etacion a la que pertenece
+            station_id          = None,                 # ID de la estación a la que pertenece
             recorder            = recorder   
         ))
         lanes.append(BoardingLane(
@@ -155,11 +155,11 @@ def create_station(
         ))
         down_trees.append(AccelerationTree(
             track_id            = down_id,                # ID
-            start_pos           = discharge,            # Coordenada de comienzo arbol (origen)
-            end_pos             = j_down_3d,            # Indica cordenada de juntion down (termino)
+            start_pos           = discharge,            # Coordenada de comienzo del árbol (origen)
+            end_pos             = j_down_3d,            # Coordenada de junction DOWN (término)
             direction           = TreeDirection.DOWN,   # Indica arbol de bajada
             min_vm_separation   = MIN_VM_SEPARATION,    # Minima separacion entre vm en el arbol (anti colicion)
-            station_id          = station_id,           # ID de la etacion a la que pertenece
+            station_id          = station_id,           # ID de la estación a la que pertenece
             recorder            = recorder
         ))
         platforms.append({
@@ -204,11 +204,11 @@ def create_station(
 
 def _lane_y_offsets(num_lanes: int, y_length: float) -> list[float]:
     """
-    Posiciones Y equidistantes, siempre siempre con lane central en Y=0
+    Posiciones Y equidistantes, siempre con lane central en Y=0
     
     Fórmula (y_ext = y_length / 2):
-        n_right = ceil((num_lanes - 1) / 2)     <- lanes en Y positivo (=> n_left)
-        n_left  = floor((num_lanes - 1) / 2)    <- lanes en Y negativo
+        n_right = ceil((num_lanes - 1) / 2)     <- lanes en Y positivo (derecha)
+        n_left  = floor((num_lanes - 1) / 2)    <- lanes en Y negativo (izquierda)
         step_right = y_ext / (n_right + 1)
         step_left  = y_ext / (n_left + 1)
 

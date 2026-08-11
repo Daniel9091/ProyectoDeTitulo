@@ -17,7 +17,7 @@ Lo que NO hace:
 
 Topología de adyacencia (uno a muchos):
     adjacency[track_id] = [next_track_id, ...]
-    - len == 1 -> transición mecanica, Network la ejecuta
+    - len == 1 -> transición mecánica, Network la ejecuta
     - len >  1 -> decisión de Brain (ej: dos DOWN trees para dos trenes)
     - len == 0 -> track terminal -> Brain decide qué hacer (actualmente: si es
                   AccelerationTree DOWN con station_id, Brain lo coloca en el belt)
@@ -48,8 +48,8 @@ class Network:
     """
     Gestiona la topología de tracks superiores y ejecuta transiciones mecánicas.
     
-    Brain es responsale del loop pricipal. Network es un subsistema que Brain 
-    consulta y ordena  - no orquesta por su cuenta.
+    Brain es responsable del loop principal. Network es un subsistema que Brain
+    consulta y ordena — no orquesta por su cuenta.
     """
 
     def __init__(self):
@@ -104,12 +104,12 @@ class Network:
         Avanza todos los tracks dt segundos y recolecta completions.
 
         Retorna list[(vm, track_id, leftover_dt)] - VMs que completaron su track este frame.
-        No transfiere vMs al próximo track aquí. Solo recolecta.
+        No transfiere VMs al próximo track aquí. Solo recolecta.
 
         Debe llamarse ANTES de que Brain procese los junction crossings del ContinuousTrain
         (antes del paso de junction routing). Esto evita el bug de doble movimiento:
-        un VM que Brain trasfiere a un UP tree en eeste tick NO se mueve hasta el tick 
-        siguiente - su leftover_dt queda banqueado como initial_distance en add_vehicle().
+        un VM que Brain transfiere a un UP tree en este tick NO se mueve hasta el tick
+        siguiente - su leftover_dt queda almacenado como initial_distance en add_vehicle().
         """
         completions: list[tuple[ModularVehicle, int, float]] = []
         for track_id, track in self.tracks.items():
@@ -130,7 +130,7 @@ class Network:
 
         Para cada (vm, track_id, leftover_dt):
             - len == 1 -> transicion mecánica: Network transfiere el VM directamente.
-            - len >  1 -> decisión de Brian: incluido en `decisions` sin transferir.
+            - len >  1 -> decisión de Brain: incluido en `decisions` sin transferir.
             - len == 0 -> track terminal: incluido en `belt_placements` para Brain.
                           Brain verifica station_id antes de colocar en belt:
                           si station_id es None, Brain no intenta colocarlo.
@@ -140,7 +140,7 @@ class Network:
             - belt_placements:  list[(vm, leftover_dt, station_id)]
                                 station_id proviene de AccelerationTree.station_id.
                                 Puede ser None si el árbol no tiene estación asignada
-                                (indicativo de eror de configuarción de la red)
+                                (indicativo de error de configuración de la red)
         """
         decisions: list[tuple[ModularVehicle, list[int], float]] = []
         belt_placements: list[tuple[ModularVehicle, float, int | None]]= []
@@ -192,6 +192,7 @@ class Network:
     
     @property
     def total_vehicle_count(self) -> int:
+        """Número total de VMs en todos los tracks del grafo."""
         return sum(track.vehicle_count for track in self.tracks.values())
 
     # DEBUG

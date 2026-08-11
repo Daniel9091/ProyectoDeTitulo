@@ -1,4 +1,6 @@
 """
+Acceleration tree and junction routing analysis (SP5).
+
 Questions answered:
   1. ¿Qué andén elige el junction para cada VM?                 → _routing_balance
   2. ¿Cuál es la razón de entrada al junction por estación?     → _reason_distribution
@@ -364,8 +366,6 @@ def _entry_margin(con, rep, out_dir):
     save_fig("trees_entry_margin", out_dir)
     plt.close()
 
-
-# ── 5. Colisiones en track ────────────────────────────────────────────────────
 
 # ── 5. Colisiones en track ────────────────────────────────────────────────────
 

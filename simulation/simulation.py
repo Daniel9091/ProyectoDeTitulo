@@ -3,13 +3,13 @@ Simulation - runner de NSim.
 
 Responsabilidades:
     - Mantener el tiempo de simulación (current_time)
-    - Ejecturar frames via brain.update(dt, current_time)
-    - Ofrecer run_hadless para correr sin render
+    - Ejecutar frames via brain.update(dt, current_time)
+    - Ofrecer run_headless para correr sin render
 
 Lo que NO hace:
     - No conoce la geometría ni la red (eso es del builder)
     - No dibuja nada (eso es de render)
-    - No kcrea ni destruye objetos (eso es de Brain y Station)
+    - No crea ni destruye objetos (eso es de Brain y Station)
 """
 from systems.brain import Brain
 from config.constants import FPS
@@ -17,10 +17,10 @@ import time
 
 class Simulation:
     """
-    Wrapper mínimo alrededor de Brian.
+    Wrapper mínimo alrededor de Brain.
 
-    Uso tipico:
-        brain, stations = ecenario_base.build()
+    Uso típico:
+        brain, stations = escenario_base.build()
         sim = Simulation(brain, stations)
         sim.run_headless(n_ticks = 3000)
     """
@@ -30,7 +30,7 @@ class Simulation:
         self.current_time: float = 0.0
 
     def step(self, dt: float) -> None:
-        """ Avanza un frame de dt segundos."""
+        """Avanza un frame de dt segundos."""
         self._brain.update(dt, self.current_time)
         self.current_time += dt
     

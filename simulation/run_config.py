@@ -6,6 +6,10 @@ import config.constants as C
 
 
 def extract_run_config(brain, stations: dict) -> dict:
+    """
+    Extrae la configuración completa de una corrida a un dict JSON-serializable.
+    Accede a brain._train directamente para leer el estado del belt.
+    """
     train = brain._train
 
     vm_capacity = None

@@ -1,3 +1,4 @@
+"""Operaciones de álgebra vectorial 3D para el posicionamiento de objetos en NSim."""
 import math
 
 class Vector3:
@@ -24,7 +25,7 @@ class Vector3:
         return Vector3(-self.x, -self.y, -self.z)
 
     def __mul__(self, escalar):
-        """Multiplicaion por escalar"""
+        """Multiplicación por escalar"""
         return Vector3(self.x * escalar, self.y * escalar, self.z * escalar)
     
     def __truediv__(self, escalar):
@@ -36,7 +37,7 @@ class Vector3:
         return hash((self.x, self.y, self.z))
 
     def __eq__(self, other):
-        """Compara si dos vectores son iguales con una toleracia para numeros float"""
+        """Compara si dos vectores son iguales con una tolerancia para números float"""
         if not isinstance(other, Vector3):
             return NotImplemented
         return ((abs(self.x-other.x) < 1e-9) and 
@@ -44,11 +45,11 @@ class Vector3:
                 (abs(self.z-other.z) < 1e-9))
 
     def __str__(self):
-        """Muesta el valor del vector"""
+        """Muestra el valor del vector"""
         return f"({self.x}, {self.y}, {self.z})"
 
     def __repr__(self):
-        """Muesta el valor del vector"""
+        """Muestra el valor del vector"""
         return f"Vector3({self.x}, {self.y}, {self.z})"
 
     def length(self):
@@ -58,7 +59,7 @@ class Vector3:
     def normalize(self):
         """
         Normaliza el vector:
-        Represneta la direccion como vector unitario
+        Representa la dirección como vector unitario
         """
         length = self.length()
         if length > 0:
@@ -74,6 +75,7 @@ class Vector3:
         return math.sqrt((self.x - other.x)**2 + (self.y - other.y)**2 + (self.z - other.z)**2)
 
     def to_tuple(self):
+        """Retorna el vector como tupla (x, y, z)."""
         return (self.x, self.y, self.z)
 
 

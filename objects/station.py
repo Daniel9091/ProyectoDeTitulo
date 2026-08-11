@@ -3,10 +3,10 @@ Station - Estacion del sistema de transporte NSim.
 
 Responsabilidades:
     - Generar pasajeros con tasa de produccion configurable (acumulador decimal)
-    - Asignar destionos según distribucion de probabilidades configurada por estación
-    - Mover pasajeros desde el origen hasta el inico de la boarding lane asignada
+    - Asignar destinos según distribución de probabilidades configurada por estación
+    - Mover pasajeros desde el origen hasta el inicio de la boarding lane asignada
     - Gestionar plataformas activas/inactivas con asignacion en rotación
-    - Acumula demanda de VMs y exponerla a Brain (puede ser negativa)
+    - Acumular demanda de VMs y exponerla a Brain (puede ser negativa)
 
 Lo que NO hace:
     - No seleciona que arbol usa cada VM (Brain/Network lo deciden con los tree_ids)
@@ -19,7 +19,7 @@ Estructura interna por plataforma (un dict en self._platforms):
         'lane':             BoardingLane,       # objeto, propiedad de Station
         'up_tree_id':       int,                # arbol de subida - Network lo resuelve
         'down_tree_id':     int,                # arbol de bajada - Network lo resuelve
-        'extraction_point:  Vector3,            # Punto donde los VMs llegan desde el arbol de subida
+        'extraction_point': Vector3,            # Punto donde los VMs llegan desde el arbol de subida
         'discharge_point':  Vector3,            # Punto donde los VMs parten al arbol de bajada
         'state':            AndenState          # Estado actual de la plataforma
     }
@@ -35,7 +35,7 @@ from objects.passenger_id_generator import PassengerIdGenerator
 
 class StationDimensions:
     """
-    Dimenciones físicas de la estación.
+    Dimensiones físicas de la estación.
     Usadas para calcular límites del plano y para render
     El largo exacto de cada boarding lane depende del offset de la plataforma más externa,
     calculado en station_factory.
@@ -48,11 +48,12 @@ class StationDimensions:
     
     @property
     def total_height(self) -> float:
+        """Altura total de la estación (floor_height × num_floors)."""
         return self.floor_height * self.num_floors
 
 class Station:
     """
-    Estacion del sistema de trasporte
+    Estación del sistema de transporte
 
     Parámetros de configuración:
         station_id                  int
@@ -70,7 +71,7 @@ class Station:
         _passenger_accumulator      float                   acumula produccion de pasajeros
         _vm_demand_acumulator       float                   acumula demanda de VMs (puede ser negativa)
         _walking                    dict                    pasajeros caminando dentro de la estación
-        _next_passenger_id          int                     contador de IDs unico por estacion
+        _id_generator               PassengerIdGenerator    genera IDs únicos para cada pasajero
         _next_platform_idx          int                     puntero rotativo sobre plataformas activas
     """
 
@@ -88,7 +89,7 @@ class Station:
         recorder,
     ):
         """
-        Inicialisacion de una estación.
+        Inicialización de una estación.
         """
         self.station_id                 = station_id
         self.origin                     = origin
@@ -124,7 +125,7 @@ class Station:
     def update(self, dt: float, current_time: float) -> None:
         """
         Avanza un frame: mueve caminantes, genera pasajeros acumula demanda de VMs.
-        El oden importa: avanzar caminantes antes de generar nuevos.
+        El orden importa: avanzar caminantes antes de generar nuevos.
         """
         self._advance_walking_passengers(dt)
         self._accumulate_passengers(dt, current_time)
@@ -148,12 +149,13 @@ class Station:
 
     @property
     def num_platforms(self) -> int:
+        """Número total de plataformas (activas e inactivas)."""
         return len(self._platforms)
 
     def on_vm_committed(self) -> None:
         """
-        Brain comprometio exjitosamente un slot para esta estación.
-        Se llama al confirmar la marca - garantiza qeu el VM va a llegar
+        Brain comprometió exitosamente un slot para esta estación.
+        Se llama al confirmar la marca - garantiza que el VM va a llegar
         """
         self._vm_demand_accumulator -= 1.0
 
@@ -166,10 +168,10 @@ class Station:
 
     def on_unplanned_vm_at_tree(self) -> None:
         """
-        Un VM no marcado para demanda fue aceptado por un arbol de esta estacion
-        Aplica cuando el VM sube por pasajeros, reserva o redirecionamiento forzado.
-        Brain lo detecta en el momento de aceptacion del arbol y llama esto.
-        Puede dejar el acumulator negativo - se autorregula con el tiempo.
+        Un VM no marcado para demanda fue aceptado por un árbol de esta estación
+        Aplica cuando el VM sube por pasajeros, reserva o redireccionamiento forzado.
+        Brain lo detecta en el momento de aceptacion del árbol y llama esto.
+        Puede dejar el acumulador negativo - se autorregula con el tiempo.
         """
         self._vm_demand_accumulator -= 1.0
       
@@ -233,11 +235,13 @@ class Station:
     
     @property
     def x_bounds(self) -> tuple[float,float]:
+        """Rango (min_x, max_x) de la estación en el plano XY."""
         half = self.dimensions.x_length / 2
         return (self.origin.x - half, self.origin.x + half)
-    
+
     @property
     def y_bounds(self) -> tuple[float,float]:
+        """Rango (min_y, max_y) de la estación en el plano XY."""
         half = self.dimensions.y_length / 2
         return (self.origin.y - half, self.origin.y + half)
 
@@ -245,7 +249,7 @@ class Station:
 
     def _accumulate_passengers(self,dt: float, current_time: float) -> None:
         """
-        Acumula la producion de pasajeros
+        Acumula la producción de pasajeros
         El while maneja dt grandes: si se acumula 2.7 genera 2 pasajeros
         """
         self._passenger_accumulator += self.passenger_rate * dt
@@ -314,7 +318,7 @@ class Station:
     def _select_platform(self, active_platforms: list) -> dict:
         """
         Round-robin sobre las plataformas activas.
-        El modulo garantiza que el indice no salga del rango si cambia la cantidad de activos
+        El módulo garantiza que el índice no salga del rango si cambia la cantidad de activos
         """
         idx = self._next_platform_idx % len(active_platforms)
         self._next_platform_idx +=1
@@ -322,8 +326,8 @@ class Station:
 
     def _choose_destination(self) -> int:
         """
-        Elige destiono segun los pesos de destination_probabilities.
-        random.choices normaliza automaticamente - los pesos no necesitan sumar 1.
+        Elige destino según los pesos de destination_probabilities.
+        random.choices normaliza automáticamente - los pesos no necesitan sumar 1.
         """
         destinations = list(self.destination_probabilities.keys())
         weights = list(self.destination_probabilities.values())
@@ -331,7 +335,7 @@ class Station:
 
     def _walk_distance_to(self, lane: BoardingLane) -> float:
         """
-        Distancia euclidiand desde el origen de la estacion al inicio de la boarding lane.
+        Distancia euclidiana desde el origen de la estación al inicio de la boarding lane.
         """
         s = lane.start_pos
         return ((s.x - self.origin.x)**2 +
@@ -356,6 +360,7 @@ class Station:
         }
 
     def platform_snapshot_data(self) -> list[dict]:
+        """Estado detallado de cada andén: colas de pasajeros, VMs presentes y progreso de embarque."""
         result = []
         for i, platform in enumerate(self._platforms):
             lane = platform['lane']
@@ -388,6 +393,7 @@ class Station:
 
     
     def __repr__(self) -> str:
+        """Representación legible de la estación para debugging."""
         active = len(self.get_active_platforms())
         return (
             f"Station(id={self.station_id}, "

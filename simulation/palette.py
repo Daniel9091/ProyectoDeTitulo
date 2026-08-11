@@ -39,5 +39,6 @@ active = DARK
 
 
 def toggle():
+    """Alterna entre el modo oscuro (DARK) y el modo claro (LIGHT)."""
     global active
     active = LIGHT if active is DARK else DARK

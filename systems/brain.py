@@ -7,14 +7,14 @@ los distintos tracks. NO implementa física ni genera pasajeros - delega eso a l
 subsistemas y solo toma decisiones de routing.
 
 Sistemas que Brain orquesta:
-    ContinuosTrain  - carril circular (belt). Brain lo avanza y lee sus crossings.
+    ContinuousTrain  - carril circular (belt). Brain lo avanza y lee sus crossings.
     Network         - grafo de tracks superiores. Brain lo avanza y recibe completions.
     Station         - cada estación. Brain la actualiza y lee su demanda pendiente.
 
 Los tres sistemas de etiquetas de slot que Brain gestiona:
     reserved_station_id         int|None        anticolición: el slot DEBE liberar su VM en esa estación
     destination_station_id      int|None        routing: el VM tiene pasajeros para esta estación
-    demand_station_id           int|None        taza: la estación necesita un VM y reclama este slot
+    demand_station_id           int|None        demanda: la estación necesita un VM y reclama este slot
 
 Invariante de dependencias:
     Brain importa de tracks/ y systems/ pero nada importa de Brain excepto simulacion/.
@@ -49,8 +49,8 @@ class Brain:
     _stations           dict[int, Station]      estaciones por station_id
     _reserved_slots     dict[int,int]           vm_id -> slot_idx
                                                 Registra qué slot específico fue prometido a cada VM
-                                                mientras el VM aún está en el DOWN tree. Se consume
-                                                en _handle_belt_placements cuando el VM llega al belt.
+                                                mientras el VM está en la boarding lane o en el DOWN tree.
+                                                Se consume en _handle_belt_placements cuando el VM llega al belt.
     """
 
     def __init__(
@@ -77,6 +77,7 @@ class Brain:
         
 
     def _register_initial_vms(self) -> None:
+        """Registra en all_vms y en el recorder los VMs ya presentes en el belt al inicializar Brain."""
         for slot in self._train.slots:
             if slot['vm'] is not None:
                 vm = slot['vm']
@@ -111,26 +112,27 @@ class Brain:
 
         Por qué este orden:
 
-        Pasos 1-3 (avance físico) van  ANTES que los pasos de routing (4-6):
+        Pasos 1-3 (avance físico) van ANTES que los pasos de routing (4-6):
             Si Brain transfiriera un VM a un árbol UP en el paso 4 y los tracks se
-            avanzaran DESPUES, ese VM recibiría doble movimiento en el mismo frame
+            avanzaran DESPUÉS, ese VM recibiría doble movimiento en el mismo frame
             (primero el leftover_dt al entrar al árbol y luego el dt completo del update).
-            Avanzar todos los tracks PRIMERO  garantiza que los VMs transferidos este
+            Avanzar todos los tracks PRIMERO garantiza que los VMs transferidos este
             frame solo se muevan a partir del frame siguiente
-        
-        Paso 7 (station.update) va ANTES  que los pasos de etiquetas (8a, 8b):
+
+        Paso 7 (station.update) va ANTES que los pasos de etiquetas (8a, 8b):
             station.update acumula demanda. Brain necesita leer pending_demand ya
-            actualizado al asignar etiquetas de taza. Si estuviera después, Brain
+            actualizado al asignar etiquetas de demanda. Si estuviera después, Brain
             estaría reaccionando a la demanda del frame anterior.
         
         
         Paso 8a (reservas) va ANTES que 8b (demanda):
-            _range_search_demand filtra con 'if slot["reserved_station_id"] is not None: continue'.
-            Si las reservas corren primero, la demanda ve los slots ya comprometidos y los
-            omite automáticamente. Si la demanda corriera primero, podría marcar con
+            _range_search_demand filtra con 'if res_lbl is not None and res_lbl != station_id: continue'.
+            Si las reservas corren primero, la demanda ve los slots ya comprometidos para OTRA
+            estación y los omite. Los reservados para la misma estación S son candidatos de
+            prioridad 1 para demanda. Si la demanda corriera primero, podría marcar con
             demand_station_id = S el mismo slot que luego la reserva elige (priority 1).
             Esto causaría que on_vm_committed() se llame DOS veces para el mismo slot
-            fisico: una al poner la etiqueta de demanda y otra al hacer la reserva.
+            físico: una al poner la etiqueta de demanda y otra al hacer la reserva.
             El acumulador de demanda de S quedaría demasiado bajo (under-demand counting).
 
         """
@@ -143,6 +145,7 @@ class Brain:
         # 2. avanzar todos los tracks superiores (árboles y lanes): cada VM se mueve dt segundos.
         #   Los VMs que terminaron su track quedan en 'completitions'  para procesar despúes.
         completions = self._network.update_all_tracks(dt, current_time)
+        # 2b. Chequear colisiones en UP trees (_check_forced_vm_collisions / _check_collision_ends).
         self._check_forced_vm_collisions()
         self._check_collision_ends()
 
@@ -170,7 +173,7 @@ class Brain:
         #   y reservar el slot donde aterrizáran desde el DOWN tree.
         self._process_reservations()
 
-        # 8b. Sistema de taza: marcar slots con demand_station_id para estaciones con demanda 
+        # 8b. Sistema de demanda: marcar slots con demand_station_id para estaciones con demanda 
         self._process_demand()
         self._maybe_emit_station_snapshots(current_time)
 
@@ -182,7 +185,12 @@ class Brain:
         Procesa los slots que cruzaron una junction UP este frame.
 
         Cada crossing es (slot_idx, station_id, leftover_dt). Para cada uno, Brain
-        lee las 3 etiquetas del slot y aplica el comportamiento correspondiente:
+        lee las 3 etiquetas del slot y aplica el comportamiento correspondiente.
+
+        Jerarquía de garantía (de mayor a menor fuerza):
+            reserved  → garantía DURA: si add_vm falla, force_add_vm en el mismo frame.
+            destination → garantía BLANDA: si add_vm falla, VM sigue en belt (sin forzar).
+            demand    → sin garantía: si add_vm falla, rompe la promesa (on_commitment_broken).
 
             Reserved_station_id == S -> FORZADO (anticolición)
                 El slot fue reclamado para liberar espacio a un VM entrante. El VM 
@@ -204,13 +212,13 @@ class Brain:
                 otra (efecto de redireciones previas), se registra un WARNING.
             
             demand_station_id == S -> CONDICIONAL con penalidad
-                La estacion S marcó este slot porque necesita VMs (taza). Se intenta
+                La estacion S marcó este slot porque necesita VMs (demanda). Se intenta
                 add_vm; si rechaza: on_commitment_broken (restaura el contador de demanda)
                 y clear_demand_supply (libera el slot para una nueva busqueda el frame
                 siguiente). No se reintenta automáticamente.
             
         Las ramas son elif excluentes en orden de prioridad. Si un slot tiene
-        reserved == S y tambien dest = S, solo corre la rama de reserva (más fuerte).
+        reserved == S y también dest = S, solo corre la rama de reserva (más fuerte).
 
         INVARIANTE TOPOLÓGICO:
             Este código asume que set_reservation() nunca se llama con una station_id cuya
@@ -221,7 +229,7 @@ class Brain:
             on_commitment_broken() puede romper una promesa que el slot todavía podría haber
             cumplido. Solución futura: al detectar crossing de S con reserved=S,
             verificar si demand_station_id ya fue irreversiblemente superado comparando
-            posiciones belt_x de junction_UP del slot actual vs junction_UP del demand.
+            posiciones belt_x de junction_UP del slot actual vs junction_UP de la estación de demanda.
         """
         for slot_idx, station_id, leftover_dt in crossings:
             slot = self._train.slots[slot_idx]
@@ -548,8 +556,8 @@ class Brain:
         paralelos, donde boarding lane conecta a múltiples DOWN trees. En ese
         caso, Brain elige el árbol con menos VMs para distribuir carga.
 
-        (El metodo que se ocupe para elegir el mejor arbol puede cambiar)
-        (ahora no hay problema pero lo mas correcto es que el vm se dirija 
+        (El método que se use para elegir el mejor árbol puede cambiar)
+        (ahora no hay problema pero lo más correcto es que el vm se dirija
         donde fue proyectado)
         """
         for vm, next_ids, leftover_dt in decisions:
@@ -650,15 +658,15 @@ class Brain:
 
     def _get_down_tree_for_lane(self, lane_id: int):
         """
-        Busca el AccelerationTree DOWN conectado a una BoardingLane. en la adyacencia.
+        Busca el AccelerationTree DOWN conectado a una BoardingLane en la adyacencia.
 
         La topología garantiza que toda BoardingLane conecta a al menos un DOWN tree.
-        Si hay múltiples (arquitectura fuera de dos trenes), retorna el primero.
+        Si hay múltiples (arquitectura futura de dos trenes), retorna el primero.
         Retorna None si la lane es terminal (error de configuración de la red).
 
-        Para futura implementacion (multiples AccelerationTree DOWN), se debe considerar
-        que el vm baje por el acceleration tree que que lo lleve al slot que previamente
-        reservo.
+        Para futura implementación (múltiples AccelerationTree DOWN), se debe considerar
+        que el vm baje por el acceleration tree que lo lleve al slot que previamente
+        reservó.
         """
         for next_id in self._network.adjacency.get(lane_id, []):
             track = self._network.get_track(next_id)
@@ -691,7 +699,7 @@ class Brain:
         Matemáticas en 4 pasos:
 
         Paso 1 - Tiempo total con aceleración estándar (T_total):
-            T_lane  = distancia restante en lane / BOARDING_LANE_SPEED
+            T_lane = distancia restante en lane / BOARDING_LANE_SPEED
             T_tree_std = (TRAIN_SPEED - BOARDING_LANE_SPEED) / base_acceleration
             T_total = T_lane + T_tree_std
             (Asume que el VM baja con base_acceleration; se ajusta después si el slot
@@ -704,13 +712,17 @@ class Brain:
 
         Paso 3 - Búsqueda en rango:
             El target_idx ideal puede estar ocupando o saturar la junction. Brain busca
-            el mejor slot en ±(SLOT_SEARCH_RANGE//2) alrededor del target,
+            el mejor slot en ±(SLOT_SEARCH_RANGE_RESERVATION//2) alrededor del target,
             usando una función de prioridad (ver _range_search_reservation).
 
         Paso 4 - Ajuste de aceleración (MRUA):
             Si el slot elegido (best_slot) difiere del target en raw_offset posiciones,
-            el VM necesita llegar raw_offset * (TRAIN_SPACING / TRAIN_SPEED) segundos
-            mas tarde o más temprano. La nueva aceleración se calcula de MRUA:
+            el tiempo disponible cambia: T_target = T_total - raw_offset*(TRAIN_SPACING/TRAIN_SPEED).
+            El signo es RESTA (no suma): raw_offset > 0 significa que best_slot está ADELANTE
+            del target_idx en el belt, por lo que pasará por junction_down ANTES → el VM
+            debe apurarse → T_target < T_total. Con suma, los VMs llegan sistemáticamente
+            desfasados (bug real corregido julio 2026).
+            La nueva aceleración se calcula de MRUA:
                 d = v0*t + 0.5*a*t²  →  a = 2*(d - v0*t) / t²
             donde d = tree_length, v0 = BOARDING_LANE_SPEED, t = T_tree_adj.
             Esta aceleración se guarda en vm.reserved_tree_acceleration.
@@ -846,9 +858,9 @@ class Brain:
     # ─── BÚSQUEDA EN RANGO ───────────────────────────────────────────────────
     def _range_search_reservation(self, target_idx: int, station_id: int, junction_up) -> tuple[int | None, str, list]:
         """
-        Busca el mejor slot para una reserva en ±(SLOT_SEARCH_RANGE//2) del target.
+        Busca el mejor slot para una reserva en ±(SLOT_SEARCH_RANGE_RESERVATION//2) del target.
 
-                Prioridades (de mejor a peor):
+        Prioridades (de mejor a peor):
             1a. dest == station_id
                 VM ya va a S con pasajeros → refuerzo sin costo.
             1b. demand == station_id
@@ -865,7 +877,7 @@ class Brain:
         Slots ya reservados (para cualquier estación) se omiten siempre:
             reserved=S  → doble reserva para la misma estación (sin sentido).
             reserved=OTHER → colisión física garantizada (dos VMs al mismo slot).
-            En ambos casos: skip. Para reserved=OTHER se emite log CRITICAL.
+            En ambos casos: skipped_reason='reserved' en el window.
         """
         half = SLOT_SEARCH_RANGE_RESERVATION // 2
         max_slots = self._train.max_slots
@@ -949,7 +961,7 @@ class Brain:
 
     def _range_search_demand(self, station_id: int, junction_up) -> tuple[int | None, str, list]:
         """
-        Busca un slot con VM para marcar con demanda, mirando hasta SLOT_SEARCH_RANGE
+        Busca un slot con VM para marcar con demanda, mirando hasta SLOT_SEARCH_RANGE_DEMAND
         posiciones HACIA ATRÁS desde (junction_up − G slots) para evitar la zona ciega:
         los G slots más próximos a la junction pueden tener etiquetas recién limpiadas
         cuyos VMs ya están en el árbol UP y contribuyen a saturación sin ser visibles.
@@ -1030,8 +1042,8 @@ class Brain:
         """
         Verifica si agregar el slot candidato como destino de S saturaría la junction.
 
-        El 'Problema Destino Terminal': si muchos slots_saturation_count consecutivos van a la misma
-        estacion, la junction UP no puede absorberlos y los VM se acumulan.
+        El 'Problema Destino Terminal': si muchos slots consecutivos van a la misma
+        estación, la junction UP no puede absorberlos y los VM se acumulan.
 
         Parámetros de la junction:
             burst_capacity (N): cuántos VMs puede absorber de corrido (= número de árboles UP)
@@ -1067,7 +1079,7 @@ class Brain:
         """
         Cuenta cuántos slots ya marcados para S caerían en la misma ventana que candidate.
 
-        Usando como criterio de desempate en el fallback de _range_search_reservation.
+        Usado como criterio de desempate en el fallback de _range_search_reservation.
         cuando todos los candidatos saturarían la junction. Se elige el candidato con
         el menor conteo (el que menos empeora la saturación).
         """
@@ -1090,11 +1102,12 @@ class Brain:
         return max_count
     
     def _is_slot_marked_for(self, idx: int, station_id: int) -> bool:
-        """Retorna si el slot s esta marcado con demanda, con destino o con reserva"""
+        """Retorna True si el slot en idx está marcado con demanda, destino o reserva para station_id."""
         s = self._train.slots[idx % self._train.max_slots]
         return s['destination_station_id'] == station_id or s['demand_station_id'] == station_id or s['reserved_station_id'] == station_id
 
     def emit_vm_summaries(self, t: float) -> None:
+        """Emite vm_run_summary al recorder para cada VM conocido. Llamar al final de la simulación."""
         for vm in self.all_vms.values():
             self._recorder.vm_run_summary(
                 t=t,
@@ -1105,6 +1118,7 @@ class Brain:
             )
 
     def _maybe_emit_station_snapshots(self, current_time: float) -> None:
+        """Emite station_snapshot para cada estación si han transcurrido al menos SNAPSHOT_INTERVAL segundos desde el último snapshot."""
         if current_time - self._last_snapshot_t < SNAPSHOT_INTERVAL:
             return
         for station_id, station in self._stations.items():

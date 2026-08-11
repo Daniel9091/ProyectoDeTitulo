@@ -60,14 +60,14 @@ class Passenger:
     @property
     def is_in_transit(self)-> bool:
         """
-        True si el pasagero esta en transito
+        True si el pasajero está en tránsito
         """
         return self.state == PassengerState.IN_TRANSIT
     
     @property
     def is_waiting(self) -> bool:
         """
-        True si el pasajero inmovil esperando (en la estacion o en la cola de lane)
+        True si el pasajero inmóvil esperando (en la estación o en la cola de lane)
         """
         return self.state in(
             PassengerState.WAITING_AT_ENTRANCE,
@@ -79,7 +79,7 @@ class Passenger:
 
     def start_moving_to_lane(self) -> None:
         """
-        WATING_AT_ENTRANCE -> MOVING_TO_LANE
+        WAITING_AT_ENTRANCE -> MOVING_TO_LANE
         """
         if self.state != PassengerState.WAITING_AT_ENTRANCE:
             raise ValueError(
@@ -139,10 +139,10 @@ class Passenger:
 
     # METRICAS
 
-    def total_travel_time(self) -> float:
+    def total_travel_time(self) -> float | None:
         """
         Tiempo total desde spawn hasta llegada
-        Retorna None si el pasagero no ha llegado.
+        Retorna None si el pasajero no ha llegado.
         """
         if self.arrival_time is None:
             return None
