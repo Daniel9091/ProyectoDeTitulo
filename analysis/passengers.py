@@ -6,6 +6,7 @@ Questions answered:
   2. How long did passengers wait before boarding?    → _time_histograms
   3. How long was the total journey?                  → _time_histograms
   4. Did any passengers use intermediate stations?    → _transit_stops
+  5. How long from a given origin to each destination? → _travel_time_by_destination
 
 Report:  passengers.txt
 Charts:
@@ -25,7 +26,16 @@ from analysis._shared import resolve_run, connect, get_output_dir, save_fig, get
 from analysis._style  import setup, PALETTE, TITLE_SIZE, FIG_BAR, FIG_WIDE, BAR_KWARGS,FIG_DUAL
 
 
-def run(events_path=None):
+def run(
+    events_path=None,
+    origin_station_id: int = 1,
+    station_positions: dict | None = None,
+):
+    """
+    origin_station_id   — estación de origen para _travel_time_by_destination.
+    station_positions   — dict[station_id, x_metros] del escenario; si se provee,
+                          la tabla incluye columna de distancia ordenada por ella.
+    """
     if events_path is None:
         events_path = resolve_run()
     con = connect(events_path)
@@ -41,6 +51,9 @@ def run(events_path=None):
 
     else:
         rep.print("  [sin datos] No hubo embarques en esta corrida.")
+
+    if {'passenger_spawned', 'passenger_boarded', 'passenger_arrived'} <= types:
+        _travel_time_by_destination(con, rep, origin_station_id, station_positions)
 
     if 'passenger_spawned' in types:
         _station_funnel(con, rep, out_dir)
@@ -181,6 +194,73 @@ def _station_funnel(con, rep: Reporter, out_dir):
     plt.tight_layout()
     save_fig("passengers_station_funnel", out_dir)
     plt.show()
+
+def _travel_time_by_destination(
+    con,
+    rep: Reporter,
+    origin_station_id: int = 1,
+    station_positions: dict | None = None,
+):
+    """
+    Travel time from a given origin station grouped by destination.
+
+    Questions: How long does the trip take from origin to each destination?
+    Text: table per destination — dist_m (if positions provided), count, avg and median
+          travel time (arrival_time − boarding_time). Sorted by distance when available,
+          otherwise by destination_station_id.
+    Needs: passenger_spawned (origin_station_id==given), passenger_boarded, passenger_arrived
+    """
+    df = con.execute(f"""
+        SELECT
+            sp.destination_station_id       AS dest,
+            COUNT(*)                        AS n,
+            AVG(arr.t  - bo.t)              AS avg_travel,
+            MEDIAN(arr.t - bo.t)            AS med_travel
+        FROM events sp
+        JOIN events bo  ON sp.passenger_id = bo.passenger_id
+                       AND bo.type  = 'passenger_boarded'
+        JOIN events arr ON sp.passenger_id = arr.passenger_id
+                       AND arr.type = 'passenger_arrived'
+        WHERE sp.type = 'passenger_spawned'
+          AND sp.origin_station_id = {origin_station_id}
+        GROUP BY sp.destination_station_id
+    """).df()
+
+    if df.empty:
+        rep.print(f"  [sin datos] No hay pasajeros completados desde S{origin_station_id}.")
+        return
+
+    with_dist = station_positions is not None
+    if with_dist:
+        x_orig = station_positions.get(origin_station_id, 0.0)
+        df["dist_m"] = df["dest"].map(
+            lambda d: abs(station_positions.get(int(d), float("nan")) - x_orig)
+        )
+        df = df.sort_values("dist_m")
+    else:
+        df = df.sort_values("dest")
+
+    rep.print(f"\n[ Tiempo de viaje desde S{origin_station_id} por destino ]")
+    rep.print(f"  Pasajeros con origin_station_id == {origin_station_id} que completaron su viaje.")
+    rep.print("  Tiempo de viaje = arrival_time − boarding_time.")
+
+    if with_dist:
+        rep.print(f"  {'Destino':>10}  {'Dist (m)':>10}  {'Pasajeros':>10}  {'Prom (s)':>10}  {'Mediana (s)':>12}")
+        for _, row in df.iterrows():
+            dest = int(row["dest"])
+            rep.print(
+                f"  S{dest:>9}  {row['dist_m']:>10.0f}  {int(row['n']):>10}"
+                f"  {row['avg_travel']:>10.1f}  {row['med_travel']:>12.1f}"
+            )
+    else:
+        rep.print(f"  {'Destino':>10}  {'Pasajeros':>10}  {'Prom (s)':>10}  {'Mediana (s)':>12}")
+        for _, row in df.iterrows():
+            dest = int(row["dest"])
+            rep.print(
+                f"  S{dest:>9}  {int(row['n']):>10}"
+                f"  {row['avg_travel']:>10.1f}  {row['med_travel']:>12.1f}"
+            )
+
 
 def _transit_stops(con, rep: Reporter, out_dir):
     """

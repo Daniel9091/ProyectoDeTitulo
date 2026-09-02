@@ -8,20 +8,20 @@ modules themselves; import from here instead.
 import matplotlib.pyplot as plt
 
 # ── Surfaces ─────────────────────────────────────────────────────────────────
-SURFACE      = "#1e1e2e"   # chart and figure background (Catppuccin Mocha base)
-EDGE_COLOR   = "#1e1e2e"   # bar/wedge borders (blends with background)
-TEXT_PRIMARY = "#cdd6f4"   # axis labels, tick labels, legend text
-GRID_COLOR   = "#313244"   # grid lines
+SURFACE      = "#ffffff"   # chart and figure background (white for printed report)
+EDGE_COLOR   = "#ffffff"   # bar/wedge borders (blends with background)
+TEXT_PRIMARY = "#1a1a2e"   # axis labels, tick labels, legend text
+GRID_COLOR   = "#e0e0e0"   # grid lines
 
 # ── Data palette ─────────────────────────────────────────────────────────────
-# Validated with dataviz skill (dark mode, surface #1e1e2e).
-# All 4 slots pass CVD separation, contrast, lightness, and chroma checks.
-# Reference: dataviz palette.md — dark slots 1, 5, 6, 7.
+# Light-mode palette (surface #ffffff). Semantic roles are fixed.
+# Slightly darker than the original dark-mode values to hold contrast on white.
+# Reference: dataviz palette.md — light-adapted from dark slots 1, 5, 6, 7.
 PALETTE = {
-    "azul":    "#3987e5",   # slot 1 — active, with passengers, useful
-    "verde":   "#199e70",   # slot 5 — correct, arrived at destination
-    "naranja": "#d95926",   # slot 6 — idle, without passengers, wrong
-    "violeta": "#9085e9",   # slot 7 — single-series distributions
+    "azul":    "#2271d1",   # activo, con pasajeros, útil
+    "verde":   "#157a57",   # correcto, llegó a destino
+    "naranja": "#c44b1a",   # vacío, sin pasajeros, incorrecto
+    "violeta": "#6b5ed6",   # distribuciones de una sola serie
 }
 
 # ── Figure sizes ─────────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@ PIE_KWARGS = {"wedgeprops": {"edgecolor": EDGE_COLOR, "linewidth": 2}}
 
 # ── Theme setup ──────────────────────────────────────────────────────────────
 def setup() -> None:
-    """Apply dark Catppuccin Mocha theme to all subsequent matplotlib figures."""
+    """Apply light theme to all subsequent matplotlib figures (white background for report)."""
     plt.rcParams.update({
         "figure.facecolor": SURFACE,
         "axes.facecolor":   SURFACE,

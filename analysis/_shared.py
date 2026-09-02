@@ -25,9 +25,9 @@ def resolve_run(run_arg: str | None = None) -> Path:
     return Path("runs") / run_arg / "events.jsonl"
 
 def connect(events_path: Path) -> duckdb.DuckDBPyConnection:
-    """Abre DuckDB en memoria con el JSONL registrado como vista 'events'."""
+    """Carga el JSONL en una tabla en memoria. El parseo ocurre una sola vez."""
     con = duckdb.connect()
-    con.execute(f"CREATE VIEW events AS SELECT * FROM read_ndjson_auto('{events_path}', sample_size=-1)")
+    con.execute(f"CREATE TABLE events AS SELECT * FROM read_ndjson_auto('{events_path}', sample_size=-1)")
     return con
 
 def get_output_dir(events_path: Path) -> Path:
@@ -38,10 +38,10 @@ def get_output_dir(events_path: Path) -> Path:
     return out
 
 def save_fig(name: str, output_dir: Path):
-    """Guarda la figura activa en output_dir/<name>.png."""
     path = output_dir / f"{name}.png"
-    plt.savefig(path, dpi=150, bbox_inches="tight")
+    plt.savefig(path, dpi=150, bbox_inches="tight", facecolor="white")
     print(f"  → guardado: {path}")
+    plt.close()
 
 def read_manifest(events_path: Path) -> set[str] | None:
     """
@@ -94,9 +94,7 @@ def station_x_ticks(ax, stations: list, xlabel_base: str = "Estaciones") -> None
         rotation=45, ha='right', fontsize=8
     )
     if n > 5:
-        ax.set_xlabel(
-            f"{xlabel_base}  (S{stations[0]} ←――→ S{stations[-1]})"
-        )
+        ax.set_xlabel(xlabel_base)
 
 
 class Reporter:

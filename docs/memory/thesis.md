@@ -15,32 +15,43 @@ Modalidad: **Memoria** (investigación). Individual. ~30 páginas.
 
 ## ESTADO ACTUAL — Capítulo 4 (Desarrollo)
 
-> Actualizado 24-08-2026, tras sesión larga de redacción. Consultar esto primero antes de
-> asumir qué está escrito, qué falta, o de dónde partir.
+> Actualizado 31-08-2026. CAPÍTULO 4 CERRADO EN CONTENIDO. Falta solo formato
+> (Daniel lo hace directamente en Word/Drive, no requiere ayuda de redacción).
+> Selección de personas: 10.363 palabras solo de prosa (sin contar ~15 figuras),
+> ≈ 30-32 páginas ya consumidas del presupuesto total de 50-60 (tope duro 70).
+> Vigilar de cerca el espacio de los capítulos que faltan, especialmente §5
+> (Resultados), que por peso de rúbrica (Análisis y Conclusiones = 30%, el más
+> alto) no puede quedar corto de espacio.
 
-**Redactado y aprobado por Daniel (texto final ya pegado en "Iteración 1" del doc de Drive,
-fuente de verdad — no reescribir desde cero, solo iterar si hay feedback nuevo):**
-- §4.1.1 Enfoque General
-- §4.1.2 Proceso de Desarrollo y Control de Calidad
-- §4.1.3 Reducción de la Carga Cognitiva (con Tabla X, Figura Y de evolución, Tabla Z de
-  desglose por subsistema)
-- §4.1.4 Diseño de las Pruebas de Carga (con Tabla W de diseño de experimentos — variables
-  aún "por definir" en valores finales, ver más abajo)
-- §4.2 Arquitectura General del Sistema (con Figura A: diagrama de capas Mermaid; Figura B:
-  diagrama de clases Mermaid; Figura C: captura general anotada; Figura D: captura de
-  detalle de estación S8 anotada — código y archivos de ambas figuras abajo)
-- §4.3 Constantes del Sistema y su Justificación (Tabla W de 10 constantes con columna
-  Naturaleza)
-- **§4.4 Objetos Simples del Sistema — COMPLETO (24-08-2026).** Los 4 objetos (Pasajero,
-  Vehículo Modular, Cinta de Abordaje, Estación) redactados y aprobados, con Figura E
-  (diagrama de estados del Pasajero) y Figura F (captura del inspector interactivo sobre
-  la estación S16). Ver plantilla de estilo y hallazgos técnicos en la sección nueva más
-  abajo ("§4.4 — plantilla de objetos simples y hallazgos").
+**Pendiente mínimo antes de considerar §4 100% terminado (2 items, rápidos):**
+1. Falta pegar en el doc el párrafo sobre sobrepaso entre reservas del mismo
+   árbol (va al final de §4.5.5.7 "Dificultades y logros" de Brain, después del
+   párrafo de la inconsistencia reserva/destino). Empieza con "Existe una
+   segunda tensión, todavía sin resolver..." y termina citando §6.2. Se generó
+   en sesión pero nunca se pegó al documento real.
+2. Typo en §4.5.5.5: el título dice "Decisiones de enrutami**ok**ento", sobra
+   "ok".
 
-**En progreso:** ninguna sección activa — §4.4 se cerró completo. Siguiente paso natural:
-§4.5.1 (Brain).
+**Todo lo demás de §4 está redactado, aprobado, y con los 4 arreglos previos ya
+aplicados** (TREE_DZ corregido a ≈**20.20 m** — el valor ‘19.4’ escrito antes era
+incorrecto, verificado con la fórmula real; numeración 4.5.4 de Red de
+Adyacencia corregida; nivel de encabezado de 4.5.5.5 normalizado).
 
-**No iniciado:** §4.5 (Sistemas de Gestión Complejos, 4.5.1-4.5.6), §4.6, §4.7, §4.8.
+**Redactado y aprobado por Daniel (texto final vive en "Iteración 1" del doc de
+Drive, fuente de verdad — no reescribir desde cero):**
+- §4.1.1 a §4.1.4, §4.2, §4.3, §4.4 (objetos simples completos), §4.5 completo
+  (4.5.1 Tren Continuo → 4.5.2 Árboles → 4.5.3 Junctions → 4.5.4 Red de
+  Adyacencia → 4.5.5 Brain [7 subsecciones] → 4.5.6 Destino Terminal), §4.6,
+  §4.7, §4.8.
+- Orden de §4.5 fue reordenado por dependencia (menos → más complejo), distinto
+  del punteo original que tenía Brain primero — decisión correcta, ya aplicada.
+
+**Siguiente paso: Capítulo 5 (Resultados y Pruebas de Carga), por el orden de
+escritura acordado** (Desarrollo → Resultados → Objetivos → Marco Teórico →
+Estado del Arte → Metodología → Discusión → Introducción → Resumen).
+Recomendado abrir chat nuevo dado el tamaño de esta conversación.
+
+---
 
 **Pendientes cruzados abiertos (no bloquean, pero revisar antes de cerrar el capítulo):**
 - §5.5 (Resultados) menciona "crecimiento de filas de espera" como indicador de límite
@@ -58,6 +69,65 @@ fuente de verdad — no reescribir desde cero, solo iterar si hay feedback nuevo
 **Hallazgo útil de esta sesión:** `VM_CAPACITY = 6` y `DENSITY` (fracción de slots
 ocupados al iniciar, 1=lleno/0=vacío) viven en `simulation_builder/linea_1_edit.py`, NO en
 `config/constants.py`. Esto resuelve la duda anterior sobre "capacidad de los VMs".
+
+---
+
+## PREPARACIÓN PARA §5 (Resultados y Pruebas de Carga) — leer antes de empezar
+
+**Cómo generar datos reales:** `python -m analysis` (ambiente CPython, no PyPy —
+requiere `duckdb`/`pandas`/`matplotlib`) lee los logs de `runs/<run_id>/events.jsonl`
+y produce métricas/gráficos. `python -m analysis [run_id]` para una corrida específica.
+Correr la simulación en modo headless primero (`HEADLESS=True` en `main.py`, ambiente
+PyPy) para generar los datos del escenario de 24h de Línea 1 antes de poder escribir
+§5 con evidencia real, no solo con el diseño ya hecho en §4.1.4.
+
+**Rendimiento ya medido (usar en §5 si hace falta contexto de viabilidad):** headless
+con PyPy corre a 79.7x tiempo real; CPython a 27.4x. Un escenario de 3019s simulados
+tomó 37.9s reales en PyPy. Las 24h completas (86.400s) deberían tomar del orden de
+‹mucho menos de 20 minutos› en PyPy — computacionalmente trivial, no es un problema.
+
+**Insumos del profesor específicos para §5, todavía no aplicados (son comentarios
+abiertos en el doc):**
+- Fórmula de capacidad dada literalmente por Rafael: q=kv=1[veh/m]×0.5[m/s]=1800[veh/h]
+  por andén. Con eso, "alcanza con ~6 andenes de 1800 pax/h" (comentario textual del
+  profesor) — pero Daniel ya respondió que debe ser un poco más porque la optimización
+  de espacio real no es perfecta. Esto va en §5.2 (capacidad teórica antes de correr
+  la simulación completa, según el propio punteo).
+- Sugerencia de modelar con cola **M/D/1** (Rafael la propuso explícitamente, con link
+  a Wikipedia) para predecir largos de cola promedio y % de tiempo ocupado — relevante
+  para §2.3 (Marco Teórico, capítulo aparte) pero la aplicación numérica real iría en §5.
+- Rafael pidió explicitar que el Metro Continuo podría: (a) eliminar la restricción de
+  distancia mínima entre estaciones sin afectar velocidad, y (b) resolver estaciones
+  "grandes atractoras" desviando VMs a una estación vecina cuando la principal no puede
+  absorber a todos — Daniel ya lo aceptó ("de acuerdo"), pendiente de redactar. Podría
+  ir en §5 (como ventaja observada) o en el listado de ventajas del sistema en general.
+- Comentario del profesor sobre §5.3 (sensibilidad a velocidad de crucero): "no me
+  convence, lo encuentro medio irreal" — Daniel respondió defendiendo la lógica
+  ("¿no es lógico que si aumento la velocidad los tiempos de viaje sean menores?"), pero
+  esta conversación con el profesor sigue sin resolverse del todo. Aclarar antes de
+  redactar §5.3 con demasiada confianza en ese experimento específico.
+
+**Pendientes propios de Daniel para §5 (comentarios abiertos en el doc, no resueltos):**
+- Pregunta sin responder: ¿la matriz OD de Línea 1 corresponde a hora punta? ("queda
+  pendiente revisar Gmail" — nota propia de Daniel).
+- Lista final de escenarios de carga aún no decidida (nota propia: "cantidad de
+  andenes, detente poco en las que den resultado esperado, densidad inicial del tren
+  continuo" — son pistas, no una lista cerrada).
+- §5.5 debe alinearse con el criterio de límite operacional de seguridad-primero fijado
+  en §4.1.4 (colisiones/inserciones forzadas, NO crecimiento de filas de espera — el
+  punteo original todavía dice "filas de espera", hay que corregirlo al escribir).
+
+**Plantilla de estilo a mantener (la misma que §4):** honestidad metodológica explícita
+en cualquier métrica no estándar (ej. consumo energético estimado por proxy, ya
+aprobado en el punteo de §5.1); números reales con su limitación al lado, nunca una
+cifra sin contexto de qué tan confiable es.
+
+**Rango de secciones de §5 según el punteo (extensiones originales, Cap. 4 las
+sobrepasó todas con justificación — vigilar que §5 no se dispare igual dado el
+presupuesto de páginas ya ajustado):** 5.1 Métricas (200-250p), 5.2 Escenario Base
+(400-500p), 5.3 Sensibilidad (1-1.5 pág), 5.4 Destino Terminal empírico (250-300p),
+5.5 Límite Operacional (250-300p), 5.6 Recomendaciones (tabla + 200-250p), 5.7
+Síntesis (150-200p).
 
 ---
 

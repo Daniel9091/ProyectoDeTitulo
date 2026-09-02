@@ -42,7 +42,7 @@ Los resultados se guardan en `analysis/output/<run_id>/` (carpeta en `.gitignore
 
 | Módulo | Gráficos generados | Texto generado |
 |---|---|---|
-| `passengers.py` | `passengers_time_histograms.png`, `passengers_station_funnel.png`, `passengers_transit.png` | Resumen: generados, abordaron, llegaron, tiempos |
+| `passengers.py` | `passengers_time_histograms.png`, `passengers_station_funnel.png`, `passengers_transit.png` | Resumen: generados, abordaron, llegaron, tiempos; tabla por destino: dist, prom y mediana de viaje desde estación origen (`_travel_time_by_destination`) |
 | `modular_vehicles.py` | `modular_vehicles_fleet_overview.png`, `modular_vehicles_km_efficiency.png`, `modular_vehicles_vm_reuse.png`, `modular_vehicles_trip_occupancy.png` | km totales, km útiles, eficiencia, tiempos |
 | `stations.py` | — | Tabla: generados y llegados por estación |
 | `slot_labels.py` | 6 gráficos `slot_labels_*.png` | — |

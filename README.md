@@ -1,61 +1,115 @@
-# Simulacion Tren continuo con Vehículos modulares ##
+# NSim — Simulador de Transporte con Vehículos Modulares
 
-El proposito es demostrar a traves de la simulacion la factibilidad y de este sistema de trasporte.
-Se podan realizar pruebas de carga y modificar la simulacion para adaptarse a situaciones adversas
-Esta version de la simulacion debera concentrar las mejores alternativas de diseño encontradas hasta este momento.
+NSim simula un sistema de transporte urbano basado en vehículos modulares (VMs) que circulan por un carril inferior circular y suben a estaciones mediante árboles de aceleración gravitacional. El objetivo es medir métricas de servicio para evaluar la factibilidad del sistema.
 
-### Comando para Correr simulacion
+---
+
+## Instalación inicial
+
+Requiere [uv](https://docs.astral.sh/uv/). El proyecto usa **dos ambientes**: uno para simulación rápida (PyPy) y otro para render y análisis (CPython).
+
+**Ambiente PyPy — simulación headless:**
 ```bash
-python3 main.py
-
-```
-## Comandos para monitorear simulacion
-
-#### Analisis
-```bash
-# Ultima corrida de la simulacion
-python analysis.py
-# Corrida espesifica
-python analysis.py [run_id]
+uv python install pypy3.11
+uv venv .venv-pypy --python pypy3.11
+source .venv-pypy/bin/activate
+uv pip install -e ".[dev]"
 ```
 
-#### Conteo de lineas
+**Ambiente CPython — render visual y análisis:**
 ```bash
-# En la carpeta NSim con abiente activado
+uv venv .venv --python 3.12
+source .venv/bin/activate
+uv pip install -e ".[gui,analysis,dev]"
+```
+
+---
+
+## Flujo de trabajo típico
+
+El flujo tiene tres fases independientes. Cada una usa el ambiente adecuado.
+
+### 1. Simular rápido (PyPy)
+
+PyPy corre el loop de física significativamente más rápido que CPython. La simulación escribe los resultados en `runs/`.
+
+```bash
+source .venv-pypy/bin/activate
+python main.py
+```
+
+Configurar antes de correr en `main.py`:
+- `HEADLESS = True` (requerido para PyPy — el render usa pygame que no está disponible)
+- `SIM_DURATION` — segundos a simular
+- `SCENARIO_NAME` — escenario a usar
+
+### 2. Ver el render visual (CPython)
+
+Para ver la simulación en pantalla, cambiar `HEADLESS = False` y usar el ambiente CPython.
+
+```bash
+source .venv/bin/activate
+# editar main.py: HEADLESS = False
+python main.py
+```
+
+### 3. Analizar resultados (CPython)
+
+El análisis lee los archivos de `runs/` que generó la simulación y produce gráficos.
+
+```bash
+source .venv/bin/activate
+python -m analysis              # analiza la última corrida
+python -m analysis [run_id]     # analiza una corrida específica
+```
+
+---
+
+## Tests
+
+```bash
+pytest tests/
+pytest tests/ -v                                    # con detalle
+python -m pytest tests/nombre_archivo_test.py -v   # archivo específico
+```
+
+Corren en cualquiera de los dos ambientes.
+
+---
+
+## Otras herramientas
+
+**Conteo de líneas:**
+```bash
 cloc config objects simulation systems tests tracks CLAUDE.md main.py README.md --exclude-dir=__pycache__
 ```
 
-#### Comando para testear de manera general
+---
+
+## Dependencias por grupo
+
+El `pyproject.toml` separa las dependencias según uso real:
+
+| Grupo | Contenido | Cuándo instalarlo |
+|---|---|---|
+| *(base)* | `setproctitle` | siempre |
+| `gui` | `pygame` | render visual (CPython) |
+| `analysis` | `duckdb`, `pandas`, `matplotlib`, `cloc` | análisis de resultados (CPython) |
+| `dev` | `pytest` | desarrollo y tests (ambos ambientes) |
+
+`pygame` y `duckdb` no tienen soporte para PyPy, por eso quedan fuera del ambiente de simulación.
+
+**Agregar una dependencia nueva:**
 ```bash
-pytest tests/
-pytest tests/ -v # Para ver mas detalles
+# dependencia de simulación (compatible con PyPy)
+uv add <paquete>
+
+# dependencia de análisis o GUI (solo CPython)
+uv add --optional analysis <paquete>   # o --optional gui
 ```
 
-#### Comando para testear archivo espesifico
+Después de agregar, sincronizar el ambiente afectado:
 ```bash
-python -m pytest tests/{{nombre_archivo_test}} -v
-```
-
-## Comandos para operar Ambiente uv
-
-#### Crear entorno virtual por primera vez
-```bash
-uv init
-```
-#### Activar entorno virtual
-```bash
-source .venv/bin/activate
-```
-#### Instalacion de dependencias
-```bash
-uv add {{dependencia}}
-```
-#### Gestion de dependencias
-si durante el desarollo se instalan nueva sdependencias, asegure que se actualize el archivo de requerimientos para mantener compatibilidad.
-```bash
-uv sync
-```
-#### Desactivar entorno
-```bash
-deactivate
+uv pip install -e ".[dev]"                  # venv PyPy
+uv pip install -e ".[gui,analysis,dev]"     # venv CPython
 ```

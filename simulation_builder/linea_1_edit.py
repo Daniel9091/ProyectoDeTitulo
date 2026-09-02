@@ -198,7 +198,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s1, up1, l1, dn1, j_up_1, j_dn_1 = create_station(
         station_id=1,
         station_origin=Vector3(X_S1, STATION_Y, STATION_Z),
-        num_lanes=2,               # ajusta para esta estación
+        num_lanes=4,               # ajusta para esta estación
         passenger_rate=RATE_S1,
         destination_probabilities=DEST_FROM_1,
         vm_request_rate=VM_RATE_S1,
@@ -212,7 +212,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s2, up2, l2, dn2, j_up_2, j_dn_2 = create_station(
         station_id=2,
         station_origin=Vector3(X_S2, STATION_Y, STATION_Z),
-        num_lanes=1,               # ajusta para esta estación
+        num_lanes=2,               # ajusta para esta estación
         passenger_rate=RATE_S2,
         destination_probabilities=DEST_FROM_2,
         vm_request_rate=VM_RATE_S2,
@@ -226,7 +226,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s3, up3, l3, dn3, j_up_3, j_dn_3 = create_station(
         station_id=3,
         station_origin=Vector3(X_S3, STATION_Y, STATION_Z),
-        num_lanes=1,               # ajusta para esta estación
+        num_lanes=2,               # ajusta para esta estación
         passenger_rate=RATE_S3,
         destination_probabilities=DEST_FROM_3,
         vm_request_rate=VM_RATE_S3,
@@ -240,7 +240,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s4, up4, l4, dn4, j_up_4, j_dn_4 = create_station(
         station_id=4,
         station_origin=Vector3(X_S4, STATION_Y, STATION_Z),
-        num_lanes=2,               # ajusta para esta estación
+        num_lanes=3,               # ajusta para esta estación
         passenger_rate=RATE_S4,
         destination_probabilities=DEST_FROM_4,
         vm_request_rate=VM_RATE_S4,
@@ -254,7 +254,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s5, up5, l5, dn5, j_up_5, j_dn_5 = create_station(
         station_id=5,
         station_origin=Vector3(X_S5, STATION_Y, STATION_Z),
-        num_lanes=1,               # ajusta para esta estación
+        num_lanes=2,               # ajusta para esta estación
         passenger_rate=RATE_S5,
         destination_probabilities=DEST_FROM_5,
         vm_request_rate=VM_RATE_S5,
@@ -268,7 +268,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s6, up6, l6, dn6, j_up_6, j_dn_6 = create_station(
         station_id=6,
         station_origin=Vector3(X_S6, STATION_Y, STATION_Z),
-        num_lanes=1,               # ajusta para esta estación
+        num_lanes=2,               # ajusta para esta estación
         passenger_rate=RATE_S6,
         destination_probabilities=DEST_FROM_6,
         vm_request_rate=VM_RATE_S6,
@@ -282,7 +282,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s7, up7, l7, dn7, j_up_7, j_dn_7 = create_station(
         station_id=7,
         station_origin=Vector3(X_S7, STATION_Y, STATION_Z),
-        num_lanes=1,               # ajusta para esta estación
+        num_lanes=3,               # ajusta para esta estación
         passenger_rate=RATE_S7,
         destination_probabilities=DEST_FROM_7,
         vm_request_rate=VM_RATE_S7,
@@ -310,7 +310,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s9, up9, l9, dn9, j_up_9, j_dn_9 = create_station(
         station_id=9,
         station_origin=Vector3(X_S9, STATION_Y, STATION_Z),
-        num_lanes=1,               # ajusta para esta estación
+        num_lanes=2,               # ajusta para esta estación
         passenger_rate=RATE_S9,
         destination_probabilities=DEST_FROM_9,
         vm_request_rate=VM_RATE_S9,
@@ -338,7 +338,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s11, up11, l11, dn11, j_up_11, j_dn_11 = create_station(
         station_id=11,
         station_origin=Vector3(X_S11, STATION_Y, STATION_Z),
-        num_lanes=3,               # ajusta para esta estación
+        num_lanes=6,               # ajusta para esta estación
         passenger_rate=RATE_S11,
         destination_probabilities=DEST_FROM_11,
         vm_request_rate=VM_RATE_S11,
@@ -366,7 +366,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s13, up13, l13, dn13, j_up_13, j_dn_13 = create_station(
         station_id=13,
         station_origin=Vector3(X_S13, STATION_Y, STATION_Z),
-        num_lanes=6,               # ajusta para esta estación
+        num_lanes=3,               # ajusta para esta estación
         passenger_rate=RATE_S13,
         destination_probabilities=DEST_FROM_13,
         vm_request_rate=VM_RATE_S13,
@@ -380,7 +380,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s14, up14, l14, dn14, j_up_14, j_dn_14 = create_station(
         station_id=14,
         station_origin=Vector3(X_S14, STATION_Y, STATION_Z),
-        num_lanes=2,               # ajusta para esta estación
+        num_lanes=3,               # ajusta para esta estación
         passenger_rate=RATE_S14,
         destination_probabilities=DEST_FROM_14,
         vm_request_rate=VM_RATE_S14,
@@ -394,7 +394,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s15, up15, l15, dn15, j_up_15, j_dn_15 = create_station(
         station_id=15,
         station_origin=Vector3(X_S15, STATION_Y, STATION_Z),
-        num_lanes=1,               # ajusta para esta estación
+        num_lanes=2,               # ajusta para esta estación
         passenger_rate=RATE_S15,
         destination_probabilities=DEST_FROM_15,
         vm_request_rate=VM_RATE_S15,
@@ -408,7 +408,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s16, up16, l16, dn16, j_up_16, j_dn_16 = create_station(
         station_id=16,
         station_origin=Vector3(X_S16, STATION_Y, STATION_Z),
-        num_lanes=2,               # ajusta para esta estación
+        num_lanes=4,               # ajusta para esta estación
         passenger_rate=RATE_S16,
         destination_probabilities=DEST_FROM_16,
         vm_request_rate=VM_RATE_S16,
@@ -436,7 +436,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s18, up18, l18, dn18, j_up_18, j_dn_18 = create_station(
         station_id=18,
         station_origin=Vector3(X_S18, STATION_Y, STATION_Z),
-        num_lanes=2,               # ajusta para esta estación
+        num_lanes=3,               # ajusta para esta estación
         passenger_rate=RATE_S18,
         destination_probabilities=DEST_FROM_18,
         vm_request_rate=VM_RATE_S18,
@@ -464,7 +464,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s20, up20, l20, dn20, j_up_20, j_dn_20 = create_station(
         station_id=20,
         station_origin=Vector3(X_S20, STATION_Y, STATION_Z),
-        num_lanes=3,               # ajusta para esta estación
+        num_lanes=5,               # ajusta para esta estación
         passenger_rate=RATE_S20,
         destination_probabilities=DEST_FROM_20,
         vm_request_rate=VM_RATE_S20,
@@ -478,7 +478,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s21, up21, l21, dn21, j_up_21, j_dn_21 = create_station(
         station_id=21,
         station_origin=Vector3(X_S21, STATION_Y, STATION_Z),
-        num_lanes=5,               # ajusta para esta estación
+        num_lanes=3,               # ajusta para esta estación
         passenger_rate=RATE_S21,
         destination_probabilities=DEST_FROM_21,
         vm_request_rate=VM_RATE_S21,
@@ -492,7 +492,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s22, up22, l22, dn22, j_up_22, j_dn_22 = create_station(
         station_id=22,
         station_origin=Vector3(X_S22, STATION_Y, STATION_Z),
-        num_lanes=1,               # ajusta para esta estación
+        num_lanes=2,               # ajusta para esta estación
         passenger_rate=RATE_S22,
         destination_probabilities=DEST_FROM_22,
         vm_request_rate=VM_RATE_S22,
@@ -506,7 +506,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s23, up23, l23, dn23, j_up_23, j_dn_23 = create_station(
         station_id=23,
         station_origin=Vector3(X_S23, STATION_Y, STATION_Z),
-        num_lanes=1,               # ajusta para esta estación
+        num_lanes=2,               # ajusta para esta estación
         passenger_rate=RATE_S23,
         destination_probabilities=DEST_FROM_23,
         vm_request_rate=VM_RATE_S23,
@@ -548,7 +548,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s26, up26, l26, dn26, j_up_26, j_dn_26 = create_station(
         station_id=26,
         station_origin=Vector3(X_S26, STATION_Y, STATION_Z),
-        num_lanes=1,               # ajusta para esta estación
+        num_lanes=2,               # ajusta para esta estación
         passenger_rate=RATE_S26,
         destination_probabilities=DEST_FROM_26,
         vm_request_rate=VM_RATE_S26,
@@ -562,7 +562,7 @@ def build(seed: int = 42, recorder=None) -> tuple[Brain, dict[int, Station]]:
     s27, up27, l27, dn27, j_up_27, j_dn_27 = create_station(
         station_id=27,
         station_origin=Vector3(X_S27, STATION_Y, STATION_Z),
-        num_lanes=1,               # ajusta para esta estación
+        num_lanes=2,               # ajusta para esta estación
         passenger_rate=RATE_S27,
         destination_probabilities=DEST_FROM_27,
         vm_request_rate=VM_RATE_S27,

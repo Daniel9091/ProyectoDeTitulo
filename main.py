@@ -22,8 +22,8 @@ SPEEDS = [1, 2, 5, 10]
 # ─── Configuración de corrida ────────────────────────────────────────────
 SCENARIO_NAME = "linea_1_edit"
 SEED          = 42
-HEADLESS      = False    # True = sin render, tan rápido como el CPU
-SIM_DURATION  = 3019   # segundos simulados (solo si HEADLESS = True)
+HEADLESS      = True    # True = sin render, tan rápido como el CPU
+SIM_DURATION  = 86400   # segundos simulados (solo si HEADLESS = True)
 # ─────────────────────────────────────────────────────────────────────────
 
 if not HEADLESS:
@@ -39,8 +39,7 @@ def main():
     scenario_name = SCENARIO_NAME
 
     scenario = importlib.import_module(f"simulation_builder.{scenario_name}")
-
-
+ 
     run_id  = f"{scenario_name}_seed{seed}_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     run_dir = Path("runs") / run_id
     recorder = Recorder(run_dir, run_id) if TELEMETRY_ENABLED else NullRecorder()
