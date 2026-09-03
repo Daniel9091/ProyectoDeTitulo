@@ -73,5 +73,5 @@ STATION_NUM_FLOORS      = 1             # cantidad de pisos
 
 # CTE. LOGS
 
-TELEMETRY_ENABLED:  bool    =  True   # True: guarda logs, False no guarda logs
+TELEMETRY_ENABLED:  bool    = True   # True: guarda logs, False no guarda logs
 SNAPSHOT_INTERVAL:  float   = 60.0      # segundos entre station_snapshot events (s)
