@@ -1,0 +1,78 @@
+
+=== PASAJEROS ===
+
+[ Resumen del servicio ]
+  Estado de todos los pasajeros al cierre de la simulación.
+  Generados:              1520582
+  Abordaron:              1506224   (99.1%)
+  Llegaron a destino:     1492483   (98.2%)
+  Llegaron mal:           1750   (0.1%)
+  En tránsito al cerrar:  26349   (1.7%)
+    (pasajeros cuyo viaje no terminó antes del cierre de la simulación)
+
+[ Tiempos de servicio ]
+  Espera promedio (spawn → abordó):  655.2 s
+  Viaje promedio  (spawn → llegó):   1343.7 s
+
+[ Tiempo de viaje desde S1 por destino ]
+  Pasajeros con origin_station_id == 1 que completaron su viaje.
+  Tiempo de viaje = arrival_time − boarding_time.
+     Destino   Pasajeros    Prom (s)   Mediana (s)
+  S        2         352        66.6          66.4
+  S        3         938       116.5         116.4
+  S        4        1692       166.5         166.4
+  S        5         594       216.5         216.4
+  S        6         896       266.5         266.4
+  S        7        1429       316.5         316.4
+  S        8        1973       366.5         366.4
+  S        9         662       416.5         416.4
+  S       10        1232       466.4         466.4
+  S       11        3209       516.6         516.4
+  S       12        3350       566.4         566.4
+  S       13        6715       616.5         616.4
+  S       14        1776       666.5         666.4
+  S       15         800       716.4         716.4
+  S       16        2738       766.5         766.4
+  S       17        1051       816.5         816.4
+  S       18        1366       866.5         866.4
+  S       19        1817       916.5         916.4
+  S       20        3076       966.5         966.4
+  S       21        5893      1016.5        1016.4
+  S       22         626      1066.5        1066.4
+  S       23         516      1116.5        1116.4
+  S       24        1636      1166.4        1166.4
+  S       25        2417      1216.5        1216.4
+  S       26         461      1266.5        1266.4
+  S       27        1272      1316.5        1316.4
+
+[ Embudo por estación origen ]
+  Pasajeros generados en cada estación y cuántos completaron su viaje.
+    Estación   Generados     Dest OK    Dest MAL   En tránsito
+  S        1       49134       48487          47           600
+  S        2       13504       13310          26           168
+  S        3       34979       34569          23           387
+  S        4       62268       61449          83           736
+  S        5       21476       21232          17           227
+  S        6       34273       33889          45           339
+  S        7       54150       53498          52           600
+  S        8       76836       75887          74           875
+  S        9       26500       26194          39           267
+  S       10       49699       49145          64           490
+  S       11       62415       61654          70           691
+  S       12      127391      118066         109          9216
+  S       13      129953      128273         147          1533
+  S       14       67565       66586          99           880
+  S       15       33639       33207          45           387
+  S       16       54609       53893          70           646
+  S       17       41882       41353          53           476
+  S       18       51270       50587          55           628
+  S       19       72228       71229          93           906
+  S       20       61343       60516          95           732
+  S       21      116755      115141         137          1477
+  S       22       26175       25798          37           340
+  S       23       19969       19686          28           255
+  S       24       67460       66405          68           987
+  S       25       96245       94433         124          1688
+  S       26       17479       17240          22           217
+  S       27       51385       50756          28           601
+  [sin datos] No hubo estaciones intermedias.

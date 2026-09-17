@@ -1,0 +1,40 @@
+
+=== VEHÍCULOS ===
+
+[ Composición de la flota ]
+  Un VM (Vehículo Modular) circula por el carril inferior y sube a
+  estaciones bajo demanda para recoger pasajeros.
+  Flota total:              9486 VMs
+  Con pasajeros:            3729  (39.3%)
+  Siempre vacíos:           5757  (60.7%)
+
+[ Eficiencia operacional ]
+  El VM circula la mayor parte del tiempo sin pasajeros: es inherente
+  al diseño de carril circular, que no puede detener ni desviar VMs.
+  Kilómetros totales:              15764483.7 km
+  Kilómetros útiles (con pax):     5260160.5 km  (33.4%)
+  Kilómetros útiles prom. por VM:  554518 m
+  Distancia prom. por VM:          1661868 m
+
+[ Tiempos de operación ]
+  Tiempo total de la flota:    227664.00 h
+  Tiempo promedio por VM:      86400 s  (~24.0 h)
+  Viajes completados (boarding lane con ≥1 pax):  403010
+
+[ Utilización del boarding lane ]
+  Cada VM que entra al boarding lane puede o no encontrar pasajeros.
+  Las pasadas vacías ocurren cuando no hay demanda asignada en ese momento.
+  Total de pasadas:              403191
+  Con pasajeros (viaje válido):  403010  (100.0%)
+  Sin pasajeros (pasada vacía):  181  (0.0%)
+
+[ Reutilización de VMs ]
+  Un 'viaje' = el VM completó el boarding lane con ≥1 pasajero a bordo.
+  VMs activos (≥1 viaje):  3729
+  Viajes por VM activo:    mín 1 · máx 133 · prom 108.1  (ver gráfico)
+
+[ Ocupación por viaje ]
+  Pasajeros transportados por viaje. El VM tiene capacidad para varios,
+  pero la demanda baja genera mayormente viajes de 1 pasajero.
+  1 pasajero:   64876 viajes  (16.1%)
+  2+ pasajeros:  338265 viajes  (83.9%)  (ver gráfico)

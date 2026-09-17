@@ -1,0 +1,124 @@
+
+=== ETIQUETAS DE SLOT (SP4) ===
+
+[ Actividad de etiquetas por estación ]
+  Estación     Reservas    Demanda   Destinos   Entradas
+  S1              89765         17     146762      89822
+  S2              13704          9      18266      13708
+  S3              31920         10      45184      31939
+  S4              51769         16      75417      51808
+  S5              20918          5      28758      20940
+  S6              30854          7      43824      30871
+  S7              45512         11      65833      45548
+  S8              61148         18      89753      61190
+  S9              25402         10      34538      25415
+  S10             42564         14      61637      42597
+  S11            109664         13     181947     109740
+  S12             91481         45     137029      91542
+  S13            170159         27     283842     170275
+  S14             57012         18      80077      57044
+  S15             30939         13      42945      30963
+  S16             96110         17     159085      96183
+  S17             37605         13      53291      37629
+  S18             44758         25      64137      44792
+  S19             57446         25      84587      57486
+  S20            105835         24     174728     105905
+  S21            162633         27     272415     162747
+  S22             25567          8      34578      25586
+  S23             19531          5      26897      19543
+  S24             54230         27      80677      54265
+  S25             72923         22     109130      72980
+  S26             18759          5      24246      18765
+  S27             43233         14      63169      43266
+
+[ Salud del sistema de reservas ]
+  Total reservas: 1611441
+  T_total prom: 61.32 s  |  accel prom: 0.4937  |  max |accel|: 0.5105  |  std: 0.0076
+  Prioridades:
+    Destino = misma estación (mejor)              639304  (39.7%)
+    Slot vacío                                    569190  (35.3%)
+    VM va a otra estación                         281961  (17.5%)
+    VM sin destino conflictivo                    117391  (7.3%)
+    Fallback crítico (saturación)                   3595  (0.2%)
+
+[ Salud del sistema de demanda ]
+  Total demandas marcadas: 445
+  Cumplidas (vm_entered_tree):    445  (100.0%)
+  Rotas (commitment_broken):        0  (0.0%)
+  Activas al cierre simulación:     0  (0.0%)
+  Prioridades de búsqueda:
+    VM sin destino                                   417  (93.7%)
+    Slot ya reservado para esta estación              27  (6.1%)
+    VM con destino = esta estación                     1  (0.2%)
+
+[ Flujo de destinos de VM ]
+  Total slot_destination_set: 2482752
+  Commit de embarque                  1506479  (60.7%)
+  Pase de reservas                    970013  (39.1%)
+  Redirección                           6260  (0.3%)
+
+[ Entradas forzadas al junction ]
+  Total entradas: 1612549  |  Normales: 1611777 (100.0%)  |  Forzadas: 772 (0.0%)
+  Estación     Normal  Forzada  % Forzada
+  S1            89819        3       0.0%
+  S2            13705        3       0.0%
+  S3            31912       27       0.1%
+  S4            51802        6       0.0%
+  S5            20932        8       0.0%
+  S6            30838       33       0.1%
+  S7            45545        3       0.0%
+  S8            61168       22       0.0%
+  S9            25395       20       0.1%
+  S10           42478      119       0.3%
+  S11          109740        0       0.0%
+  S12           91542        0       0.0%
+  S13          170271        4       0.0%
+  S14           57001       43       0.1%
+  S15           30923       40       0.1%
+  S16           96169       14       0.0%
+  S17           37525      104       0.3%
+  S18           44790        2       0.0%
+  S19           57480        6       0.0%
+  S20          105905        0       0.0%
+  S21          162693       54       0.0%
+  S22           25559       27       0.1%
+  S23           19538        5       0.0%
+  S24           54265        0       0.0%
+  S25           72915       65       0.1%
+  S26           18755       10       0.1%
+  S27           43112      154       0.4%
+
+[ Cross-checks de integridad ]
+  slot_reserved: 1611441  |  cleared: 1610275  |  en vuelo al cierre: 1166  [OK]
+  slot_demand_set: 445  |  cleared: 445  |  sin evento de cierre: 0 (0.0%)
+    (limpiados silenciosamente por remove_vm — normal si hay demandas activas al cierre)
+
+[ Prioridades elegidas en búsqueda de slots ]
+
+  Contexto: demand  (445 búsquedas)
+    clean_vm                          417  (93.7%)
+    reserved_same_station              27  (6.1%)
+    dest_same_station                   1  (0.2%)
+
+  Contexto: reservation  (1611441 búsquedas)
+    dest_same_station              639304  (39.7%)
+    empty_slot                     569190  (35.3%)
+    dest_other_station             281961  (17.5%)
+    clean_vm                       117391  (7.3%)
+    fallback_critical                3595  (0.2%)
+
+[ Razones de descarte de candidatos en ventana ]
+
+  Contexto: demand  (104/4895 descartados = 2.1%)
+    dest_other                    56  (1.1%)
+    no_vm                         45  (0.9%)
+    would_saturate                 3  (0.1%)
+
+  Contexto: reservation  (2631853/17725851 descartados = 14.8%)
+    reserved                  2148320  (12.1%)
+    would_saturate            483533  (2.7%)
+
+[ Fallback en búsqueda ] 3595 búsquedas en fallback_critical o sin resultado
+  Candidatos en ventanas de fallback: 39545
+    would_saturate             33960  (85.9%)
+    reserved                    5585  (14.1%)

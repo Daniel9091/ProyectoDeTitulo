@@ -1,0 +1,256 @@
+=== CONDICIONES INICIALES DE LA CORRIDA ===
+
+  run_id:         linea_1_edit_seed42_20260902-190629
+  seed:           42
+  scenario_name:  linea_1_edit
+
+  Tiempo simulado:  86400.0 s
+  Tiempo real:      ? s
+  Vueltas del belt: 63.765
+
+--- Belt ---
+  largo total:    27099.31 m
+  slots totales:  13549
+  densidad init:  1.0
+  capacidad VM:   6 pax
+  junctions:
+    Estación 1: belt_x = 50.64 m
+    Estación 2: belt_x = 1050.58 m
+    Estación 3: belt_x = 2050.58 m
+    Estación 4: belt_x = 3050.58 m
+    Estación 5: belt_x = 4050.58 m
+    Estación 6: belt_x = 5050.58 m
+    Estación 7: belt_x = 6050.58 m
+    Estación 8: belt_x = 7050.58 m
+    Estación 9: belt_x = 8050.58 m
+    Estación 10: belt_x = 9050.69 m
+    Estación 11: belt_x = 10050.67 m
+    Estación 12: belt_x = 11050.64 m
+    Estación 13: belt_x = 12050.67 m
+    Estación 14: belt_x = 13050.58 m
+    Estación 15: belt_x = 14050.58 m
+    Estación 16: belt_x = 15050.64 m
+    Estación 17: belt_x = 16050.58 m
+    Estación 18: belt_x = 17050.58 m
+    Estación 19: belt_x = 18050.58 m
+    Estación 20: belt_x = 19050.64 m
+    Estación 21: belt_x = 20050.64 m
+    Estación 22: belt_x = 21050.58 m
+    Estación 23: belt_x = 22050.58 m
+    Estación 24: belt_x = 23050.64 m
+    Estación 25: belt_x = 24050.58 m
+    Estación 26: belt_x = 25050.58 m
+    Estación 27: belt_x = 26050.69 m
+
+--- Estaciones ---
+
+  Estación 1:
+    posición:        (500.0, 0.0, 0.0) m
+    andenes:         4
+    tasa pasajeros:  0.5687 pax/s
+    tasa VMs:        0.09478 VM/s
+    destinos:        S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=7%, S12=7%, S13=14%, S14=4%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S24=4%, S25=5%, S26=1%, S27=3%
+
+  Estación 2:
+    posición:        (1500.0, 0.0, 0.0) m
+    andenes:         2
+    tasa pasajeros:  0.1563 pax/s
+    tasa VMs:        0.02605 VM/s
+    destinos:        S1=5%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=6%, S12=6%, S13=13%, S14=3%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S24=3%, S25=5%, S26=1%, S27=3%
+
+  Estación 3:
+    posición:        (2500.0, 0.0, 0.0) m
+    andenes:         2
+    tasa pasajeros:  0.4049 pax/s
+    tasa VMs:        0.06748 VM/s
+    destinos:        S1=5%, S2=1%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=6%, S12=6%, S13=13%, S14=3%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S24=3%, S25=5%, S26=1%, S27=3%
+
+  Estación 4:
+    posición:        (3500.0, 0.0, 0.0) m
+    andenes:         3
+    tasa pasajeros:  0.7207 pax/s
+    tasa VMs:        0.1201 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=6%, S12=7%, S13=13%, S14=4%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S24=3%, S25=5%, S26=1%, S27=3%
+
+  Estación 5:
+    posición:        (4500.0, 0.0, 0.0) m
+    andenes:         2
+    tasa pasajeros:  0.2486 pax/s
+    tasa VMs:        0.04143 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=6%, S12=6%, S13=13%, S14=3%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S24=3%, S25=5%, S26=1%, S27=3%
+
+  Estación 6:
+    posición:        (5500.0, 0.0, 0.0) m
+    andenes:         2
+    tasa pasajeros:  0.3967 pax/s
+    tasa VMs:        0.06611 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S7=3%, S8=4%, S9=1%, S10=3%, S11=6%, S12=6%, S13=13%, S14=3%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S24=3%, S25=5%, S26=1%, S27=3%
+
+  Estación 7:
+    posición:        (6500.0, 0.0, 0.0) m
+    andenes:         3
+    tasa pasajeros:  0.6267 pax/s
+    tasa VMs:        0.1045 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S8=4%, S9=1%, S10=3%, S11=6%, S12=7%, S13=13%, S14=3%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S24=3%, S25=5%, S26=1%, S27=3%
+
+  Estación 8:
+    posición:        (7500.0, 0.0, 0.0) m
+    andenes:         3
+    tasa pasajeros:  0.8893 pax/s
+    tasa VMs:        0.1482 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S9=1%, S10=3%, S11=7%, S12=7%, S13=14%, S14=4%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S24=4%, S25=5%, S26=1%, S27=3%
+
+  Estación 9:
+    posición:        (8500.0, 0.0, 0.0) m
+    andenes:         2
+    tasa pasajeros:  0.3067 pax/s
+    tasa VMs:        0.05112 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S10=3%, S11=6%, S12=6%, S13=13%, S14=3%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S24=3%, S25=5%, S26=1%, S27=3%
+
+  Estación 10:
+    posición:        (9500.0, 0.0, 0.0) m
+    andenes:         8
+    tasa pasajeros:  0.5752 pax/s
+    tasa VMs:        0.09587 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S11=6%, S12=7%, S13=13%, S14=3%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S24=3%, S25=5%, S26=1%, S27=3%
+
+  Estación 11:
+    posición:        (10500.0, 0.0, 0.0) m
+    andenes:         6
+    tasa pasajeros:  0.7224 pax/s
+    tasa VMs:        0.1204 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S12=7%, S13=14%, S14=4%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=7%, S21=12%, S22=1%, S23=1%, S24=4%, S25=5%, S26=1%, S27=3%
+
+  Estación 12:
+    posición:        (11500.0, 0.0, 0.0) m
+    andenes:         5
+    tasa pasajeros:  1.474 pax/s
+    tasa VMs:        0.2457 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=7%, S13=14%, S14=4%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=7%, S21=12%, S22=1%, S23=1%, S24=4%, S25=5%, S26=1%, S27=3%
+
+  Estación 13:
+    posición:        (12500.0, 0.0, 0.0) m
+    andenes:         6
+    tasa pasajeros:  1.504 pax/s
+    tasa VMs:        0.2507 VM/s
+    destinos:        S1=6%, S2=1%, S3=2%, S4=4%, S5=1%, S6=2%, S7=3%, S8=4%, S9=2%, S10=3%, S11=7%, S12=7%, S14=4%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=7%, S21=13%, S22=2%, S23=1%, S24=4%, S25=6%, S26=1%, S27=3%
+
+  Estación 14:
+    posición:        (13500.0, 0.0, 0.0) m
+    andenes:         3
+    tasa pasajeros:  0.782 pax/s
+    tasa VMs:        0.1303 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=6%, S12=7%, S13=13%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S24=4%, S25=5%, S26=1%, S27=3%
+
+  Estación 15:
+    posición:        (14500.0, 0.0, 0.0) m
+    andenes:         2
+    tasa pasajeros:  0.3893 pax/s
+    tasa VMs:        0.06489 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=6%, S12=6%, S13=13%, S14=3%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S24=3%, S25=5%, S26=1%, S27=3%
+
+  Estación 16:
+    posición:        (15500.0, 0.0, 0.0) m
+    andenes:         4
+    tasa pasajeros:  0.6321 pax/s
+    tasa VMs:        0.1053 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=7%, S12=7%, S13=14%, S14=4%, S15=2%, S17=2%, S18=3%, S19=4%, S20=7%, S21=12%, S22=1%, S23=1%, S24=4%, S25=5%, S26=1%, S27=3%
+
+  Estación 17:
+    posición:        (16500.0, 0.0, 0.0) m
+    andenes:         2
+    tasa pasajeros:  0.4848 pax/s
+    tasa VMs:        0.08079 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=6%, S12=7%, S13=13%, S14=3%, S15=2%, S16=6%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S24=3%, S25=5%, S26=1%, S27=3%
+
+  Estación 18:
+    posición:        (17500.0, 0.0, 0.0) m
+    andenes:         3
+    tasa pasajeros:  0.5934 pax/s
+    tasa VMs:        0.0989 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=6%, S12=7%, S13=13%, S14=3%, S15=2%, S16=6%, S17=2%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S24=3%, S25=5%, S26=1%, S27=3%
+
+  Estación 19:
+    posición:        (18500.0, 0.0, 0.0) m
+    andenes:         3
+    tasa pasajeros:  0.836 pax/s
+    tasa VMs:        0.1393 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=6%, S12=7%, S13=14%, S14=4%, S15=2%, S16=6%, S17=2%, S18=3%, S20=6%, S21=12%, S22=1%, S23=1%, S24=4%, S25=5%, S26=1%, S27=3%
+
+  Estación 20:
+    posición:        (19500.0, 0.0, 0.0) m
+    andenes:         5
+    tasa pasajeros:  0.71 pax/s
+    tasa VMs:        0.1183 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=7%, S12=7%, S13=14%, S14=4%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S21=12%, S22=1%, S23=1%, S24=4%, S25=5%, S26=1%, S27=3%
+
+  Estación 21:
+    posición:        (20500.0, 0.0, 0.0) m
+    andenes:         5
+    tasa pasajeros:  1.351 pax/s
+    tasa VMs:        0.2252 VM/s
+    destinos:        S1=6%, S2=1%, S3=2%, S4=4%, S5=1%, S6=2%, S7=3%, S8=4%, S9=2%, S10=3%, S11=7%, S12=7%, S13=15%, S14=4%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=7%, S22=1%, S23=1%, S24=4%, S25=5%, S26=1%, S27=3%
+
+  Estación 22:
+    posición:        (21500.0, 0.0, 0.0) m
+    andenes:         2
+    tasa pasajeros:  0.303 pax/s
+    tasa VMs:        0.05049 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=6%, S12=6%, S13=13%, S14=3%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S23=1%, S24=3%, S25=5%, S26=1%, S27=3%
+
+  Estación 23:
+    posición:        (22500.0, 0.0, 0.0) m
+    andenes:         2
+    tasa pasajeros:  0.2311 pax/s
+    tasa VMs:        0.03852 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=6%, S12=6%, S13=13%, S14=3%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S24=3%, S25=5%, S26=1%, S27=3%
+
+  Estación 24:
+    posición:        (23500.0, 0.0, 0.0) m
+    andenes:         4
+    tasa pasajeros:  0.7808 pax/s
+    tasa VMs:        0.1301 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=6%, S12=7%, S13=13%, S14=4%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S25=5%, S26=1%, S27=3%
+
+  Estación 25:
+    posición:        (24500.0, 0.0, 0.0) m
+    andenes:         3
+    tasa pasajeros:  1.114 pax/s
+    tasa VMs:        0.1857 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=7%, S12=7%, S13=14%, S14=4%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S24=4%, S26=1%, S27=3%
+
+  Estación 26:
+    posición:        (25500.0, 0.0, 0.0) m
+    andenes:         2
+    tasa pasajeros:  0.2023 pax/s
+    tasa VMs:        0.03372 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=6%, S12=6%, S13=13%, S14=3%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S24=3%, S25=5%, S27=3%
+
+  Estación 27:
+    posición:        (26500.0, 0.0, 0.0) m
+    andenes:         8
+    tasa pasajeros:  0.5947 pax/s
+    tasa VMs:        0.09912 VM/s
+    destinos:        S1=5%, S2=1%, S3=2%, S4=3%, S5=1%, S6=2%, S7=3%, S8=4%, S9=1%, S10=3%, S11=6%, S12=7%, S13=13%, S14=3%, S15=2%, S16=6%, S17=2%, S18=3%, S19=4%, S20=6%, S21=12%, S22=1%, S23=1%, S24=3%, S25=5%, S26=1%
+
+--- Constantes de simulación ---
+  GRAVITY                             9.8
+  ACCEL_RANGE_MIN                     0.2
+  ACCEL_RANGE_MAX                     1.5
+  BOARDING_LANE_SPEED                 2
+  BOARDING_COMMIT_PROGRESS            0.5
+  PASSENGER_WALK_SPEED                0.5
+  TRAIN_SPEED                         20
+  TRAIN_VM_LENGTH                     1
+  TRAIN_GAP                           1
+  TRAIN_SPACING                       2
+  TREE_DZ                             20.2041
+  MIN_VM_SEPARATION                   2
+  TREE_LENGTH                         400
+  SLOT_SEARCH_RANGE_RESERVATION       40
+  SLOT_SEARCH_RANGE_DEMAND            10
+  BURST_WINDOW_SAFETY_MARGIN          0
+  SNAPSHOT_INTERVAL                   60
+  FPS                                 30
+  SCREEN_WIDTH                        1200
+  SCREEN_HEIGHT                       800

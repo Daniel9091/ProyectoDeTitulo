@@ -1,0 +1,105 @@
+
+=== ÁRBOLES Y JUNCTION ROUTING (SP5) ===
+
+--- 1. Balance de andenes elegidos por junction ---
+    (ideal: cada estación distribuye entradas uniformemente entre andenes)
+  Estación 1: 91806 entradas | andén 0: 23797 (25.9%) | andén 1: 23217 (25.3%) | andén 2: 22680 (24.7%) | andén 3: 22112 (24.1%)
+  Estación 2: 12108 entradas | andén 0: 6517 (53.8%) | andén 1: 5591 (46.2%)
+  Estación 3: 26106 entradas | andén 0: 13572 (52.0%) | andén 1: 12534 (48.0%)
+  Estación 4: 42534 entradas | andén 0: 14885 (35.0%) | andén 1: 14177 (33.3%) | andén 2: 13472 (31.7%)
+  Estación 5: 17704 entradas | andén 0: 9345 (52.8%) | andén 1: 8359 (47.2%)
+  Estación 6: 25480 entradas | andén 0: 13238 (52.0%) | andén 1: 12242 (48.0%)
+  Estación 7: 37670 entradas | andén 0: 13254 (35.2%) | andén 1: 12557 (33.3%) | andén 2: 11859 (31.5%)
+  Estación 8: 49852 entradas | andén 0: 17353 (34.8%) | andén 1: 16615 (33.3%) | andén 2: 15884 (31.9%)
+  Estación 9: 20786 entradas | andén 0: 10885 (52.4%) | andén 1: 9901 (47.6%)
+  Estación 10: 35187 entradas | andén 0: 5337 (15.2%) | andén 1: 5044 (14.3%) | andén 2: 4774 (13.6%) | andén 3: 4513 (12.8%) | andén 4: 4241 (12.1%) | andén 5: 4007 (11.4%) | andén 6: 3765 (10.7%) | andén 7: 3506 (10.0%)
+  Estación 11: 106271 entradas | andén 0: 18653 (17.6%) | andén 1: 18265 (17.2%) | andén 2: 17888 (16.8%) | andén 3: 17527 (16.5%) | andén 4: 17155 (16.1%) | andén 5: 16783 (15.8%)
+  Estación 12: 73615 entradas | andén 0: 15616 (21.2%) | andén 1: 15159 (20.6%) | andén 2: 14722 (20.0%) | andén 3: 14274 (19.4%) | andén 4: 13844 (18.8%)
+  Estación 13: 120779 entradas | andén 0: 21075 (17.4%) | andén 1: 20699 (17.1%) | andén 2: 20311 (16.8%) | andén 3: 19941 (16.5%) | andén 4: 19571 (16.2%) | andén 5: 19182 (15.9%)
+  Estación 14: 45695 entradas | andén 0: 15958 (34.9%) | andén 1: 15215 (33.3%) | andén 2: 14522 (31.8%)
+  Estación 15: 25390 entradas | andén 0: 13197 (52.0%) | andén 1: 12193 (48.0%)
+  Estación 16: 98087 entradas | andén 0: 25350 (25.8%) | andén 1: 24796 (25.3%) | andén 2: 24247 (24.7%) | andén 3: 23694 (24.2%)
+  Estación 17: 31271 entradas | andén 0: 16164 (51.7%) | andén 1: 15107 (48.3%)
+  Estación 18: 37152 entradas | andén 0: 13086 (35.2%) | andén 1: 12387 (33.3%) | andén 2: 11679 (31.4%)
+  Estación 19: 47630 entradas | andén 0: 16596 (34.8%) | andén 1: 15873 (33.3%) | andén 2: 15161 (31.8%)
+  Estación 20: 105725 entradas | andén 0: 22045 (20.9%) | andén 1: 21588 (20.4%) | andén 2: 21138 (20.0%) | andén 3: 20702 (19.6%) | andén 4: 20252 (19.2%)
+  Estación 21: 117711 entradas | andén 0: 24449 (20.8%) | andén 1: 23992 (20.4%) | andén 2: 23534 (20.0%) | andén 3: 23088 (19.6%) | andén 4: 22648 (19.2%)
+  Estación 22: 20679 entradas | andén 0: 10835 (52.4%) | andén 1: 9844 (47.6%)
+  Estación 23: 16339 entradas | andén 0: 8655 (53.0%) | andén 1: 7684 (47.0%)
+  Estación 24: 44654 entradas | andén 0: 11988 (26.8%) | andén 1: 11420 (25.6%) | andén 2: 10897 (24.4%) | andén 3: 10349 (23.2%)
+  Estación 25: 59346 entradas | andén 0: 20497 (34.5%) | andén 1: 19784 (33.3%) | andén 2: 19065 (32.1%)
+  Estación 26: 15551 entradas | andén 0: 8256 (53.1%) | andén 1: 7295 (46.9%)
+  Estación 27: 35805 entradas | andén 0: 5413 (15.1%) | andén 1: 5125 (14.3%) | andén 2: 4858 (13.6%) | andén 3: 4603 (12.9%) | andén 4: 4334 (12.1%) | andén 5: 4069 (11.4%) | andén 6: 3816 (10.7%) | andén 7: 3587 (10.0%)
+
+--- 2. Razón de entrada al junction ---
+    (cada VM suma a UNA sola razón — la rama del Brain que lo procesó)
+  Estación 1: demand: 33 (0.0%) | destination: 17104 (18.6%) | reserved: 74669 (81.3%)
+  Estación 2: demand: 12 (0.1%) | destination: 6664 (55.0%) | reserved: 5432 (44.9%)
+  Estación 3: demand: 25 (0.1%) | destination: 10257 (39.3%) | reserved: 15824 (60.6%)
+  Estación 4: demand: 45 (0.1%) | destination: 13136 (30.9%) | reserved: 29353 (69.0%)
+  Estación 5: demand: 13 (0.1%) | destination: 8540 (48.2%) | reserved: 9151 (51.7%)
+  Estación 6: demand: 25 (0.1%) | destination: 10300 (40.4%) | reserved: 15155 (59.5%)
+  Estación 7: demand: 35 (0.1%) | destination: 12542 (33.3%) | reserved: 25093 (66.6%)
+  Estación 8: demand: 64 (0.1%) | destination: 14323 (28.7%) | reserved: 35465 (71.1%)
+  Estación 9: demand: 14 (0.1%) | destination: 9471 (45.6%) | reserved: 11301 (54.4%)
+  Estación 10: demand: 23 (0.1%) | destination: 11943 (33.9%) | reserved: 23221 (66.0%)
+  Estación 11: demand: 31 (0.0%) | destination: 17959 (16.9%) | reserved: 88281 (83.1%)
+  Estación 12: demand: 125 (0.2%) | destination: 17330 (23.5%) | reserved: 56160 (76.3%)
+  Estación 13: demand: 70 (0.1%) | destination: 20283 (16.8%) | reserved: 100426 (83.1%)
+  Estación 14: demand: 33 (0.1%) | destination: 15069 (33.0%) | reserved: 30593 (67.0%)
+  Estación 15: demand: 22 (0.1%) | destination: 10415 (41.0%) | reserved: 14953 (58.9%)
+  Estación 16: demand: 31 (0.0%) | destination: 17848 (18.2%) | reserved: 80208 (81.8%)
+  Estación 17: demand: 27 (0.1%) | destination: 11488 (36.7%) | reserved: 19756 (63.2%)
+  Estación 18: demand: 35 (0.1%) | destination: 12134 (32.7%) | reserved: 24983 (67.2%)
+  Estación 19: demand: 51 (0.1%) | destination: 13928 (29.2%) | reserved: 33651 (70.7%)
+  Estación 20: demand: 39 (0.0%) | destination: 18015 (17.0%) | reserved: 87671 (82.9%)
+  Estación 21: demand: 64 (0.1%) | destination: 21005 (17.8%) | reserved: 96642 (82.1%)
+  Estación 22: demand: 16 (0.1%) | destination: 9638 (46.6%) | reserved: 11025 (53.3%)
+  Estación 23: demand: 12 (0.1%) | destination: 8062 (49.3%) | reserved: 8265 (50.6%)
+  Estación 24: demand: 48 (0.1%) | destination: 13249 (29.7%) | reserved: 31357 (70.2%)
+  Estación 25: demand: 78 (0.1%) | destination: 15664 (26.4%) | reserved: 43604 (73.5%)
+  Estación 26: demand: 15 (0.1%) | destination: 7887 (50.7%) | reserved: 7649 (49.2%)
+  Estación 27: demand: 36 (0.1%) | destination: 12050 (33.7%) | reserved: 23719 (66.2%)
+
+--- 3. Ocupación del árbol UP al momento de entrada ---
+    (vehicle_count_after = VMs en el árbol tras insertar el nuevo, por estación)
+  Estación 1 normal  (n=91806): mediana=11 | P90=13 | max=17
+  Estación 2 normal  (n=12108): mediana=3 | P90=5 | max=9
+  Estación 3 normal  (n=26106): mediana=6 | P90=8 | max=15
+  Estación 4 normal  (n=42534): mediana=7 | P90=8 | max=13
+  Estación 5 normal  (n=17704): mediana=4 | P90=6 | max=9
+  Estación 6 normal  (n=25480): mediana=6 | P90=8 | max=13
+  Estación 7 normal  (n=37670): mediana=6 | P90=8 | max=12
+  Estación 8 normal  (n=49852): mediana=8 | P90=10 | max=15
+  Estación 9 normal  (n=20786): mediana=5 | P90=7 | max=11
+  Estación 10 normal  (n=35187): mediana=2 | P90=3 | max=4
+  Estación 11 normal  (n=106271): mediana=8 | P90=10 | max=12
+  Estación 12 normal  (n=73615): mediana=7 | P90=8 | max=12
+  Estación 13 normal  (n=120779): mediana=9 | P90=11 | max=15
+  Estación 14 normal  (n=45695): mediana=7 | P90=9 | max=13
+  Estación 15 normal  (n=25390): mediana=6 | P90=8 | max=12
+  Estación 16 normal  (n=98087): mediana=11 | P90=13 | max=18
+  Estación 17 normal  (n=31270): mediana=7 | P90=10 | max=14
+  Estación 17 FORZADA (n=1): mediana=11 | max=11
+  Estación 18 normal  (n=37152): mediana=6 | P90=7 | max=11
+  Estación 19 normal  (n=47630): mediana=7 | P90=9 | max=14
+  Estación 20 normal  (n=105725): mediana=10 | P90=11 | max=15
+  Estación 21 normal  (n=117711): mediana=11 | P90=12 | max=20
+  Estación 22 normal  (n=20679): mediana=5 | P90=7 | max=12
+  Estación 23 normal  (n=16339): mediana=4 | P90=6 | max=9
+  Estación 24 normal  (n=44654): mediana=5 | P90=7 | max=10
+  Estación 25 normal  (n=59346): mediana=9 | P90=11 | max=16
+  Estación 26 normal  (n=15551): mediana=4 | P90=6 | max=9
+  Estación 27 normal  (n=35805): mediana=2 | P90=3 | max=4
+
+--- 4. Margen de seguridad al entrar (nearest_existing_distance) ---
+    (distancia del VM existente más joven cuando llega el nuevo)
+  Entradas a árbol vacío (sin vecino): normal=11870 | forzada=0
+  Normal  (n=1349062): min=17.80m | P10=26.23m | mediana=76.42m | P90=208.70m | max=399.94m
+  Forzada (n=1): min=14.03m | P10=14.03m | mediana=14.03m | P90=14.03m | max=14.03m
+  Forzadas con vecino a < 1.0m (colisión física): 0/1 (0.0%)
+
+--- 5. Colisiones físicas en árboles (track_collision) ---
+    (colisión = dos VMs a < TRAIN_VM_LENGTH = 1m en el eje del árbol)
+  Sin colisiones físicas detectadas.
+  (SP5 activo — MIN_VM_SEPARATION=2m mantiene separación > 1m incluso en entradas forzadas)

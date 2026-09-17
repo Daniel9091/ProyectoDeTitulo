@@ -1,0 +1,88 @@
+
+=== ESTACIONES ===
+
+[ Demanda generada por estación ]
+    Estación   Generados    Llegaron
+  S        1       49134       48487
+  S        2       13504       13310
+  S        3       34979       34569
+  S        4       62268       61449
+  S        5       21476       21232
+  S        6       34273       33889
+  S        7       54150       53498
+  S        8       76836       75887
+  S        9       26500       26194
+  S       10       49699       49145
+  S       11       62415       61654
+  S       12      127391      118066
+  S       13      129953      128273
+  S       14       67565       66586
+  S       15       33639       33207
+  S       16       54609       53893
+  S       17       41882       41353
+  S       18       51270       50587
+  S       19       72228       71229
+  S       20       61343       60516
+  S       21      116755      115141
+  S       22       26175       25798
+  S       23       19969       19686
+  S       24       67460       66405
+  S       25       96245       94433
+  S       26       17479       17240
+  S       27       51385       50756
+
+[ VMs redirigidos por saturación de árbol ]
+  VM llegó a su junction de destino pero los árboles estaban llenos;
+  fue desviado a la siguiente estación en la red.
+    Estación    Total   Con pax   Sin pax
+  S       27      105       105         0
+  S       10       91        91         0
+  S       17       80        80         0
+  S        3       66        66         0
+  S       15       63        63         0
+  S        6       51        51         0
+  S       22       42        42         0
+  S        9       36        36         0
+  S       23       36        36         0
+  S       26       28        28         0
+  S        5       25        25         0
+  S       25       14        14         0
+  S        2       10        10         0
+  S        4       10        10         0
+  S       19       10        10         0
+  S       14        7         7         0
+  S        7        5         5         0
+  S        8        5         5         0
+  S       18        5         5         0
+  S       16        1         1         0
+
+  Total: 690  (690 con pasajeros → impacto directo en nivel de servicio)
+
+[ Snapshots de estación (SP6) ]
+  S1: 1439 snapshots — t=[60s, 86374s]
+  S2: 1439 snapshots — t=[60s, 86374s]
+  S3: 1439 snapshots — t=[60s, 86374s]
+  S4: 1439 snapshots — t=[60s, 86374s]
+  S5: 1439 snapshots — t=[60s, 86374s]
+  S6: 1439 snapshots — t=[60s, 86374s]
+  S7: 1439 snapshots — t=[60s, 86374s]
+  S8: 1439 snapshots — t=[60s, 86374s]
+  S9: 1439 snapshots — t=[60s, 86374s]
+  S10: 1439 snapshots — t=[60s, 86374s]
+  S11: 1439 snapshots — t=[60s, 86374s]
+  S12: 1439 snapshots — t=[60s, 86374s]
+  S13: 1439 snapshots — t=[60s, 86374s]
+  S14: 1439 snapshots — t=[60s, 86374s]
+  S15: 1439 snapshots — t=[60s, 86374s]
+  S16: 1439 snapshots — t=[60s, 86374s]
+  S17: 1439 snapshots — t=[60s, 86374s]
+  S18: 1439 snapshots — t=[60s, 86374s]
+  S19: 1439 snapshots — t=[60s, 86374s]
+  S20: 1439 snapshots — t=[60s, 86374s]
+  S21: 1439 snapshots — t=[60s, 86374s]
+  S22: 1439 snapshots — t=[60s, 86374s]
+  S23: 1439 snapshots — t=[60s, 86374s]
+  S24: 1439 snapshots — t=[60s, 86374s]
+  S25: 1439 snapshots — t=[60s, 86374s]
+  S26: 1439 snapshots — t=[60s, 86374s]
+  S27: 1439 snapshots — t=[60s, 86374s]

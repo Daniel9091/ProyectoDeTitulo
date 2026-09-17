@@ -1,0 +1,1564 @@
+
+=== ÁRBOLES Y JUNCTION ROUTING (SP5) ===
+
+--- 1. Balance de andenes elegidos por junction ---
+    (ideal: cada estación distribuye entradas uniformemente entre andenes)
+  Estación 1: 86347 entradas | andén 0: 22421 (26.0%) | andén 1: 21859 (25.3%) | andén 2: 21306 (24.7%) | andén 3: 20761 (24.0%)
+  Estación 2: 11466 entradas | andén 0: 6213 (54.2%) | andén 1: 5253 (45.8%)
+  Estación 3: 25615 entradas | andén 0: 13324 (52.0%) | andén 1: 12291 (48.0%)
+  Estación 4: 41691 entradas | andén 0: 14612 (35.0%) | andén 1: 13901 (33.3%) | andén 2: 13178 (31.6%)
+  Estación 5: 17037 entradas | andén 0: 9007 (52.9%) | andén 1: 8030 (47.1%)
+  Estación 6: 25021 entradas | andén 0: 13029 (52.1%) | andén 1: 11992 (47.9%)
+  Estación 7: 37069 entradas | andén 0: 13076 (35.3%) | andén 1: 12344 (33.3%) | andén 2: 11649 (31.4%)
+  Estación 8: 49572 entradas | andén 0: 17240 (34.8%) | andén 1: 16529 (33.3%) | andén 2: 15803 (31.9%)
+  Estación 9: 20552 entradas | andén 0: 10757 (52.3%) | andén 1: 9795 (47.7%)
+  Estación 10: 34785 entradas | andén 0: 17911 (51.5%) | andén 1: 16874 (48.5%)
+  Estación 11: 104231 entradas | andén 0: 18304 (17.6%) | andén 1: 17930 (17.2%) | andén 2: 17548 (16.8%) | andén 3: 17181 (16.5%) | andén 4: 16822 (16.1%) | andén 5: 16446 (15.8%)
+  Estación 12: 73805 entradas | andén 0: 15651 (21.2%) | andén 1: 15196 (20.6%) | andén 2: 14751 (20.0%) | andén 3: 14323 (19.4%) | andén 4: 13884 (18.8%)
+  Estación 13: 145632 entradas | andén 0: 49267 (33.8%) | andén 1: 48547 (33.3%) | andén 2: 47818 (32.8%)
+  Estación 14: 55868 entradas | andén 0: 19343 (34.6%) | andén 1: 18629 (33.3%) | andén 2: 17896 (32.0%)
+  Estación 15: 25244 entradas | andén 0: 13109 (51.9%) | andén 1: 12135 (48.1%)
+  Estación 16: 90065 entradas | andén 0: 23341 (25.9%) | andén 1: 22790 (25.3%) | andén 2: 22241 (24.7%) | andén 3: 21693 (24.1%)
+  Estación 17: 30276 entradas | andén 0: 15661 (51.7%) | andén 1: 14615 (48.3%)
+  Estación 18: 36438 entradas | andén 0: 12874 (35.3%) | andén 1: 12120 (33.3%) | andén 2: 11444 (31.4%)
+  Estación 19: 46646 entradas | andén 0: 16266 (34.9%) | andén 1: 15548 (33.3%) | andén 2: 14832 (31.8%)
+  Estación 20: 101424 entradas | andén 0: 21198 (20.9%) | andén 1: 20728 (20.4%) | andén 2: 20277 (20.0%) | andén 3: 19843 (19.6%) | andén 4: 19378 (19.1%)
+  Estación 21: 133879 entradas | andén 0: 45348 (33.9%) | andén 1: 44627 (33.3%) | andén 2: 43904 (32.8%)
+  Estación 22: 29762 entradas | andén 0: 15389 (51.7%) | andén 1: 14373 (48.3%)
+  Estación 23: 16664 entradas | andén 0: 8795 (52.8%) | andén 1: 7869 (47.2%)
+  Estación 24: 43853 entradas | andén 0: 11788 (26.9%) | andén 1: 11217 (25.6%) | andén 2: 10684 (24.4%) | andén 3: 10164 (23.2%)
+  Estación 25: 58474 entradas | andén 0: 20218 (34.6%) | andén 1: 19490 (33.3%) | andén 2: 18766 (32.1%)
+  Estación 26: 14887 entradas | andén 0: 7924 (53.2%) | andén 1: 6963 (46.8%)
+  Estación 27: 34749 entradas | andén 0: 17891 (51.5%) | andén 1: 16858 (48.5%)
+
+--- 2. Razón de entrada al junction ---
+    (cada VM suma a UNA sola razón — la rama del Brain que lo procesó)
+  Estación 1: demand: 25 (0.0%) | destination: 17240 (20.0%) | reserved: 69082 (80.0%)
+  Estación 2: demand: 10 (0.1%) | destination: 6629 (57.8%) | reserved: 4827 (42.1%)
+  Estación 3: demand: 27 (0.1%) | destination: 10344 (40.4%) | reserved: 15244 (59.5%)
+  Estación 4: demand: 43 (0.1%) | destination: 13085 (31.4%) | reserved: 28563 (68.5%)
+  Estación 5: demand: 12 (0.1%) | destination: 8543 (50.1%) | reserved: 8482 (49.8%)
+  Estación 6: demand: 25 (0.1%) | destination: 10349 (41.4%) | reserved: 14647 (58.5%)
+  Estación 7: demand: 36 (0.1%) | destination: 12626 (34.1%) | reserved: 24407 (65.8%)
+  Estación 8: demand: 51 (0.1%) | destination: 14552 (29.4%) | reserved: 34969 (70.5%)
+  Estación 9: demand: 14 (0.1%) | destination: 9449 (46.0%) | reserved: 11089 (54.0%)
+  Estación 10: demand: 26 (0.1%) | destination: 12244 (35.2%) | reserved: 22515 (64.7%)
+  Estación 11: demand: 32 (0.0%) | destination: 18236 (17.5%) | reserved: 85963 (82.5%)
+  Estación 12: demand: 132 (0.2%) | destination: 17370 (23.5%) | reserved: 56303 (76.3%)
+  Estación 13: demand: 66 (0.0%) | destination: 29901 (20.5%) | reserved: 115665 (79.4%)
+  Estación 14: demand: 40 (0.1%) | destination: 16364 (29.3%) | reserved: 39464 (70.6%)
+  Estación 15: demand: 23 (0.1%) | destination: 10513 (41.6%) | reserved: 14708 (58.3%)
+  Estación 16: demand: 31 (0.0%) | destination: 17310 (19.2%) | reserved: 72724 (80.7%)
+  Estación 17: demand: 26 (0.1%) | destination: 11560 (38.2%) | reserved: 18690 (61.7%)
+  Estación 18: demand: 34 (0.1%) | destination: 12368 (33.9%) | reserved: 24036 (66.0%)
+  Estación 19: demand: 54 (0.1%) | destination: 14067 (30.2%) | reserved: 32525 (69.7%)
+  Estación 20: demand: 39 (0.0%) | destination: 18139 (17.9%) | reserved: 83246 (82.1%)
+  Estación 21: demand: 68 (0.1%) | destination: 28899 (21.6%) | reserved: 104912 (78.4%)
+  Estación 22: demand: 18 (0.1%) | destination: 11405 (38.3%) | reserved: 18339 (61.6%)
+  Estación 23: demand: 14 (0.1%) | destination: 8153 (48.9%) | reserved: 8497 (51.0%)
+  Estación 24: demand: 53 (0.1%) | destination: 13088 (29.8%) | reserved: 30712 (70.0%)
+  Estación 25: demand: 77 (0.1%) | destination: 15832 (27.1%) | reserved: 42565 (72.8%)
+  Estación 26: demand: 14 (0.1%) | destination: 7758 (52.1%) | reserved: 7115 (47.8%)
+  Estación 27: demand: 38 (0.1%) | destination: 12235 (35.2%) | reserved: 22476 (64.7%)
+
+--- 3. Ocupación del árbol UP al momento de entrada ---
+    (vehicle_count_after = VMs en el árbol tras insertar el nuevo, por estación)
+  Estación 1 normal  (n=86347): mediana=10 | P90=12 | max=16
+  Estación 2 normal  (n=11466): mediana=3 | P90=5 | max=8
+  Estación 3 normal  (n=25615): mediana=6 | P90=8 | max=13
+  Estación 4 normal  (n=41691): mediana=6 | P90=8 | max=12
+  Estación 5 normal  (n=17037): mediana=4 | P90=6 | max=9
+  Estación 6 normal  (n=25021): mediana=6 | P90=8 | max=13
+  Estación 7 normal  (n=37069): mediana=6 | P90=7 | max=11
+  Estación 8 normal  (n=49572): mediana=8 | P90=9 | max=13
+  Estación 9 normal  (n=20552): mediana=5 | P90=7 | max=11
+  Estación 10 normal  (n=34785): mediana=8 | P90=10 | max=17
+  Estación 11 normal  (n=104231): mediana=8 | P90=9 | max=13
+  Estación 12 normal  (n=73805): mediana=7 | P90=8 | max=11
+  Estación 13 normal  (n=140164): mediana=21 | P90=27 | max=41
+  Estación 13 FORZADA (n=5468): mediana=25 | max=41
+  Estación 14 normal  (n=55868): mediana=8 | P90=11 | max=15
+  Estación 15 normal  (n=25244): mediana=6 | P90=8 | max=12
+  Estación 16 normal  (n=90065): mediana=10 | P90=12 | max=17
+  Estación 17 normal  (n=30276): mediana=7 | P90=9 | max=15
+  Estación 18 normal  (n=36438): mediana=6 | P90=7 | max=11
+  Estación 19 normal  (n=46646): mediana=7 | P90=9 | max=13
+  Estación 20 normal  (n=101424): mediana=9 | P90=11 | max=15
+  Estación 21 normal  (n=130901): mediana=20 | P90=25 | max=42
+  Estación 21 FORZADA (n=2978): mediana=23 | max=41
+  Estación 22 normal  (n=29762): mediana=7 | P90=9 | max=14
+  Estación 23 normal  (n=16664): mediana=4 | P90=6 | max=9
+  Estación 24 normal  (n=43853): mediana=5 | P90=6 | max=9
+  Estación 25 normal  (n=58474): mediana=9 | P90=11 | max=16
+  Estación 26 normal  (n=14887): mediana=4 | P90=5 | max=9
+  Estación 27 normal  (n=34749): mediana=8 | P90=10 | max=15
+
+--- 4. Margen de seguridad al entrar (nearest_existing_distance) ---
+    (distancia del VM existente más joven cuando llega el nuevo)
+  Entradas a árbol vacío (sin vecino): normal=2921 | forzada=0
+  Normal  (n=1379685): min=17.80m | P10=22.14m | mediana=63.83m | P90=183.12m | max=399.93m
+  Forzada (n=8446): min=5.99m | P10=10.18m | mediana=14.29m | P90=16.30m | max=17.38m
+  Forzadas con vecino a < 1.0m (colisión física): 0/8446 (0.0%)
+
+--- 5. Colisiones físicas en árboles (track_collision) ---
+    (colisión = dos VMs a < TRAIN_VM_LENGTH = 1m en el eje del árbol)
+  Colisiones iniciadas:  484
+  Colisiones resueltas:  483
+  Abiertas al cierre:    1
+
+  Detalle por colisión:
+    VM 9206 ↔ VM 9209  (track 230)
+      Inicio:    t=5535.3s | separación=1.000m | pos=(20442.8, 7.4, -0.4)
+      Fin:       t=5537.9s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 8468 ↔ VM 11593  (track 230)
+      Inicio:    t=5611.1s | separación=1.000m | pos=(20447.7, 7.5, -0.1)
+      Fin:       t=5612.0s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 3248 ↔ VM 4052  (track 133)
+      Inicio:    t=6122.3s | separación=0.996m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=6124.8s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 2619 ↔ VM 13062  (track 133)
+      Inicio:    t=6184.2s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=6185.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 13042 ↔ VM 13086  (track 139)
+      Inicio:    t=6340.2s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=6341.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 270 ↔ VM 13057  (track 133)
+      Inicio:    t=6341.4s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=6342.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 11280 ↔ VM 12058  (track 133)
+      Inicio:    t=6361.7s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=6362.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 328 ↔ VM 2627  (track 133)
+      Inicio:    t=6418.0s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=6418.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8774 ↔ VM 9545  (track 136)
+      Inicio:    t=6535.5s | separación=0.994m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=6536.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2993 ↔ VM 9541  (track 133)
+      Inicio:    t=6536.4s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=6537.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9399 ↔ VM 12540  (track 133)
+      Inicio:    t=6549.7s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=6550.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 439 ↔ VM 12408  (track 139)
+      Inicio:    t=6561.7s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=6562.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 410 ↔ VM 12417  (track 136)
+      Inicio:    t=6562.6s | separación=0.994m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=6563.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9105 ↔ VM 9893  (track 136)
+      Inicio:    t=6581.6s | separación=0.994m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=6582.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7978 ↔ VM 8751  (track 133)
+      Inicio:    t=6613.4s | separación=0.996m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=6615.9s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 9533 ↔ VM 10294  (track 133)
+      Inicio:    t=6616.6s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=6617.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8740 ↔ VM 9514  (track 136)
+      Inicio:    t=6617.5s | separación=0.994m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=6618.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 10733 ↔ VM 10734  (track 136)
+      Inicio:    t=6649.4s | separación=0.996m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=6651.9s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 8361 ↔ VM 13044  (track 139)
+      Inicio:    t=6732.6s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=6733.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 11415 ↔ VM 12183  (track 139)
+      Inicio:    t=6737.5s | separación=0.996m | pos=(12442.9, 7.4, -0.4)
+      Fin:       t=6740.0s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 11411 ↔ VM 12169  (track 133)
+      Inicio:    t=6739.1s | separación=0.996m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=6741.6s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 12438 ↔ VM 13215  (track 139)
+      Inicio:    t=6791.0s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=6791.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5882 ↔ VM 13186  (track 227)
+      Inicio:    t=6806.5s | separación=0.994m | pos=(20447.9, 0.0, -0.1)
+      Fin:       t=6807.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 10392 ↔ VM 11175  (track 224)
+      Inicio:    t=6850.0s | separación=0.994m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=6850.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9616 ↔ VM 11954  (track 230)
+      Inicio:    t=6850.9s | separación=0.994m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=6851.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7096 ↔ VM 7872  (track 136)
+      Inicio:    t=6859.1s | separación=0.994m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=6859.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5525 ↔ VM 5529  (track 133)
+      Inicio:    t=6860.0s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=6860.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2179 ↔ VM 9491  (track 224)
+      Inicio:    t=6863.4s | separación=0.994m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=6864.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6946 ↔ VM 9255  (track 133)
+      Inicio:    t=6875.2s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=6876.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 584 ↔ VM 11032  (track 224)
+      Inicio:    t=6941.3s | separación=0.996m | pos=(20442.9, -7.4, -0.4)
+      Fin:       t=6943.8s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 4694 ↔ VM 4697  (track 136)
+      Inicio:    t=6941.5s | separación=0.996m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=6944.0s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 9492 ↔ VM 9493  (track 230)
+      Inicio:    t=6941.9s | separación=0.994m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=6942.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9488 ↔ VM 10252  (track 227)
+      Inicio:    t=6942.8s | separación=0.994m | pos=(20447.9, 0.0, -0.1)
+      Fin:       t=6943.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9095 ↔ VM 9848  (track 139)
+      Inicio:    t=6972.7s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=6973.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 12236 ↔ VM 12290  (track 224)
+      Inicio:    t=6976.6s | separación=0.996m | pos=(20442.9, -7.4, -0.4)
+      Fin:       t=6979.1s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 9186 ↔ VM 13049  (track 224)
+      Inicio:    t=7051.7s | separación=0.994m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=7052.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7889 ↔ VM 11785  (track 230)
+      Inicio:    t=7103.5s | separación=0.994m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=7104.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8575 ↔ VM 10961  (track 224)
+      Inicio:    t=7189.1s | separación=0.996m | pos=(20442.9, -7.4, -0.4)
+      Fin:       t=7191.6s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 550 ↔ VM 10199  (track 230)
+      Inicio:    t=7257.6s | separación=0.994m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=7258.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7083 ↔ VM 9427  (track 224)
+      Inicio:    t=7261.0s | separación=0.994m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=7261.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1121 ↔ VM 9935  (track 224)
+      Inicio:    t=7282.8s | separación=0.996m | pos=(20442.9, -7.4, -0.4)
+      Fin:       t=7285.3s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 4884 ↔ VM 5666  (track 133)
+      Inicio:    t=7313.6s | separación=0.996m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=7316.1s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 9115 ↔ VM 11424  (track 230)
+      Inicio:    t=7369.2s | separación=0.994m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=7370.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3945 ↔ VM 6304  (track 230)
+      Inicio:    t=7418.4s | separación=0.994m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=7419.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4727 ↔ VM 7067  (track 227)
+      Inicio:    t=7419.3s | separación=0.994m | pos=(20447.9, 0.0, -0.1)
+      Fin:       t=7420.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9234 ↔ VM 9970  (track 224)
+      Inicio:    t=7440.8s | separación=0.994m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=7441.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5214 ↔ VM 10677  (track 230)
+      Inicio:    t=7446.9s | separación=0.994m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=7447.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9047 ↔ VM 9916  (track 224)
+      Inicio:    t=7449.0s | separación=0.996m | pos=(20442.9, -7.4, -0.4)
+      Fin:       t=7451.5s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 4688 ↔ VM 8601  (track 230)
+      Inicio:    t=7498.2s | separación=0.994m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=7499.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3911 ↔ VM 7048  (track 224)
+      Inicio:    t=7499.1s | separación=0.994m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=7499.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7766 ↔ VM 8528  (track 230)
+      Inicio:    t=7503.9s | separación=0.996m | pos=(20442.9, 7.4, -0.4)
+      Fin:       t=7506.4s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 5296 ↔ VM 5300  (track 136)
+      Inicio:    t=7506.2s | separación=0.996m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=7508.7s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 1895 ↔ VM 3450  (track 136)
+      Inicio:    t=7537.2s | separación=0.995m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=7538.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 13142 ↔ VM 13143  (track 136)
+      Inicio:    t=7610.8s | separación=0.995m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=7611.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8586 ↔ VM 9396  (track 227)
+      Inicio:    t=7656.3s | separación=0.996m | pos=(20443.0, 0.0, -0.4)
+      Fin:       t=7658.8s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 2314 ↔ VM 2318  (track 230)
+      Inicio:    t=7658.9s | separación=0.994m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=7659.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2611 ↔ VM 4184  (track 227)
+      Inicio:    t=7864.6s | separación=0.995m | pos=(20447.9, 0.0, -0.1)
+      Fin:       t=7865.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9837 ↔ VM 11400  (track 133)
+      Inicio:    t=7937.2s | separación=0.996m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=7939.7s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 11348 ↔ VM 12900  (track 133)
+      Inicio:    t=7948.9s | separación=0.995m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=7949.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 10467 ↔ VM 11195  (track 139)
+      Inicio:    t=7957.3s | separación=0.995m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=7958.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 10760 ↔ VM 10763  (track 133)
+      Inicio:    t=8005.7s | separación=0.995m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=8006.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9912 ↔ VM 13013  (track 133)
+      Inicio:    t=8013.7s | separación=0.995m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=8014.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9874 ↔ VM 10698  (track 139)
+      Inicio:    t=8087.6s | separación=0.996m | pos=(12442.9, 7.4, -0.4)
+      Fin:       t=8090.1s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 2446 ↔ VM 8209  (track 136)
+      Inicio:    t=8103.3s | separación=0.995m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=8104.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7621 ↔ VM 7649  (track 136)
+      Inicio:    t=8160.4s | separación=0.996m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=8162.9s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 1827 ↔ VM 10699  (track 136)
+      Inicio:    t=8168.0s | separación=0.996m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=8170.5s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 10783 ↔ VM 13084  (track 133)
+      Inicio:    t=8239.8s | separación=0.995m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=8240.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 174 ↔ VM 9058  (track 136)
+      Inicio:    t=8253.2s | separación=0.995m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=8254.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 192 ↔ VM 9818  (track 136)
+      Inicio:    t=8255.5s | separación=0.995m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=8256.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 322 ↔ VM 13110  (track 227)
+      Inicio:    t=8327.5s | separación=0.995m | pos=(20447.9, 0.0, -0.1)
+      Fin:       t=8328.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4762 ↔ VM 6333  (track 139)
+      Inicio:    t=8370.4s | separación=0.995m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=8371.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8287 ↔ VM 9848  (track 139)
+      Inicio:    t=8407.4s | separación=0.995m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=8408.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 11368 ↔ VM 12167  (track 230)
+      Inicio:    t=8502.2s | separación=0.995m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=8503.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 702 ↔ VM 8774  (track 230)
+      Inicio:    t=8523.2s | separación=0.995m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=8524.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5224 ↔ VM 9136  (track 136)
+      Inicio:    t=8553.1s | separación=0.996m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=8555.6s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 3692 ↔ VM 6782  (track 139)
+      Inicio:    t=8555.7s | separación=0.995m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=8556.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 655 ↔ VM 1440  (track 230)
+      Inicio:    t=8605.1s | separación=0.995m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=8605.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7966 ↔ VM 13436  (track 230)
+      Inicio:    t=8606.6s | separación=0.996m | pos=(20442.9, 7.4, -0.4)
+      Fin:       t=8609.1s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 9457 ↔ VM 13301  (track 224)
+      Inicio:    t=8616.9s | separación=0.995m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=8617.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5591 ↔ VM 7168  (track 224)
+      Inicio:    t=8840.7s | separación=0.996m | pos=(20442.9, -7.4, -0.4)
+      Fin:       t=8843.2s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 4033 ↔ VM 10286  (track 227)
+      Inicio:    t=8843.3s | separación=0.995m | pos=(20447.9, 0.0, -0.1)
+      Fin:       t=8844.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9469 ↔ VM 12577  (track 227)
+      Inicio:    t=8846.6s | separación=0.995m | pos=(20447.9, 0.0, -0.1)
+      Fin:       t=8847.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6299 ↔ VM 10988  (track 224)
+      Inicio:    t=8847.5s | separación=0.995m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=8848.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8602 ↔ VM 13276  (track 230)
+      Inicio:    t=8851.7s | separación=0.995m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=8852.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9304 ↔ VM 9319  (track 227)
+      Inicio:    t=8861.9s | separación=0.995m | pos=(20447.9, 0.0, -0.1)
+      Fin:       t=8862.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4544 ↔ VM 12371  (track 224)
+      Inicio:    t=8870.7s | separación=0.995m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=8871.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4722 ↔ VM 7115  (track 133)
+      Inicio:    t=9071.4s | separación=0.996m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=9072.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 839 ↔ VM 12062  (track 133)
+      Inicio:    t=9306.5s | separación=0.997m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=9309.1s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 5008 ↔ VM 10837  (track 139)
+      Inicio:    t=9352.7s | separación=0.997m | pos=(12442.9, 7.4, -0.4)
+      Fin:       t=9355.3s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 373 ↔ VM 1153  (track 136)
+      Inicio:    t=9433.8s | separación=0.996m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=9434.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6517 ↔ VM 11964  (track 136)
+      Inicio:    t=9625.5s | separación=0.997m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=9628.1s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 10721 ↔ VM 12248  (track 139)
+      Inicio:    t=9676.9s | separación=0.997m | pos=(12442.9, 7.4, -0.4)
+      Fin:       t=9679.5s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 991 ↔ VM 12187  (track 133)
+      Inicio:    t=9681.1s | separación=0.997m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=9683.7s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 782 ↔ VM 6505  (track 136)
+      Inicio:    t=9705.0s | separación=0.996m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=9705.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8717 ↔ VM 10284  (track 133)
+      Inicio:    t=9716.9s | separación=0.996m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=9717.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9814 ↔ VM 12139  (track 139)
+      Inicio:    t=9765.7s | separación=0.997m | pos=(12442.9, 7.4, -0.4)
+      Fin:       t=9768.3s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 8344 ↔ VM 9128  (track 136)
+      Inicio:    t=9836.4s | separación=0.996m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=9837.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6353 ↔ VM 6376  (track 136)
+      Inicio:    t=9874.2s | separación=0.997m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=9876.8s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 7495 ↔ VM 12962  (track 133)
+      Inicio:    t=9919.6s | separación=0.997m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=9922.2s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 3667 ↔ VM 8329  (track 139)
+      Inicio:    t=10069.5s | separación=0.997m | pos=(12442.9, 7.4, -0.4)
+      Fin:       t=10072.1s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 3619 ↔ VM 8296  (track 133)
+      Inicio:    t=10153.5s | separación=0.997m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=10154.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1977 ↔ VM 5053  (track 136)
+      Inicio:    t=10238.2s | separación=0.997m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=10239.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3979 ↔ VM 10994  (track 227)
+      Inicio:    t=10361.0s | separación=0.996m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=10361.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4553 ↔ VM 6104  (track 139)
+      Inicio:    t=10373.6s | separación=0.997m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=10374.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 448 ↔ VM 3171  (track 227)
+      Inicio:    t=10441.5s | separación=0.996m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=10442.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6922 ↔ VM 9240  (track 224)
+      Inicio:    t=10454.6s | separación=0.996m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=10455.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4483 ↔ VM 4510  (track 133)
+      Inicio:    t=10533.2s | separación=0.997m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=10534.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6067 ↔ VM 6843  (track 224)
+      Inicio:    t=10626.2s | separación=0.997m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=10627.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7010 ↔ VM 7735  (track 230)
+      Inicio:    t=10684.7s | separación=0.997m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=10685.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4432 ↔ VM 13272  (track 139)
+      Inicio:    t=10774.5s | separación=0.997m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=10775.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 727 ↔ VM 1510  (track 227)
+      Inicio:    t=10839.6s | separación=0.997m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=10840.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 761 ↔ VM 3070  (track 224)
+      Inicio:    t=10843.3s | separación=0.997m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=10844.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3036 ↔ VM 6978  (track 230)
+      Inicio:    t=10844.2s | separación=0.997m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=10845.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3791 ↔ VM 5312  (track 227)
+      Inicio:    t=10845.9s | separación=0.998m | pos=(20442.9, 0.0, -0.4)
+      Fin:       t=10848.4s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 9094 ↔ VM 9135  (track 227)
+      Inicio:    t=10860.3s | separación=0.997m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=10861.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4604 ↔ VM 6127  (track 230)
+      Inicio:    t=10924.4s | separación=0.997m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=10925.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1267 ↔ VM 2048  (track 139)
+      Inicio:    t=10930.3s | separación=0.997m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=10931.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 672 ↔ VM 2222  (track 230)
+      Inicio:    t=11004.8s | separación=0.997m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=11005.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9188 ↔ VM 9950  (track 133)
+      Inicio:    t=11030.9s | separación=0.997m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=11031.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3603 ↔ VM 12515  (track 227)
+      Inicio:    t=11100.7s | separación=0.997m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=11101.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 11390 ↔ VM 11422  (track 133)
+      Inicio:    t=11113.8s | separación=0.998m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=11116.3s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 1234 ↔ VM 13263  (track 227)
+      Inicio:    t=11179.1s | separación=0.997m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=11179.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 10678 ↔ VM 11412  (track 136)
+      Inicio:    t=11193.3s | separación=0.997m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=11194.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5838 ↔ VM 8986  (track 133)
+      Inicio:    t=11207.4s | separación=0.998m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=11209.9s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 7433 ↔ VM 9729  (track 139)
+      Inicio:    t=11210.0s | separación=0.997m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=11210.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8174 ↔ VM 10414  (track 136)
+      Inicio:    t=11210.9s | separación=0.997m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=11211.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8984 ↔ VM 11236  (track 133)
+      Inicio:    t=11211.1s | separación=0.997m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=11211.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 748 ↔ VM 785  (track 136)
+      Inicio:    t=11212.5s | separación=0.998m | pos=(12442.9, 0.0, -0.4)
+      Fin:       t=11215.0s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 7502 ↔ VM 9796  (track 136)
+      Inicio:    t=11275.0s | separación=0.997m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=11275.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6713 ↔ VM 9860  (track 139)
+      Inicio:    t=11275.2s | separación=0.997m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=11276.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2447 ↔ VM 10487  (track 139)
+      Inicio:    t=11287.6s | separación=0.997m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=11288.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7207 ↔ VM 13456  (track 139)
+      Inicio:    t=11303.9s | separación=0.997m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=11304.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 11670 ↔ VM 13251  (track 224)
+      Inicio:    t=11337.1s | separación=0.997m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=11337.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7937 ↔ VM 10349  (track 133)
+      Inicio:    t=11459.5s | separación=0.998m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=11462.0s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 3747 ↔ VM 5290  (track 136)
+      Inicio:    t=11493.6s | separación=0.998m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=11494.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5862 ↔ VM 11271  (track 139)
+      Inicio:    t=11518.3s | separación=0.998m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=11519.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7157 ↔ VM 8805  (track 224)
+      Inicio:    t=11626.8s | separación=0.997m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=11627.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6409 ↔ VM 7143  (track 139)
+      Inicio:    t=11778.2s | separación=0.998m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=11779.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 910 ↔ VM 7459  (track 230)
+      Inicio:    t=11836.4s | separación=0.997m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=11837.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6645 ↔ VM 8219  (track 224)
+      Inicio:    t=11995.0s | separación=0.998m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=11995.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3503 ↔ VM 7387  (track 230)
+      Inicio:    t=11995.9s | separación=0.998m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=11996.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1337 ↔ VM 6024  (track 136)
+      Inicio:    t=12048.3s | separación=0.998m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=12049.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5818 ↔ VM 9000  (track 227)
+      Inicio:    t=12073.5s | separación=0.998m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=12074.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 806 ↔ VM 4721  (track 133)
+      Inicio:    t=12098.3s | separación=0.998m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=12100.8s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 4443 ↔ VM 9181  (track 224)
+      Inicio:    t=12135.2s | separación=0.998m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=12136.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2852 ↔ VM 3679  (track 139)
+      Inicio:    t=12201.6s | separación=0.998m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=12202.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1154 ↔ VM 6149  (track 230)
+      Inicio:    t=12201.7s | separación=0.998m | pos=(20442.9, 7.4, -0.4)
+      Fin:       t=12204.2s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 5141 ↔ VM 8299  (track 230)
+      Inicio:    t=12216.2s | separación=0.998m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=12217.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3632 ↔ VM 6759  (track 227)
+      Inicio:    t=12216.3s | separación=0.998m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=12217.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1011 ↔ VM 2590  (track 139)
+      Inicio:    t=12233.3s | separación=0.998m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=12234.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3633 ↔ VM 6795  (track 230)
+      Inicio:    t=12372.2s | separación=0.998m | pos=(20442.9, 7.4, -0.4)
+      Fin:       t=12374.7s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 258 ↔ VM 10679  (track 136)
+      Inicio:    t=12389.6s | separación=0.998m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=12390.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5220 ↔ VM 5230  (track 227)
+      Inicio:    t=12449.7s | separación=0.998m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=12450.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 501 ↔ VM 5248  (track 224)
+      Inicio:    t=12452.2s | separación=0.998m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=12453.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2814 ↔ VM 5105  (track 230)
+      Inicio:    t=12615.0s | separación=0.998m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=12615.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7222 ↔ VM 9524  (track 139)
+      Inicio:    t=12663.4s | separación=0.998m | pos=(12442.9, 7.4, -0.4)
+      Fin:       t=12665.9s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 599 ↔ VM 7104  (track 136)
+      Inicio:    t=12664.3s | separación=0.998m | pos=(12442.9, 0.0, -0.4)
+      Fin:       t=12666.8s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 11392 ↔ VM 11462  (track 136)
+      Inicio:    t=12787.0s | separación=0.998m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=12787.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 11806 ↔ VM 11827  (track 133)
+      Inicio:    t=12821.7s | separación=0.998m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=12824.2s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 1992 ↔ VM 13179  (track 224)
+      Inicio:    t=12848.9s | separación=0.998m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=12849.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5791 ↔ VM 9696  (track 139)
+      Inicio:    t=12879.4s | separación=0.999m | pos=(12442.8, 7.4, -0.4)
+      Fin:       t=12882.0s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 1811 ↔ VM 3634  (track 136)
+      Inicio:    t=12939.9s | separación=0.998m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=12940.7s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 5524 ↔ VM 12536  (track 133)
+      Inicio:    t=12983.7s | separación=0.998m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=12984.5s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 4535 ↔ VM 8360  (track 133)
+      Inicio:    t=13168.8s | separación=0.998m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=13169.6s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 5082 ↔ VM 5922  (track 136)
+      Inicio:    t=13182.5s | separación=0.998m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=13183.3s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 7922 ↔ VM 9466  (track 224)
+      Inicio:    t=13298.7s | separación=0.999m | pos=(20442.8, -7.4, -0.4)
+      Fin:       t=13301.3s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 8081 ↔ VM 9759  (track 224)
+      Inicio:    t=13357.9s | separación=0.998m | pos=(20447.7, -7.5, -0.1)
+      Fin:       t=13358.7s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 9271 ↔ VM 10042  (track 227)
+      Inicio:    t=13398.3s | separación=0.998m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=13399.1s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 6230 ↔ VM 12833  (track 139)
+      Inicio:    t=13608.9s | separación=0.998m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=13609.7s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 8339 ↔ VM 9163  (track 224)
+      Inicio:    t=13641.9s | separación=0.999m | pos=(20442.8, -7.4, -0.4)
+      Fin:       t=13644.5s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 3564 ↔ VM 12408  (track 139)
+      Inicio:    t=13887.6s | separación=0.998m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=13888.4s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 3509 ↔ VM 13233  (track 227)
+      Inicio:    t=13892.8s | separación=0.998m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=13893.6s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 1342 ↔ VM 6835  (track 230)
+      Inicio:    t=13956.8s | separación=0.999m | pos=(20442.8, 7.4, -0.4)
+      Fin:       t=13959.4s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 2043 ↔ VM 5248  (track 230)
+      Inicio:    t=13966.1s | separación=0.998m | pos=(20447.7, 7.5, -0.1)
+      Fin:       t=13966.9s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 2873 ↔ VM 13235  (track 227)
+      Inicio:    t=13967.0s | separación=0.998m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=13967.8s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 8327 ↔ VM 9101  (track 136)
+      Inicio:    t=14057.8s | separación=0.998m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=14058.6s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 8775 ↔ VM 9533  (track 133)
+      Inicio:    t=14094.8s | separación=0.998m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=14095.6s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 11051 ↔ VM 11864  (track 139)
+      Inicio:    t=14095.6s | separación=0.998m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=14096.4s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 403 ↔ VM 1179  (track 230)
+      Inicio:    t=14291.0s | separación=0.998m | pos=(20447.7, 7.5, -0.1)
+      Fin:       t=14291.8s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 10840 ↔ VM 11616  (track 227)
+      Inicio:    t=14516.7s | separación=0.999m | pos=(20442.9, 0.0, -0.4)
+      Fin:       t=14519.3s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 5032 ↔ VM 6569  (track 133)
+      Inicio:    t=14705.3s | separación=0.999m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=14706.2s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 4535 ↔ VM 7563  (track 136)
+      Inicio:    t=14760.7s | separación=0.999m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=14761.6s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 7359 ↔ VM 10456  (track 224)
+      Inicio:    t=14869.6s | separación=0.999m | pos=(20447.7, -7.5, -0.1)
+      Fin:       t=14870.5s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 5452 ↔ VM 9323  (track 139)
+      Inicio:    t=14892.1s | separación=0.999m | pos=(12442.8, 7.4, -0.4)
+      Fin:       t=14894.7s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 739 ↔ VM 4647  (track 139)
+      Inicio:    t=14975.9s | separación=0.999m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=14976.8s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 21 ↔ VM 5469  (track 139)
+      Inicio:    t=15045.1s | separación=0.999m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=15046.0s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 4574 ↔ VM 11602  (track 133)
+      Inicio:    t=15053.9s | separación=0.999m | pos=(12442.8, -7.4, -0.4)
+      Fin:       t=15056.5s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 4600 ↔ VM 8569  (track 139)
+      Inicio:    t=15054.7s | separación=0.999m | pos=(12442.8, 7.4, -0.4)
+      Fin:       t=15057.3s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 3022 ↔ VM 8492  (track 136)
+      Inicio:    t=15055.4s | separación=0.999m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=15056.3s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 338 ↔ VM 3463  (track 136)
+      Inicio:    t=15174.3s | separación=0.999m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=15175.2s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 618 ↔ VM 3770  (track 136)
+      Inicio:    t=15216.2s | separación=0.999m | pos=(12442.9, 0.0, -0.4)
+      Fin:       t=15218.8s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 11859 ↔ VM 12672  (track 133)
+      Inicio:    t=15374.0s | separación=0.999m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=15374.9s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 1305 ↔ VM 6024  (track 230)
+      Inicio:    t=15472.3s | separación=0.999m | pos=(20447.7, 7.5, -0.1)
+      Fin:       t=15473.2s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 4288 ↔ VM 5783  (track 224)
+      Inicio:    t=15493.3s | separación=0.999m | pos=(20442.8, -7.4, -0.4)
+      Fin:       t=15495.9s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 728 ↔ VM 8000  (track 139)
+      Inicio:    t=15522.7s | separación=0.999m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=15523.6s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 9382 ↔ VM 10942  (track 224)
+      Inicio:    t=16024.3s | separación=0.995m | pos=(20442.9, -7.4, -0.4)
+      Fin:       t=16026.8s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 7352 ↔ VM 8931  (track 133)
+      Inicio:    t=16139.5s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=16140.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4999 ↔ VM 11982  (track 136)
+      Inicio:    t=16220.7s | separación=0.995m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=16223.2s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 3716 ↔ VM 6090  (track 139)
+      Inicio:    t=16346.5s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=16347.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 327 ↔ VM 7692  (track 224)
+      Inicio:    t=16353.1s | separación=0.994m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=16353.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4944 ↔ VM 6476  (track 136)
+      Inicio:    t=16455.7s | separación=0.994m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=16456.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 642 ↔ VM 13404  (track 133)
+      Inicio:    t=16495.5s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=16496.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 185 ↔ VM 1071  (track 139)
+      Inicio:    t=16611.6s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=16612.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1659 ↔ VM 11201  (track 139)
+      Inicio:    t=16638.7s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=16639.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4503 ↔ VM 11865  (track 139)
+      Inicio:    t=16649.7s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=16650.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9836 ↔ VM 12941  (track 133)
+      Inicio:    t=16851.2s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=16852.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 138 ↔ VM 180  (track 136)
+      Inicio:    t=16852.1s | separación=0.994m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=16852.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1530 ↔ VM 10394  (track 139)
+      Inicio:    t=16874.0s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=16874.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5419 ↔ VM 6109  (track 230)
+      Inicio:    t=16885.4s | separación=0.994m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=16886.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9525 ↔ VM 12655  (track 133)
+      Inicio:    t=16960.0s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=16960.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7978 ↔ VM 13389  (track 139)
+      Inicio:    t=16963.9s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=16964.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 12597 ↔ VM 12642  (track 139)
+      Inicio:    t=16967.6s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=16968.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 11072 ↔ VM 11106  (track 139)
+      Inicio:    t=17117.0s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=17117.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 10292 ↔ VM 11876  (track 136)
+      Inicio:    t=17120.0s | separación=0.996m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=17122.5s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 2219 ↔ VM 11007  (track 139)
+      Inicio:    t=17120.9s | separación=0.996m | pos=(12442.9, 7.4, -0.4)
+      Fin:       t=17123.4s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 1488 ↔ VM 8846  (track 133)
+      Inicio:    t=17186.4s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=17187.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9502 ↔ VM 12613  (track 139)
+      Inicio:    t=17276.7s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=17277.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9338 ↔ VM 11674  (track 227)
+      Inicio:    t=17620.2s | separación=0.996m | pos=(20443.0, 0.0, -0.4)
+      Fin:       t=17622.7s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 6957 ↔ VM 9185  (track 230)
+      Inicio:    t=17780.2s | separación=0.994m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=17781.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 959 ↔ VM 4011  (track 133)
+      Inicio:    t=17899.0s | separación=0.996m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=17901.5s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 5382 ↔ VM 7736  (track 133)
+      Inicio:    t=18001.7s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=18002.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9447 ↔ VM 9521  (track 133)
+      Inicio:    t=18556.9s | separación=0.995m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=18557.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7762 ↔ VM 10946  (track 139)
+      Inicio:    t=18802.6s | separación=0.996m | pos=(12442.9, 7.4, -0.4)
+      Fin:       t=18805.2s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 586 ↔ VM 10116  (track 136)
+      Inicio:    t=18883.6s | separación=0.996m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=18886.2s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 5946 ↔ VM 9765  (track 136)
+      Inicio:    t=18910.3s | separación=0.995m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=18911.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1755 ↔ VM 11375  (track 227)
+      Inicio:    t=19081.1s | separación=0.995m | pos=(20447.9, 0.0, -0.1)
+      Fin:       t=19081.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2161 ↔ VM 3719  (track 133)
+      Inicio:    t=19596.1s | separación=0.996m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=19598.7s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 954 ↔ VM 12865  (track 139)
+      Inicio:    t=19653.5s | separación=0.996m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=19654.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7761 ↔ VM 10772  (track 136)
+      Inicio:    t=19935.2s | separación=0.996m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=19936.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2827 ↔ VM 13259  (track 139)
+      Inicio:    t=20001.4s | separación=0.996m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=20002.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1039 ↔ VM 1040  (track 136)
+      Inicio:    t=20026.6s | separación=0.996m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=20027.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 10198 ↔ VM 11020  (track 136)
+      Inicio:    t=20068.3s | separación=0.996m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=20069.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 12143 ↔ VM 12203  (track 136)
+      Inicio:    t=20186.3s | separación=0.996m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=20187.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 541 ↔ VM 9397  (track 139)
+      Inicio:    t=20234.2s | separación=0.996m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=20235.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3979 ↔ VM 7182  (track 136)
+      Inicio:    t=20306.3s | separación=0.997m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=20308.8s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 6295 ↔ VM 8641  (track 136)
+      Inicio:    t=20550.3s | separación=0.996m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=20551.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4537 ↔ VM 11514  (track 136)
+      Inicio:    t=20567.0s | separación=0.996m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=20567.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8690 ↔ VM 11748  (track 230)
+      Inicio:    t=20635.5s | separación=0.996m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=20636.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7897 ↔ VM 9477  (track 136)
+      Inicio:    t=20693.6s | separación=0.996m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=20694.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4848 ↔ VM 7924  (track 133)
+      Inicio:    t=20693.7s | separación=0.996m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=20694.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6364 ↔ VM 10291  (track 139)
+      Inicio:    t=20771.4s | separación=0.996m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=20772.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1621 ↔ VM 5475  (track 133)
+      Inicio:    t=20858.2s | separación=0.996m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=20859.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3568 ↔ VM 4365  (track 136)
+      Inicio:    t=20893.5s | separación=0.996m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=20894.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9751 ↔ VM 12030  (track 224)
+      Inicio:    t=20911.8s | separación=0.996m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=20912.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4986 ↔ VM 5817  (track 227)
+      Inicio:    t=20991.5s | separación=0.996m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=20992.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1590 ↔ VM 7884  (track 133)
+      Inicio:    t=21016.1s | separación=0.997m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=21016.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6643 ↔ VM 10800  (track 136)
+      Inicio:    t=21209.5s | separación=0.997m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=21210.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6290 ↔ VM 11753  (track 139)
+      Inicio:    t=21972.7s | separación=0.997m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=21973.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 703 ↔ VM 2993  (track 227)
+      Inicio:    t=22128.6s | separación=0.997m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=22129.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3890 ↔ VM 11763  (track 133)
+      Inicio:    t=22131.3s | separación=0.998m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=22133.8s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 3102 ↔ VM 5508  (track 136)
+      Inicio:    t=22132.2s | separación=0.998m | pos=(12442.9, 0.0, -0.4)
+      Fin:       t=22134.7s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 2350 ↔ VM 6248  (track 136)
+      Inicio:    t=22136.7s | separación=0.997m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=22137.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7827 ↔ VM 8599  (track 139)
+      Inicio:    t=22220.9s | separación=0.998m | pos=(12442.9, 7.4, -0.4)
+      Fin:       t=22223.4s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 2224 ↔ VM 6201  (track 136)
+      Inicio:    t=22221.8s | separación=0.997m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=22222.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6168 ↔ VM 10047  (track 133)
+      Inicio:    t=22222.7s | separación=0.997m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=22223.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6 ↔ VM 11908  (track 227)
+      Inicio:    t=22272.7s | separación=0.997m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=22273.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3066 ↔ VM 10049  (track 139)
+      Inicio:    t=22377.3s | separación=0.998m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=22378.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2100 ↔ VM 4331  (track 133)
+      Inicio:    t=22791.7s | separación=0.998m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=22792.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 205 ↔ VM 11430  (track 139)
+      Inicio:    t=23133.8s | separación=0.998m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=23134.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3036 ↔ VM 7739  (track 133)
+      Inicio:    t=23814.8s | separación=0.999m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=23815.7s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 3831 ↔ VM 6862  (track 133)
+      Inicio:    t=23823.6s | separación=0.999m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=23824.5s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 6652 ↔ VM 8302  (track 136)
+      Inicio:    t=23841.6s | separación=0.999m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=23842.5s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 2225 ↔ VM 13443  (track 133)
+      Inicio:    t=23895.2s | separación=0.999m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=23896.1s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 5327 ↔ VM 6979  (track 136)
+      Inicio:    t=23897.0s | separación=0.999m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=23897.9s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 733 ↔ VM 2328  (track 139)
+      Inicio:    t=24199.6s | separación=0.999m | pos=(12442.8, 7.4, -0.4)
+      Fin:       t=24202.2s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 1451 ↔ VM 11953  (track 139)
+      Inicio:    t=24276.4s | separación=0.999m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=24277.3s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 4170 ↔ VM 8185  (track 139)
+      Inicio:    t=25126.1s | separación=0.999m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=25126.9s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 5817 ↔ VM 8862  (track 133)
+      Inicio:    t=25203.1s | separación=1.000m | pos=(12442.8, -7.4, -0.4)
+      Fin:       t=25205.6s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 4462 ↔ VM 11826  (track 139)
+      Inicio:    t=25643.9s | separación=1.000m | pos=(12442.8, 7.4, -0.4)
+      Fin:       t=25646.4s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 583 ↔ VM 12643  (track 133)
+      Inicio:    t=25645.4s | separación=0.999m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=25646.2s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 3156 ↔ VM 3883  (track 139)
+      Inicio:    t=25788.8s | separación=1.000m | pos=(12442.8, 7.4, -0.4)
+      Fin:       t=25791.3s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 742 ↔ VM 11074  (track 133)
+      Inicio:    t=25788.9s | separación=1.000m | pos=(12442.8, -7.4, -0.4)
+      Fin:       t=25791.4s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 2280 ↔ VM 11921  (track 136)
+      Inicio:    t=25793.8s | separación=1.000m | pos=(12442.9, 0.0, -0.4)
+      Fin:       t=25796.3s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 6244 ↔ VM 8751  (track 133)
+      Inicio:    t=25869.1s | separación=0.999m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=25869.9s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 6824 ↔ VM 10026  (track 139)
+      Inicio:    t=26219.1s | separación=0.999m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=26219.9s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 1521 ↔ VM 10823  (track 133)
+      Inicio:    t=26826.8s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=26827.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7679 ↔ VM 9140  (track 224)
+      Inicio:    t=26850.7s | separación=0.994m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=26851.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 602 ↔ VM 13380  (track 133)
+      Inicio:    t=27154.0s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=27154.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9995 ↔ VM 10096  (track 133)
+      Inicio:    t=27639.9s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=27640.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7841 ↔ VM 10276  (track 139)
+      Inicio:    t=27857.8s | separación=0.995m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=27858.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 33 ↔ VM 7259  (track 227)
+      Inicio:    t=27999.5s | separación=0.994m | pos=(20447.9, 0.0, -0.1)
+      Fin:       t=28000.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8900 ↔ VM 10499  (track 227)
+      Inicio:    t=28077.3s | separación=0.994m | pos=(20447.9, 0.0, -0.1)
+      Fin:       t=28078.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3422 ↔ VM 7387  (track 227)
+      Inicio:    t=28697.0s | separación=0.996m | pos=(20443.0, 0.0, -0.4)
+      Fin:       t=28699.6s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 1212 ↔ VM 12302  (track 133)
+      Inicio:    t=29081.3s | separación=0.995m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=29082.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7179 ↔ VM 11825  (track 136)
+      Inicio:    t=29135.7s | separación=0.997m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=29138.2s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 10350 ↔ VM 11049  (track 133)
+      Inicio:    t=29208.2s | separación=0.995m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=29209.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4314 ↔ VM 11997  (track 133)
+      Inicio:    t=30777.4s | separación=0.996m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=30778.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7028 ↔ VM 10099  (track 136)
+      Inicio:    t=30900.4s | separación=0.996m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=30901.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7467 ↔ VM 8123  (track 133)
+      Inicio:    t=30936.4s | separación=0.996m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=30937.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 11592 ↔ VM 12521  (track 133)
+      Inicio:    t=30982.0s | separación=0.996m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=30982.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 11459 ↔ VM 12290  (track 230)
+      Inicio:    t=31010.5s | separación=0.996m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=31011.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8100 ↔ VM 9718  (track 133)
+      Inicio:    t=31020.1s | separación=0.996m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=31020.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4947 ↔ VM 7210  (track 136)
+      Inicio:    t=31022.7s | separación=0.997m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=31025.2s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 5910 ↔ VM 12369  (track 136)
+      Inicio:    t=31233.9s | separación=0.996m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=31234.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1241 ↔ VM 9152  (track 139)
+      Inicio:    t=31388.0s | separación=0.996m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=31388.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 407 ↔ VM 5110  (track 136)
+      Inicio:    t=31470.7s | separación=0.996m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=31471.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1205 ↔ VM 5866  (track 139)
+      Inicio:    t=31721.7s | separación=0.996m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=31722.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 317 ↔ VM 472  (track 230)
+      Inicio:    t=32508.3s | separación=0.997m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=32509.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6689 ↔ VM 9749  (track 136)
+      Inicio:    t=32823.9s | separación=0.997m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=32824.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5938 ↔ VM 11451  (track 136)
+      Inicio:    t=33323.9s | separación=0.998m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=33324.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8255 ↔ VM 9899  (track 136)
+      Inicio:    t=33398.2s | separación=0.998m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=33399.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2869 ↔ VM 9902  (track 230)
+      Inicio:    t=33531.1s | separación=0.997m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=33531.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1390 ↔ VM 13246  (track 136)
+      Inicio:    t=33597.8s | separación=0.998m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=33598.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7837 ↔ VM 10073  (track 139)
+      Inicio:    t=33756.2s | separación=0.998m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=33757.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6971 ↔ VM 8730  (track 139)
+      Inicio:    t=33901.0s | separación=0.998m | pos=(12442.9, 7.4, -0.4)
+      Fin:       t=33903.5s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 3637 ↔ VM 4302  (track 136)
+      Inicio:    t=34574.2s | separación=0.999m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=34575.0s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 35 ↔ VM 12712  (track 133)
+      Inicio:    t=35081.0s | separación=0.999m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=35081.8s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 2891 ↔ VM 12135  (track 227)
+      Inicio:    t=35202.1s | separación=0.999m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=35202.9s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 2724 ↔ VM 6568  (track 133)
+      Inicio:    t=35468.0s | separación=0.999m | pos=(12442.8, -7.4, -0.4)
+      Fin:       t=35470.5s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 9878 ↔ VM 12905  (track 227)
+      Inicio:    t=35474.4s | separación=0.999m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=35475.2s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 3394 ↔ VM 4121  (track 133)
+      Inicio:    t=36021.5s | separación=1.000m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=36022.3s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 3220 ↔ VM 6617  (track 133)
+      Inicio:    t=36187.4s | separación=1.000m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=36188.2s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 5485 ↔ VM 8977  (track 136)
+      Inicio:    t=36592.3s | separación=1.000m | pos=(12442.9, 0.0, -0.4)
+      Fin:       t=36594.9s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 2645 ↔ VM 3056  (track 139)
+      Inicio:    t=36676.2s | separación=1.000m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=36677.0s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 1895 ↔ VM 13057  (track 139)
+      Inicio:    t=37539.6s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=37540.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2479 ↔ VM 8985  (track 139)
+      Inicio:    t=37546.1s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=37546.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9260 ↔ VM 9975  (track 136)
+      Inicio:    t=37764.4s | separación=0.994m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=37765.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8497 ↔ VM 13217  (track 133)
+      Inicio:    t=38073.2s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=38074.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2698 ↔ VM 11696  (track 139)
+      Inicio:    t=38074.1s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=38074.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2407 ↔ VM 4316  (track 133)
+      Inicio:    t=38186.5s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=38187.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9705 ↔ VM 11210  (track 139)
+      Inicio:    t=38263.4s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=38264.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8 ↔ VM 9658  (track 133)
+      Inicio:    t=39305.9s | separación=0.995m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=39306.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7395 ↔ VM 8832  (track 136)
+      Inicio:    t=39385.7s | separación=0.995m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=39386.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9617 ↔ VM 11933  (track 139)
+      Inicio:    t=39392.6s | separación=0.996m | pos=(12442.9, 7.4, -0.4)
+      Fin:       t=39395.1s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 1548 ↔ VM 3020  (track 136)
+      Inicio:    t=39634.1s | separación=0.995m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=39634.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8692 ↔ VM 11832  (track 133)
+      Inicio:    t=39635.0s | separación=0.995m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=39635.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 10215 ↔ VM 10280  (track 139)
+      Inicio:    t=39712.5s | separación=0.995m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=39713.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4949 ↔ VM 10311  (track 136)
+      Inicio:    t=40014.9s | separación=0.997m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=40017.4s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 1805 ↔ VM 13047  (track 136)
+      Inicio:    t=40402.6s | separación=0.996m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=40403.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 7713 ↔ VM 11233  (track 133)
+      Inicio:    t=41863.7s | separación=0.997m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=41866.3s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 594 ↔ VM 3676  (track 133)
+      Inicio:    t=41880.4s | separación=0.996m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=41881.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8185 ↔ VM 9016  (track 227)
+      Inicio:    t=41916.0s | separación=0.996m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=41916.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9776 ↔ VM 12890  (track 230)
+      Inicio:    t=41916.1s | separación=0.996m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=41916.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3122 ↔ VM 5440  (track 136)
+      Inicio:    t=42255.7s | separación=0.997m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=42258.3s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 8820 ↔ VM 11214  (track 136)
+      Inicio:    t=42330.6s | separación=0.997m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=42333.2s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 2728 ↔ VM 12359  (track 133)
+      Inicio:    t=42606.6s | separación=0.996m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=42607.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6707 ↔ VM 10933  (track 227)
+      Inicio:    t=42922.5s | separación=0.996m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=42923.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4428 ↔ VM 4477  (track 230)
+      Inicio:    t=42993.8s | separación=0.996m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=42994.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2509 ↔ VM 6405  (track 133)
+      Inicio:    t=43203.1s | separación=0.997m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=43203.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1591 ↔ VM 11072  (track 139)
+      Inicio:    t=43204.0s | separación=0.997m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=43204.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3675 ↔ VM 8227  (track 139)
+      Inicio:    t=43320.5s | separación=0.998m | pos=(12442.9, 7.4, -0.4)
+      Fin:       t=43323.0s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 2859 ↔ VM 8303  (track 133)
+      Inicio:    t=43321.4s | separación=0.998m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=43323.9s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 6318 ↔ VM 12781  (track 136)
+      Inicio:    t=43533.4s | separación=0.997m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=43534.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 806 ↔ VM 5411  (track 133)
+      Inicio:    t=43600.1s | separación=0.998m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=43602.6s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 2203 ↔ VM 11923  (track 136)
+      Inicio:    t=43688.3s | separación=0.997m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=43689.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2275 ↔ VM 11015  (track 136)
+      Inicio:    t=43859.5s | separación=0.997m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=43860.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4726 ↔ VM 9476  (track 139)
+      Inicio:    t=44101.7s | separación=0.998m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=44102.5s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 6973 ↔ VM 11751  (track 139)
+      Inicio:    t=44339.5s | separación=0.998m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=44340.3s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 6592 ↔ VM 12773  (track 227)
+      Inicio:    t=44474.0s | separación=0.999m | pos=(20442.9, 0.0, -0.4)
+      Fin:       t=44476.5s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 544 ↔ VM 9392  (track 230)
+      Inicio:    t=44511.7s | separación=0.998m | pos=(20447.7, 7.5, -0.1)
+      Fin:       t=44512.5s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 3081 ↔ VM 10295  (track 136)
+      Inicio:    t=45283.4s | separación=0.998m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=45284.2s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 10322 ↔ VM 11962  (track 133)
+      Inicio:    t=45361.0s | separación=0.999m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=45361.8s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 9890 ↔ VM 11378  (track 133)
+      Inicio:    t=45413.6s | separación=0.999m | pos=(12442.8, -7.4, -0.4)
+      Fin:       t=45416.2s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 8639 ↔ VM 12509  (track 136)
+      Inicio:    t=45458.5s | separación=0.999m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=45459.3s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 9505 ↔ VM 12602  (track 136)
+      Inicio:    t=45539.8s | separación=0.999m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=45540.6s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 6105 ↔ VM 7722  (track 136)
+      Inicio:    t=45701.5s | separación=0.999m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=45702.3s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 9241 ↔ VM 12450  (track 139)
+      Inicio:    t=45702.4s | separación=0.999m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=45703.2s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 8921 ↔ VM 11366  (track 224)
+      Inicio:    t=46057.0s | separación=0.999m | pos=(20442.8, -7.4, -0.4)
+      Fin:       t=46059.6s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 20 ↔ VM 5465  (track 136)
+      Inicio:    t=46159.0s | separación=0.999m | pos=(12442.9, 0.0, -0.4)
+      Fin:       t=46161.6s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 3674 ↔ VM 4459  (track 133)
+      Inicio:    t=47389.7s | separación=1.000m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=47390.6s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 7995 ↔ VM 11282  (track 224)
+      Inicio:    t=47577.4s | separación=1.000m | pos=(20447.7, -7.5, -0.1)
+      Fin:       t=47578.3s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 2824 ↔ VM 10929  (track 227)
+      Inicio:    t=47771.5s | separación=1.000m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=47772.4s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 7791 ↔ VM 8522  (track 224)
+      Inicio:    t=48078.7s | separación=1.000m | pos=(20442.8, -7.4, -0.4)
+      Fin:       t=48081.3s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 486 ↔ VM 5263  (track 136)
+      Inicio:    t=48086.6s | separación=0.994m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=48087.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 13329 ↔ VM 13414  (track 133)
+      Inicio:    t=48239.6s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=48240.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5624 ↔ VM 10195  (track 136)
+      Inicio:    t=48398.3s | separación=0.994m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=48399.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 439 ↔ VM 10946  (track 136)
+      Inicio:    t=48578.2s | separación=0.994m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=48579.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1283 ↔ VM 9098  (track 133)
+      Inicio:    t=49055.2s | separación=0.996m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=49057.7s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 4559 ↔ VM 5238  (track 133)
+      Inicio:    t=49122.3s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=49123.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1348 ↔ VM 2106  (track 136)
+      Inicio:    t=49594.9s | separación=0.995m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=49595.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2055 ↔ VM 5243  (track 133)
+      Inicio:    t=49681.1s | separación=0.995m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=49681.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 1155 ↔ VM 10922  (track 136)
+      Inicio:    t=49682.0s | separación=0.995m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=49682.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 442 ↔ VM 6279  (track 136)
+      Inicio:    t=50316.7s | separación=0.996m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=50319.2s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 3790 ↔ VM 13367  (track 224)
+      Inicio:    t=51107.5s | separación=0.996m | pos=(20442.9, -7.4, -0.4)
+      Fin:       t=51110.0s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 1466 ↔ VM 6129  (track 227)
+      Inicio:    t=51271.6s | separación=0.997m | pos=(20443.0, 0.0, -0.4)
+      Fin:       t=51274.2s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 4381 ↔ VM 13302  (track 136)
+      Inicio:    t=51275.6s | separación=0.997m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=51278.2s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 8924 ↔ VM 9721  (track 139)
+      Inicio:    t=51307.6s | separación=0.996m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=51308.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2573 ↔ VM 4807  (track 227)
+      Inicio:    t=51311.0s | separación=0.996m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=51311.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3978 ↔ VM 7963  (track 224)
+      Inicio:    t=51391.7s | separación=0.996m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=51392.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6513 ↔ VM 8999  (track 230)
+      Inicio:    t=51454.6s | separación=0.996m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=51455.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 428 ↔ VM 10745  (track 224)
+      Inicio:    t=51534.0s | separación=0.996m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=51534.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3136 ↔ VM 13315  (track 136)
+      Inicio:    t=51974.5s | separación=0.996m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=51975.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5103 ↔ VM 8119  (track 224)
+      Inicio:    t=52111.7s | separación=0.996m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=52112.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 11310 ↔ VM 12028  (track 230)
+      Inicio:    t=52180.9s | separación=0.996m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=52181.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 499 ↔ VM 10265  (track 133)
+      Inicio:    t=52784.7s | separación=0.997m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=52785.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8170 ↔ VM 12991  (track 230)
+      Inicio:    t=52894.9s | separación=0.997m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=52895.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8553 ↔ VM 11011  (track 139)
+      Inicio:    t=52934.4s | separación=0.997m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=52935.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9888 ↔ VM 9971  (track 133)
+      Inicio:    t=53039.4s | separación=0.997m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=53040.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5118 ↔ VM 13066  (track 136)
+      Inicio:    t=53050.9s | separación=0.997m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=53051.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 806 ↔ VM 7818  (track 224)
+      Inicio:    t=53142.8s | separación=0.997m | pos=(20442.9, -7.4, -0.4)
+      Fin:       t=53145.3s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 12861 ↔ VM 12992  (track 227)
+      Inicio:    t=53220.4s | separación=0.997m | pos=(20442.9, 0.0, -0.4)
+      Fin:       t=53222.9s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 3076 ↔ VM 4629  (track 139)
+      Inicio:    t=53334.8s | separación=0.997m | pos=(12442.9, 7.4, -0.4)
+      Fin:       t=53337.3s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 10458 ↔ VM 11221  (track 227)
+      Inicio:    t=53473.2s | separación=0.997m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=53474.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3470 ↔ VM 10063  (track 139)
+      Inicio:    t=54223.0s | separación=0.997m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=54223.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 192 ↔ VM 12203  (track 139)
+      Inicio:    t=54404.2s | separación=0.997m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=54405.0s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2567 ↔ VM 8277  (track 133)
+      Inicio:    t=54562.3s | separación=0.997m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=54563.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4093 ↔ VM 9114  (track 133)
+      Inicio:    t=54644.7s | separación=0.997m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=54645.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5107 ↔ VM 12422  (track 136)
+      Inicio:    t=55345.9s | separación=0.998m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=55346.7s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 3522 ↔ VM 12472  (track 230)
+      Inicio:    t=55558.3s | separación=0.998m | pos=(20447.7, 7.5, -0.1)
+      Fin:       t=55559.1s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 2199 ↔ VM 9966  (track 230)
+      Inicio:    t=55563.7s | separación=0.998m | pos=(20447.7, 7.5, -0.1)
+      Fin:       t=55564.5s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 3800 ↔ VM 8704  (track 139)
+      Inicio:    t=55712.9s | separación=0.998m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=55713.7s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 9277 ↔ VM 13534  (track 224)
+      Inicio:    t=55716.8s | separación=0.999m | pos=(20442.9, -7.4, -0.4)
+      Fin:       t=55719.4s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 7675 ↔ VM 11871  (track 227)
+      Inicio:    t=55802.5s | separación=0.999m | pos=(20442.9, 0.0, -0.4)
+      Fin:       t=55805.1s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 7720 ↔ VM 12430  (track 227)
+      Inicio:    t=56215.8s | separación=0.998m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=56216.6s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 7163 ↔ VM 7169  (track 139)
+      Inicio:    t=56345.6s | separación=0.999m | pos=(12442.8, 7.4, -0.4)
+      Fin:       t=56348.2s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 5758 ↔ VM 13159  (track 133)
+      Inicio:    t=56879.2s | separación=0.999m | pos=(12442.8, -7.4, -0.4)
+      Fin:       t=56881.8s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 7443 ↔ VM 8802  (track 224)
+      Inicio:    t=57178.6s | separación=0.999m | pos=(20447.7, -7.5, -0.1)
+      Fin:       t=57179.5s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 10029 ↔ VM 10745  (track 139)
+      Inicio:    t=57257.0s | separación=0.999m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=57257.9s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 6405 ↔ VM 8129  (track 133)
+      Inicio:    t=58237.8s | separación=1.000m | pos=(12442.8, -7.4, -0.4)
+      Fin:       t=58240.3s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 2040 ↔ VM 11405  (track 227)
+      Inicio:    t=58531.8s | separación=0.993m | pos=(20447.9, 0.0, -0.1)
+      Fin:       t=58532.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8911 ↔ VM 13195  (track 227)
+      Inicio:    t=58694.2s | separación=1.000m | pos=(20442.9, 0.0, -0.4)
+      Fin:       t=58696.7s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 3016 ↔ VM 8618  (track 136)
+      Inicio:    t=60002.9s | separación=0.996m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=60005.4s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 3660 ↔ VM 10985  (track 139)
+      Inicio:    t=60416.8s | separación=0.996m | pos=(12442.9, 7.4, -0.4)
+      Fin:       t=60419.4s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 12744 ↔ VM 12765  (track 230)
+      Inicio:    t=61423.3s | separación=0.995m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=61424.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3482 ↔ VM 11548  (track 139)
+      Inicio:    t=61712.9s | separación=0.996m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=61713.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2255 ↔ VM 9540  (track 230)
+      Inicio:    t=62868.5s | separación=0.996m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=62869.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 551 ↔ VM 11818  (track 230)
+      Inicio:    t=63025.5s | separación=0.996m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=63026.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2871 ↔ VM 11839  (track 230)
+      Inicio:    t=63836.3s | separación=0.997m | pos=(20447.8, 7.5, -0.1)
+      Fin:       t=63837.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4429 ↔ VM 6894  (track 136)
+      Inicio:    t=64241.6s | separación=0.997m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=64242.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5070 ↔ VM 9991  (track 136)
+      Inicio:    t=64965.4s | separación=0.998m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=64966.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 6096 ↔ VM 8500  (track 133)
+      Inicio:    t=65363.7s | separación=0.998m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=65364.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3344 ↔ VM 7594  (track 139)
+      Inicio:    t=65364.6s | separación=0.998m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=65365.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4384 ↔ VM 5386  (track 139)
+      Inicio:    t=65683.2s | separación=0.999m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=65684.1s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 4581 ↔ VM 9488  (track 227)
+      Inicio:    t=65728.6s | separación=0.998m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=65729.4s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9561 ↔ VM 13364  (track 227)
+      Inicio:    t=66278.3s | separación=0.999m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=66279.2s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 1761 ↔ VM 7522  (track 136)
+      Inicio:    t=66886.6s | separación=0.999m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=66887.5s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 4214 ↔ VM 9654  (track 136)
+      Inicio:    t=67059.4s | separación=0.999m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=67060.2s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 4528 ↔ VM 11573  (track 230)
+      Inicio:    t=67116.2s | separación=0.999m | pos=(20442.8, 7.4, -0.4)
+      Fin:       t=67118.8s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 6040 ↔ VM 12882  (track 224)
+      Inicio:    t=67447.4s | separación=0.999m | pos=(20447.7, -7.5, -0.1)
+      Fin:       t=67448.2s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 2724 ↔ VM 5411  (track 224)
+      Inicio:    t=68263.4s | separación=0.999m | pos=(20447.7, -7.5, -0.1)
+      Fin:       t=68264.2s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 1796 ↔ VM 7481  (track 136)
+      Inicio:    t=68311.1s | separación=0.999m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=68311.9s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 2663 ↔ VM 11164  (track 230)
+      Inicio:    t=68666.7s | separación=0.999m | pos=(20447.7, 7.5, -0.1)
+      Fin:       t=68667.5s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 2613 ↔ VM 8046  (track 227)
+      Inicio:    t=68896.0s | separación=0.995m | pos=(20443.0, 0.0, -0.4)
+      Fin:       t=68898.5s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 1965 ↔ VM 8966  (track 133)
+      Inicio:    t=69189.8s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=69190.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 383 ↔ VM 8188  (track 136)
+      Inicio:    t=69190.8s | separación=0.994m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=69191.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 10132 ↔ VM 13378  (track 133)
+      Inicio:    t=69490.0s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=69490.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 882 ↔ VM 2449  (track 133)
+      Inicio:    t=70101.4s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=70102.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8702 ↔ VM 10601  (track 136)
+      Inicio:    t=70102.3s | separación=0.994m | pos=(12447.9, 0.0, -0.1)
+      Fin:       t=70103.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4924 ↔ VM 13010  (track 133)
+      Inicio:    t=70156.0s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=70156.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2249 ↔ VM 2915  (track 133)
+      Inicio:    t=70219.9s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=70220.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3526 ↔ VM 5054  (track 139)
+      Inicio:    t=70937.0s | separación=0.994m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=70937.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5606 ↔ VM 9167  (track 133)
+      Inicio:    t=71828.3s | separación=0.995m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=71829.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4417 ↔ VM 6993  (track 224)
+      Inicio:    t=72189.2s | separación=0.996m | pos=(20442.9, -7.4, -0.4)
+      Fin:       t=72191.7s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 4298 ↔ VM 11732  (track 224)
+      Inicio:    t=72606.2s | separación=0.996m | pos=(20442.9, -7.4, -0.4)
+      Fin:       t=72608.7s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 10608 ↔ VM 12994  (track 224)
+      Inicio:    t=72710.8s | separación=0.995m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=72711.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 4692 ↔ VM 6314  (track 136)
+      Inicio:    t=73292.0s | separación=0.997m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=73294.5s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 5445 ↔ VM 6257  (track 136)
+      Inicio:    t=73765.4s | separación=0.996m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=73766.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5335 ↔ VM 6099  (track 136)
+      Inicio:    t=74499.5s | separación=0.997m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=74500.3s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 9125 ↔ VM 9925  (track 230)
+      Inicio:    t=74998.2s | separación=0.998m | pos=(20442.9, 7.4, -0.4)
+      Fin:       t=75000.8s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 2419 ↔ VM 5121  (track 230)
+      Inicio:    t=75747.6s | separación=0.998m | pos=(20442.9, 7.4, -0.4)
+      Fin:       t=75750.1s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 5178 ↔ VM 12538  (track 133)
+      Inicio:    t=76489.9s | separación=0.998m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=76490.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5820 ↔ VM 11734  (track 133)
+      Inicio:    t=76651.5s | separación=0.999m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=76652.3s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 1753 ↔ VM 3963  (track 230)
+      Inicio:    t=76862.9s | separación=0.998m | pos=(20447.7, 7.5, -0.1)
+      Fin:       t=76863.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8665 ↔ VM 11830  (track 227)
+      Inicio:    t=77198.3s | separación=0.999m | pos=(20442.9, 0.0, -0.4)
+      Fin:       t=77200.8s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 2727 ↔ VM 10893  (track 224)
+      Inicio:    t=77208.5s | separación=0.999m | pos=(20447.7, -7.5, -0.1)
+      Fin:       t=77209.3s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 2773 ↔ VM 11148  (track 227)
+      Inicio:    t=77277.0s | separación=0.999m | pos=(20442.9, 0.0, -0.4)
+      Fin:       t=77279.5s | duración=2.57s | separación final=? | motivo='vm_exited'
+    VM 9622 ↔ VM 11691  (track 224)
+      Inicio:    t=77365.9s | separación=0.999m | pos=(20447.7, -7.5, -0.1)
+      Fin:       t=77366.7s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 2318 ↔ VM 2978  (track 139)
+      Inicio:    t=77759.7s | separación=0.999m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=77760.5s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 974 ↔ VM 12196  (track 136)
+      Inicio:    t=77969.4s | separación=1.000m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=77970.2s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 2306 ↔ VM 7256  (track 133)
+      Inicio:    t=78538.2s | separación=1.000m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=78539.0s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 5256 ↔ VM 10206  (track 230)
+      Inicio:    t=79031.4s | separación=1.000m | pos=(20447.7, 7.5, -0.1)
+      Fin:       t=79032.2s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 2439 ↔ VM 10934  (track 133)
+      Inicio:    t=79244.3s | separación=0.995m | pos=(12442.9, -7.4, -0.4)
+      Fin:       t=79246.9s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 881 ↔ VM 10255  (track 133)
+      Inicio:    t=80047.9s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=80048.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 8929 ↔ VM 10625  (track 139)
+      Inicio:    t=80570.3s | separación=0.995m | pos=(12442.9, 7.4, -0.4)
+      Fin:       t=80572.9s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 1300 ↔ VM 5135  (track 133)
+      Inicio:    t=80571.1s | separación=0.994m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=80571.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3451 ↔ VM 9089  (track 227)
+      Inicio:    t=81072.8s | separación=0.995m | pos=(20447.9, 0.0, -0.1)
+      Fin:       t=81073.6s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 2940 ↔ VM 12573  (track 136)
+      Inicio:    t=81560.8s | separación=0.996m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=81563.3s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 987 ↔ VM 7426  (track 136)
+      Inicio:    t=81607.7s | separación=0.996m | pos=(12443.0, 0.0, -0.4)
+      Fin:       t=81610.2s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 5929 ↔ VM 9043  (track 136)
+      Inicio:    t=82159.9s | separación=0.995m | pos=(12447.8, 0.0, -0.1)
+      Fin:       t=82160.7s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3273 ↔ VM 6457  (track 224)
+      Inicio:    t=82332.0s | separación=0.996m | pos=(20442.9, -7.4, -0.4)
+      Fin:       t=82334.5s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 2437 ↔ VM 8813  (track 227)
+      Inicio:    t=82347.3s | separación=0.995m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=82348.1s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 11378 ↔ VM 12988  (track 227)
+      Inicio:    t=82592.1s | separación=0.995m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=82592.9s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3104 ↔ VM 4430  (track 224)
+      Inicio:    t=83164.5s | separación=0.997m | pos=(20442.9, -7.4, -0.4)
+      Fin:       t=83167.0s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 6564 ↔ VM 6658  (track 139)
+      Inicio:    t=83452.4s | separación=0.996m | pos=(12447.8, 7.5, -0.1)
+      Fin:       t=83453.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 705 ↔ VM 7830  (track 133)
+      Inicio:    t=84272.7s | separación=0.996m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=84273.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 202 ↔ VM 4206  (track 224)
+      Inicio:    t=84394.0s | separación=0.996m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=84394.8s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5297 ↔ VM 12733  (track 133)
+      Inicio:    t=84748.4s | separación=0.997m | pos=(12447.8, -7.5, -0.1)
+      Fin:       t=84749.2s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 894 ↔ VM 12526  (track 224)
+      Inicio:    t=85472.7s | separación=0.997m | pos=(20447.8, -7.5, -0.1)
+      Fin:       t=85473.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 3586 ↔ VM 5660  (track 227)
+      Inicio:    t=85747.0s | separación=0.998m | pos=(20442.9, 0.0, -0.4)
+      Fin:       t=85749.5s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 249 ↔ VM 660  (track 227)
+      Inicio:    t=85758.3s | separación=0.998m | pos=(20442.9, 0.0, -0.4)
+      Fin:       t=85760.8s | duración=2.53s | separación final=? | motivo='vm_exited'
+    VM 4123 ↔ VM 12714  (track 227)
+      Inicio:    t=85995.7s | separación=0.997m | pos=(20447.8, 0.0, -0.1)
+      Fin:       t=85996.5s | duración=0.80s | separación final=? | motivo='vm_exited'
+    VM 5678 ↔ VM 7596  (track 139)
+      Inicio:    t=86127.1s | separación=0.998m | pos=(12447.7, 7.5, -0.1)
+      Fin:       t=86127.9s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 10810 ↔ VM 12343  (track 133)
+      Inicio:    t=86204.5s | separación=0.998m | pos=(12447.7, -7.5, -0.1)
+      Fin:       t=86205.3s | duración=0.83s | separación final=? | motivo='vm_exited'
+    VM 5600 ↔ VM 10284  (track 224)
+      Inicio:    t=86399.7s | separación=0.997m | pos=(20447.8, -7.5, -0.1)
+      Fin:       sin resolver al cierre de la corrida
+
+  Motivo de resolución:
+    'vm_exited': 483

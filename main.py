@@ -22,7 +22,7 @@ SPEEDS = [1, 2, 5, 10]
 # ─── Configuración de corrida ────────────────────────────────────────────
 SCENARIO_NAME = "linea_1_edit"
 SEED          = 42
-HEADLESS      = True    # True = sin render, tan rápido como el CPU
+HEADLESS      = False    # True = sin render, tan rápido como el CPU
 SIM_DURATION  = 86400   # segundos simulados (solo si HEADLESS = True)
 # ─────────────────────────────────────────────────────────────────────────
 
